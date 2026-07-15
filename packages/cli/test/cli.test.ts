@@ -626,7 +626,7 @@ describe('usage and stubs', () => {
     const rollback = await exec(['rollback']);
     expect(rollback.code).toBe(2);
     expect(rollback.stderr).toContain(
-      'iap rollback: not yet available — requires Phase 14 (Deployment, State, Verification and Drift) engines; tracked in ROADMAP.yaml',
+      'iap rollback: not yet available — requires Phase 14 (Deployment, State, Verification and Drift) engines; planned for a future release',
     );
     // `create` shipped in M5.3; `edit` (incremental authoring) stays gated on Phase 3.
     const edit = await exec(['edit']);

@@ -29,7 +29,7 @@ export const STUB_COMMANDS: Readonly<Record<string, { phase: string; title: stri
 export function stubCommand(name: string, io: CliIO): number {
   const stub = STUB_COMMANDS[name] as { phase: string; title: string };
   io.stderr.write(
-    `iap ${name}: not yet available — requires Phase ${stub.phase} (${stub.title}) engines; tracked in ROADMAP.yaml\n`,
+    `iap ${name}: not yet available — requires Phase ${stub.phase} (${stub.title}) engines; planned for a future release\n`,
   );
   return EXIT_USAGE;
 }

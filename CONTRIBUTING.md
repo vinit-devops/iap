@@ -2,16 +2,14 @@
 
 Thank you for contributing to the Infrastructure as Prompt (IaP). This guide covers the development workflow, local commands, and what "done" means here.
 
-> **Current mode — no git yet.** This repository is intentionally not under version control during the bootstrap phase. The branch/PR workflow below is staged and inert until git is enabled. Until then, **reviewable milestone documents under [`docs/milestones/`](docs/milestones/) substitute for pull requests**: every unit of work produces a milestone report that serves as the review artifact. Everything else in this guide applies unchanged.
-
-## Development workflow (roadmap §9.1)
+## Development workflow
 
 1. **Never commit directly to the protected `main` branch.** Create a branch for every feature or phase increment (e.g. `feature/short-topic`).
 2. **Submit changes through pull requests.** Tests and review are required before merge.
 3. **Keep each pull request small enough to review.** Split large phases into milestones.
 4. **Use [Conventional Commits](https://www.conventionalcommits.org/)** — `feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`, with scopes like `feat(parser): ...`.
 5. **Add a changelog entry** to the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md) for every user-visible change.
-6. **Link every change to a roadmap item or an IEP** in the PR description (or milestone report).
+6. **Link every change to an IEP or issue** in the PR description.
 
 ### Specification changes
 

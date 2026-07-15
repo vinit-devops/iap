@@ -34,6 +34,4 @@ M0.1 established the workspace; this ADR records the decisions it embodied.
 
 ## References
 
-- Roadmap §8 (Initial Engineering Strategy), §9.1 (Development workflow)
-- [docs/milestones/M0.1-monorepo-foundation.md](../milestones/M0.1-monorepo-foundation.md)
 - ADR-0002 (JSON Schema as the normative machine-readable contract)

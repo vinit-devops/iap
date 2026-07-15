@@ -44,7 +44,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@iis/model` canonicalization engine: CIM types (IEP-0008), exact-rational quantity/duration engine (BigInt, no floating point), RFC 7386 profile merger, schema-driven default materializer, §4.7 edge flattener, canonical JSON + SHA-256 hashing with golden vectors (M2.2+M2.3)
 - `@iis/parser` extensions: per-node source maps (JSON Pointer → range), alias-expansion limits, file/stream input, position-attached findings (M2.1)
 - Executable semantic conformance: the harness now runs `@iis/validator` against every phase-1–4 case and asserts the expected IIS code is actually produced (M2.4/M2.6 harness upgrade)
-- Phase 2 completion report (`docs/reports/phase-2-completion.md`) verifying all six phase-2 exit criteria
 
 - Canonicalization precision: quantity/duration normalization algorithm and default-materialization rules (ch. 1 §1.5.1–§1.5.2, M1.1)
 - Machine-readable per-kind resilience defaults, edge `access` default, `x-iis-presence-semantic`/`x-iis-default-when` annotations (M1.2)

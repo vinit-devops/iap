@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "iap": {
-      "command": "npx",
-      "args": ["-y", "@infraasprompt/mcp-server"]
-    }
-  }
-}
