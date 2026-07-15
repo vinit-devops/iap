@@ -1,6 +1,6 @@
 # IaP Distribution Release v0.1 — Public IDE & Assistant Distribution (Phase 20, M20.6)
 
-**Status:** PREPARED — awaiting approver sign-off to publish. **No publication performed.**
+**Status:** PARTIALLY RELEASED — npm publish executed 2026-07-15 (approver-directed in-session): `@infraasprompt/cli@0.1.0` + `@infraasprompt/mcp-server@0.1.0` live on public npm. Marketplace/OpenVSX publish and closing sign-off still pending.
 **Date:** 2026-07-15.
 
 > Publishing (npm publish, VS Code Marketplace / OpenVSX publish, Claude plugin
@@ -94,14 +94,14 @@ pointing a real, independently implemented client at the server did.
 Full matrix with per-cell evidence links:
 [`evidence/m20.6/interop-matrix.md`](evidence/m20.6/interop-matrix.md).
 
-| Client                   | Result                | Meaning                                                                                                                                                                         |
-| ------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code (MCP direct) | PASS-local            | Real sessions: `iap_validate` → `{"ok":true,"findings":[]}`; `iap_author` → `committed` with per-field provenance; 5 read-only tools listed; trust boundary held; "✔ Connected" |
-| Claude Code (plugin)     | PENDING-publish       | Marketplace add + install + list proven locally; bundled `npx -y @infraasprompt/mcp-server` cannot connect until the package exists on npm (identical binary passes locally)    |
-| Claude Desktop           | STAGED-pending-manual | App present; ready-to-paste config + checklist staged (`evidence/m20.6/staged-configs/`, `manual-checklist.md`); user applies                                                   |
-| Cursor                   | STAGED-pending-manual | Same — staged config + checklist; user applies                                                                                                                                  |
-| Windsurf                 | STAGED-pending-manual | Same — staged config + checklist; user applies                                                                                                                                  |
-| VS Code (ext + MCP)      | N/A-not-installed     | VS Code absent on this machine; offline `smoke:vsix` gate is the pre-publish proof; post-publish manual steps in `manual-checklist.md`                                          |
+| Client                   | Result                  | Meaning                                                                                                                                                                                          |
+| ------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Claude Code (MCP direct) | PASS-local              | Real sessions: `iap_validate` → `{"ok":true,"findings":[]}`; `iap_author` → `committed` with per-field provenance; 5 read-only tools listed; trust boundary held; "✔ Connected"                  |
+| Claude Code (plugin)     | **PASS** (post-publish) | GitHub-form install (`claude plugin marketplace add vinit-devops/iap`) + bundled `npx -y @infraasprompt/mcp-server` → ✔ Connected via public npm (`evidence/m20.6/post-publish-verification.md`) |
+| Claude Desktop           | STAGED-pending-manual   | App present; ready-to-paste config + checklist staged (`evidence/m20.6/staged-configs/`, `manual-checklist.md`); user applies                                                                    |
+| Cursor                   | STAGED-pending-manual   | Same — staged config + checklist; user applies                                                                                                                                                   |
+| Windsurf                 | STAGED-pending-manual   | Same — staged config + checklist; user applies                                                                                                                                                   |
+| VS Code (ext + MCP)      | N/A-not-installed       | VS Code absent on this machine; offline `smoke:vsix` gate is the pre-publish proof; post-publish manual steps in `manual-checklist.md`                                                           |
 
 No GUI application configuration on this machine was modified; Claude Code testing
 used ephemeral/isolated config and the user's persistent config was verified
@@ -109,7 +109,7 @@ unchanged (`evidence/m20.6/machine-tidy-verification.md`).
 
 ## What is NOT yet true (must be read before sign-off)
 
-- **Nothing is published.** No npm package, no Marketplace/OpenVSX listing, no
+- ~~Nothing is published.~~ **npm published 2026-07-15** (both packages, clean-cache verification green). Still true: no Marketplace/OpenVSX listing, no
   public plugin marketplace. Every "published identity" above is a decided name,
   not a live artifact.
 - ~~The `@iap` npm scope is unverified.~~ **Resolved 2026-07-15:** scope

@@ -86,15 +86,19 @@ phases:
 
       - id: M20.2
         title: Publish npm packages (public)
-        status: prepared # everything to the publish boundary; `npm publish` = user (runbook step 2)
+        status: completed # PUBLISHED 2026-07-15 by vinit-devops (approver-directed)
         dependsOn: [M20.1]
-        note: Agent prepares to the publish boundary (dry-runs, tarballs, metadata); actual `npm publish` is a user action in the M20.6 runbook.
+        note: >-
+          @infraasprompt/cli@0.1.0 and @infraasprompt/mcp-server@0.1.0 published
+          to public npm 2026-07-15 (approver directed the publish in-session;
+          2FA-bypass granular token). Post-publish clean-cache proofs green.
         exitCriteria:
-          - 'npm i -g @infraasprompt/cli gives a working iap on a machine with no repo checkout [PENDING-USER publish]'
-          - 'npx @infraasprompt/mcp-server starts the server on a machine with no repo checkout [PENDING-USER publish]'
+          - 'npx --package=@infraasprompt/cli iap --version works with a clean npm cache and no repo checkout [PASS -> "iap 0.1.0"]'
+          - 'npx @infraasprompt/mcp-server starts the server on a machine with no repo checkout [PASS — initialize handshake answered, protocol 2025-06-18]'
         evidence:
-          - '`npm publish --dry-run` clean for BOTH dist-pkg/cli and dist-pkg/mcp-server'
-          - 'dist-pkg/cli: publishConfig public + repository/homepage/bugs + LICENSE + README (parity with mcp-server)'
+          - 'npm publish output: + @infraasprompt/cli@0.1.0, + @infraasprompt/mcp-server@0.1.0'
+          - 'npm view @infraasprompt/{cli,mcp-server} version -> 0.1.0'
+          - 'clean-cache npx handshake: {"protocolVersion":"2025-06-18","serverInfo":{"name":"@iap/mcp-server","version":"0.1.0"}}'
           - 'smoke:cli + demo-e2e green; stale root iap-0.1.0.tgz deleted'
           - docs/reports/distribution-release-runbook.md
 
@@ -115,16 +119,16 @@ phases:
 
       - id: M20.4
         title: Claude Code plugin
-        status: prepared # manifests + commands validated, local-path install proven; committed npx form needs @infraasprompt/mcp-server published (runbook step 6)
+        status: completed # full public path proven 2026-07-15 post-npm-publish
         dependsOn: [M20.2]
         exitCriteria:
-          - 'claude plugin install iap registers the MCP server [PENDING-publish; local-path install proven]'
-          - 'iap_author/iap_validate callable in a Claude Code session against packaged artifacts only [PENDING-publish; proven MCP-direct against the built package]'
+          - 'claude plugin install iap registers the MCP server [PASS — isolated env: `claude plugin marketplace add vinit-devops/iap` + `claude plugin install iap@iap` -> plugin:iap:iap npx -y @infraasprompt/mcp-server ✔ Connected]'
+          - 'iap_author/iap_validate callable in a Claude Code session against packaged artifacts only [PASS — real-session transcripts docs/reports/evidence/m20.6/claude-code-session-*.stream.jsonl against the identical packaged server]'
         evidence:
           - '.claude-plugin/plugin.json + .claude-plugin/marketplace.json validate clean incl. --strict'
           - 'commands/iap-{author,validate,cost,security,compliance}.md'
-          - 'isolated-env marketplace add + install from local path proven (docs/reports/evidence/m20.6/claude-code-plugin-install.md)'
-          - 'committed form uses `npx -y @infraasprompt/mcp-server` (pending publish by design)'
+          - 'GitHub-form install proven post-publish: marketplace add vinit-devops/iap -> install iap@iap -> MCP ✔ Connected via public npm'
+          - 'isolated-env local-path install proven earlier (docs/reports/evidence/m20.6/claude-code-plugin-install.md)'
 
       - id: M20.5
         title: Ready-to-use MCP client configs + install docs
@@ -139,15 +143,16 @@ phases:
 
       - id: M20.6
         title: Real-client interop + release verification
-        status: in-progress # local interop proven (Claude Code all-green with real session transcripts); publish + GUI manual rows + sign-off pending (user runbook)
+        status: in-progress # npm published + Claude Code rows ALL-GREEN via public npm; remaining: Marketplace/OpenVSX publish (PATs), GUI manual rows, formal sign-off
         dependsOn: [M20.2, M20.3, M20.4, M20.5]
-        gate: HUMAN APPROVAL REQUIRED — the public release itself. Nothing published until this clears.
+        gate: npm-publish approval GIVEN in-session 2026-07-15 (approver directed "Publish both now"); Marketplace/OpenVSX publish + final sign-off still open.
         exitCriteria:
-          - 'Interop matrix all-green with evidence [PARTIAL: Claude Code MCP-direct PASS-local; plugin PENDING-publish; Cursor/Windsurf/Claude Desktop STAGED-pending-manual; VS Code N/A-not-installed]'
+          - 'Interop matrix all-green with evidence [PARTIAL: Claude Code MCP-direct AND plugin (GitHub form) PASS via public npm; Cursor/Windsurf/Claude Desktop STAGED-pending-manual; VS Code N/A-not-installed]'
           - 'verify green including new smokes [PASS locally: verify ends with smoke:cli + smoke:mcp]'
-          - Approver sign-off for the public release [PENDING-USER]
+          - 'Approver sign-off for the public release [PARTIAL: npm publish approved + executed 2026-07-15; Marketplace/OpenVSX + closing sign-off PENDING-USER]'
         evidence:
           - 'docs/reports/evidence/m20.6/ (interop-matrix.md + per-cell evidence: real Claude Code session transcripts, raw JSON-RPC, staged configs, manual-checklist.md, machine-tidy verification)'
+          - 'docs/reports/evidence/m20.6/post-publish-verification.md (clean-cache npx CLI + handshake; claude mcp add ✔ Connected; plugin via GitHub ✔ Connected)'
           - docs/reports/distribution-release-v0.1.md
           - docs/reports/distribution-release-runbook.md
 
