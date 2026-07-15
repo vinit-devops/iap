@@ -104,17 +104,18 @@ phases:
 
       - id: M20.3
         title: VS Code Marketplace + OpenVSX publish
-        status: in-progress # Marketplace PUBLISHED 2026-07-15 (infraasprompt.iap-vscode v0.1.0, approver-directed); OpenVSX publish still pending (Eclipse account + OVSX_PAT, runbook step 5)
+        status: completed # BOTH registries published 2026-07-15 (approver-directed); live-install spot-checks remain in M20.6
         dependsOn: [M20.0]
         note: >-
-          Marketplace half done: `vsce publish` succeeded 2026-07-15 under
-          publisher `infraasprompt` (was `iap` pre-registration) —
-          https://marketplace.visualstudio.com/items?itemName=infraasprompt.iap-vscode
-          OpenVSX (Cursor/Windsurf extension path) remains a user action.
+          Published under publisher/namespace `infraasprompt` (was `iap`
+          pre-registration): VS Code Marketplace via `vsce publish` and OpenVSX
+          via `ovsx publish dist/iap-vscode-0.1.0.vsix` (namespace created
+          same day). Live-install verification on a VS Code/Cursor machine is
+          tracked under M20.6.
         exitCriteria:
-          - 'Fresh VS Code installs via Marketplace [PUBLISHED 2026-07-15; live-install verification pending on a machine with VS Code]'
-          - Fresh Cursor installs via OpenVSX [PENDING-USER publish]
-          - 'Opening infrastructure.iap.yaml yields diagnostics/hover/completion with no manual bin setup [PENDING-USER; offline smoke:vsix green as pre-publish proof]'
+          - 'Fresh VS Code installs via Marketplace [PUBLISHED 2026-07-15 — https://marketplace.visualstudio.com/items?itemName=infraasprompt.iap-vscode ; live-install verification pending on a machine with VS Code]'
+          - 'Fresh Cursor installs via OpenVSX [PUBLISHED 2026-07-15 — https://open-vsx.org/extension/infraasprompt/iap-vscode ; live-install verification pending]'
+          - 'Opening infrastructure.iap.yaml yields diagnostics/hover/completion with no manual bin setup [offline smoke:vsix green as pre-publish proof; live check pending]'
         evidence:
           - 'extensions/vscode publishable: private removed, publisher infraasprompt, icon.png (placeholder), repository/keywords/galleryBanner, CHANGELOG.md, LICENSE.txt in vsix, .vscodeignore'
           - '`npx @vscode/vsce package` -> clean vsix (13 files, 314KB)'
