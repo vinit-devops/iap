@@ -1,0 +1,121 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2025-06-18",
+      "serverInfo": {
+        "name": "@iap/mcp-server",
+        "version": "0.1.0"
+      },
+      "capabilities": {
+        "tools": {}
+      }
+    }
+  },
+  {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "tools": [
+        {
+          "name": "iap_author",
+          "description": "Author IaP from a natural-language requirement. Runs the intent compiler (extract → clarify → gate). Returns the outcome, clarifications, a semantic preview, and — only when it fully commits — the document and its per-field provenance. Never writes to disk or deploys.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "request": {
+                "type": "string",
+                "description": "The natural-language infrastructure requirement to author from."
+              },
+              "timestamp": {
+                "type": "string",
+                "description": "ISO-8601 timestamp for deterministic authoring (defaults to epoch)."
+              },
+              "name": {
+                "type": "string",
+                "description": "Name for the authored document."
+              },
+              "autoAnswerDefaults": {
+                "type": "boolean",
+                "description": "Auto-answer clarifications with their defaults where safe."
+              }
+            },
+            "required": [
+              "request"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "name": "iap_compliance",
+          "description": "Evaluate active compliance framework bundles and return the evidence report (ch. 17). Read-only.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "document": {
+                "type": "string",
+                "description": "The IaP document text (YAML) to analyse."
+              }
+            },
+            "required": [
+              "document"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "name": "iap_cost",
+          "description": "Estimate cost and evaluate budgets for an IaP document (ch. 16). Read-only.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "document": {
+                "type": "string",
+                "description": "The IaP document text (YAML) to analyse."
+              }
+            },
+            "required": [
+              "document"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "name": "iap_security",
+          "description": "Derive the security posture (grants, reachability, IAP6xx findings) for an IaP document (ch. 15). Read-only.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "document": {
+                "type": "string",
+                "description": "The IaP document text (YAML) to analyse."
+              }
+            },
+            "required": [
+              "document"
+            ],
+            "additionalProperties": false
+          }
+        },
+        {
+          "name": "iap_validate",
+          "description": "Validate an IaP document (phases 1–5) and return the findings. Read-only.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "document": {
+                "type": "string",
+                "description": "The IaP document text (YAML) to analyse."
+              }
+            },
+            "required": [
+              "document"
+            ],
+            "additionalProperties": false
+          }
+        }
+      ]
+    }
+  }
+]

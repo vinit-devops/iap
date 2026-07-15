@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
-  "license": "SEE LICENSE (TBD)",
+  "license": "Apache-2.0",
   "dependencies": {
     "@iap/designer": "workspace:*",
     "@iap/sdk": "workspace:*"

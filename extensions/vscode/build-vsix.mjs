@@ -53,13 +53,16 @@ rmSync(distDir, { recursive: true, force: true });
 mkdirSync(payloadDir, { recursive: true });
 
 /* PROD payload ONLY: the bundled entry, the bundled server tree, language
- * config, manifest and README. The unbundled `extension.js`, `src`, tests,
- * `node_modules`, and the build scripts are deliberately EXCLUDED. */
+ * config, manifest, README, CHANGELOG, icon and LICENSE (marketplace listing
+ * assets). The unbundled `extension.js`, `src`, tests, `node_modules`, and the
+ * build scripts are deliberately EXCLUDED. */
 const payloadFiles = [
   'package.json',
   'extension.bundled.js',
   'language-configuration.json',
   'README.md',
+  'CHANGELOG.md',
+  'icon.png',
 ];
 for (const file of payloadFiles) {
   const src = join(extRoot, file);
@@ -69,6 +72,15 @@ for (const file of payloadFiles) {
   cpSync(src, join(payloadDir, file));
 }
 
+/* LICENSE comes from the repo root (single source of truth; Apache-2.0).
+ * Staged as extension/LICENSE.txt — the name vsce uses and the marketplace
+ * renders for the listing's license link. */
+const licenseSrc = join(extRoot, '..', '..', 'LICENSE');
+if (!existsSync(licenseSrc)) {
+  throw new Error(`missing repo-root LICENSE: ${licenseSrc}`);
+}
+cpSync(licenseSrc, join(payloadDir, 'LICENSE.txt'));
+
 /* The self-contained language server (server.js + schemas/ + package.json). */
 const serverSrc = join(extRoot, 'server');
 const serverEntry = join(serverSrc, 'server.js');
@@ -76,7 +88,7 @@ if (!existsSync(serverEntry)) {
   throw new Error(`missing bundled server: ${serverEntry} — run build-server.mjs`);
 }
 cpSync(serverSrc, join(payloadDir, 'server'), { recursive: true });
-log(`staged ${payloadFiles.length} payload files + server/ under extension/`);
+log(`staged ${payloadFiles.length} payload files + LICENSE.txt + server/ under extension/`);
 
 /* 2. [Content_Types].xml at the archive root. */
 const contentTypes = `<?xml version="1.0" encoding="utf-8"?>
@@ -84,6 +96,8 @@ const contentTypes = `<?xml version="1.0" encoding="utf-8"?>
   <Default Extension="json" ContentType="application/json" />
   <Default Extension="js" ContentType="application/javascript" />
   <Default Extension="md" ContentType="text/markdown" />
+  <Default Extension="png" ContentType="image/png" />
+  <Default Extension="txt" ContentType="text/plain" />
   <Default Extension="vsixmanifest" ContentType="text/xml" />
 </Types>
 `;
@@ -97,14 +111,21 @@ const vsixManifest = `<?xml version="1.0" encoding="utf-8"?>
     <Identity Language="en-US" Id="${xmlEscape(name)}" Version="${xmlEscape(version)}" Publisher="${xmlEscape(publisher)}" />
     <DisplayName>${xmlEscape(displayName)}</DisplayName>
     <Description xml:space="preserve">${xmlEscape(description)}</Description>
-    <Tags>iap,yaml,infrastructure,lsp</Tags>
+    <Tags>iap,yaml,infrastructure,lsp,infrastructure-as-code,devops</Tags>
     <Categories>Programming Languages</Categories>
     <GalleryFlags>Public</GalleryFlags>
     <Properties>
       <Property Id="Microsoft.VisualStudio.Code.Engine" Value="${xmlEscape(engineVscode)}" />
       <Property Id="Microsoft.VisualStudio.Code.ExtensionDependencies" Value="" />
       <Property Id="Microsoft.VisualStudio.Code.ExtensionPack" Value="" />
+      <Property Id="Microsoft.VisualStudio.Services.Links.Source" Value="https://github.com/vinit-devops/iap" />
+      <Property Id="Microsoft.VisualStudio.Services.Links.Getstarted" Value="https://github.com/vinit-devops/iap" />
+      <Property Id="Microsoft.VisualStudio.Services.Links.Support" Value="https://github.com/vinit-devops/iap/issues" />
+      <Property Id="Microsoft.VisualStudio.Services.Branding.Color" Value="#1e293b" />
+      <Property Id="Microsoft.VisualStudio.Services.Branding.Theme" Value="dark" />
     </Properties>
+    <License>extension/LICENSE.txt</License>
+    <Icon>extension/icon.png</Icon>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Code" />
@@ -113,6 +134,9 @@ const vsixManifest = `<?xml version="1.0" encoding="utf-8"?>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true" />
     <Asset Type="Microsoft.VisualStudio.Services.Content.Details" Path="extension/README.md" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/CHANGELOG.md" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
+    <Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/icon.png" Addressable="true" />
   </Assets>
 </PackageManifest>
 `;

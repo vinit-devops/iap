@@ -44,12 +44,21 @@ function log(msg) {
   process.stdout.write(`[build-server] ${msg}\n`);
 }
 
-/* 1. Ensure the language server (and its @iap/* engines) are built. */
+/* 1. Ensure the language server (and its @iap/* engines) are built. Prefer a
+ *    `pnpm` on PATH; fall back to `corepack pnpm` (repo standard when no pnpm
+ *    shim is installed). */
 log('building @iap/language-server …');
-execFileSync('pnpm', ['--filter', '@iap/language-server', 'run', 'build'], {
-  cwd: repoRoot,
-  stdio: 'inherit',
-});
+const pnpmArgs = ['--filter', '@iap/language-server', 'run', 'build'];
+try {
+  execFileSync('pnpm', pnpmArgs, { cwd: repoRoot, stdio: 'inherit' });
+} catch (err) {
+  if (err && err.code === 'ENOENT') {
+    log('`pnpm` not on PATH — retrying via `corepack pnpm`');
+    execFileSync('corepack', ['pnpm', ...pnpmArgs], { cwd: repoRoot, stdio: 'inherit' });
+  } else {
+    throw err;
+  }
+}
 
 const entry = join(repoRoot, 'packages/language-server/dist/main.js');
 if (!existsSync(entry)) {

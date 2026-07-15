@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Infrastructure as Prompt (IaP) — specification, reference SDK, and ecosystem monorepo",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.5.0",
   "engines": {
     "node": ">=22"
@@ -28,7 +29,9 @@
     "build:cli-pkg": "node tools/packaging/build-cli.mjs",
     "smoke:cli": "node tools/packaging/build-cli.mjs && node tools/packaging/smoke-cli.mjs",
     "smoke:demo": "node tools/packaging/build-cli.mjs && node tools/packaging/demo-e2e.mjs",
-    "verify": "pnpm run build && pnpm run lint && pnpm run test && pnpm run test:spec && pnpm run test:providers && pnpm run test:determinism && pnpm run test:eval && pnpm run check:names && pnpm run scan:secrets"
+    "build:mcp-pkg": "node tools/packaging/build-mcp.mjs",
+    "smoke:mcp": "node tools/packaging/build-mcp.mjs && node tools/packaging/smoke-mcp.mjs",
+    "verify": "pnpm run build && pnpm run lint && pnpm run test && pnpm run test:spec && pnpm run test:providers && pnpm run test:determinism && pnpm run test:eval && pnpm run check:names && pnpm run scan:secrets && pnpm run smoke:cli && pnpm run smoke:mcp"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

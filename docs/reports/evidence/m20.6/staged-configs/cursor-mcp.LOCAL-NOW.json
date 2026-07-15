@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "iap": {
+      "command": "node",
+      "args": ["/Users/vinitkumar/iap/dist-pkg/mcp-server/dist/iap-mcp-server.js"]
+    }
+  }
+}

@@ -18,7 +18,7 @@
   "scripts": {
     "build": "node ../../tools/schema-generation/sync-schemas.mjs && tsc -p tsconfig.json"
   },
-  "license": "SEE LICENSE (TBD)",
+  "license": "Apache-2.0",
   "dependencies": {
     "@iap/model": "workspace:*",
     "@iap/parser": "workspace:*",

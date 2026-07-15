@@ -1,14 +1,17 @@
 /**
  * The MCP stdio transport (roadmap Phase 19, M19.4). Drives the ACTUAL wire
- * binding — Content-Length framing + JSON-RPC dispatch — not just the class:
- * both in-process (via `handleMessage`/`FrameDecoder`/`runStdio`) and end-to-end
- * by spawning `node dist/bin.js` and exchanging framed bytes over its stdio.
+ * binding — newline-delimited JSON framing (MCP spec 2025-06-18) + JSON-RPC
+ * dispatch — not just the class: both in-process (via
+ * `handleMessage`/`FrameDecoder`/`runStdio`) and end-to-end by spawning
+ * `node dist/bin.js` and exchanging newline-delimited bytes over its stdio.
  *
  * Pins: initialize returns serverInfo + tools capability; tools/list advertises
  * exactly the 5 canonical `iap_*` tools (no `iis_*`); a real `iap_validate` call
  * returns a non-error result; a bad/unknown tool returns `isError: true` rather
- * than crashing; unknown methods map to JSON-RPC -32601; and framing round-trips
- * even when a message is split across two chunks.
+ * than crashing; unknown methods map to JSON-RPC -32601; framing round-trips
+ * even when a message is split across two chunks; output is exactly one JSON
+ * object per line; and LSP-style `Content-Length` frames are NOT accepted
+ * (regression pin — MCP stdio is newline-delimited, not LSP).
  */
 import { spawn } from 'node:child_process';
 import { PassThrough } from 'node:stream';
@@ -137,7 +140,19 @@ describe('handleMessage — JSON-RPC dispatch', () => {
   });
 });
 
-describe('Content-Length framing', () => {
+describe('newline-delimited framing (MCP stdio)', () => {
+  it('encode produces exactly one newline-terminated line with no embedded newline', () => {
+    const encoded = encodeMessage({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'ping',
+      params: { text: 'line one\nline two' }, // newline in a value must be escaped
+    }).toString('utf8');
+    expect(encoded.endsWith('\n')).toBe(true);
+    expect(encoded.slice(0, -1)).not.toContain('\n');
+    expect(encoded).not.toContain('Content-Length');
+  });
+
   it('encode/decode round-trips a message', () => {
     const decoder = new FrameDecoder();
     const bodies = decoder.push(encodeMessage({ jsonrpc: '2.0', id: 1, method: 'initialize' }));
@@ -155,7 +170,7 @@ describe('Content-Length framing', () => {
     expect(JSON.parse(bodies[0]!)).toMatchObject({ id: 9, method: 'ping' });
   });
 
-  it('drains several frames delivered in one chunk', () => {
+  it('drains several messages delivered in one chunk', () => {
     const decoder = new FrameDecoder();
     const chunk = Buffer.concat([
       encodeMessage({ jsonrpc: '2.0', id: 1, method: 'ping' }),
@@ -163,6 +178,15 @@ describe('Content-Length framing', () => {
     ]);
     const bodies = decoder.push(chunk);
     expect(bodies.map((b) => (JSON.parse(b) as { id: number }).id)).toEqual([1, 2]);
+  });
+
+  it('tolerates \\r\\n line endings and skips blank lines', () => {
+    const decoder = new FrameDecoder();
+    const bodies = decoder.push(
+      Buffer.from('{"jsonrpc":"2.0","id":1,"method":"ping"}\r\n\r\n', 'utf8'),
+    );
+    expect(bodies).toHaveLength(1);
+    expect(JSON.parse(bodies[0]!)).toMatchObject({ id: 1, method: 'ping' });
   });
 });
 
@@ -218,6 +242,54 @@ describe('runStdio — the wire loop over piped streams', () => {
     );
     expect(call!.id).toBe(3);
     expect((call!.result as ToolResult).isError).toBe(false);
+    handle.stop();
+  });
+
+  it('writes exactly one JSON object per line to the wire', async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const logs: string[] = [];
+    const raw: Buffer[] = [];
+    output.on('data', (chunk: Buffer) => raw.push(chunk));
+    const handle = runStdio(new IaPMcpServer(), { input, output, log: (m) => logs.push(m) });
+
+    const responses = collect(output, 2);
+    input.write(encodeMessage({ jsonrpc: '2.0', id: 1, method: 'ping' }));
+    input.write(encodeMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' }));
+    await responses;
+
+    const text = Buffer.concat(raw).toString('utf8');
+    expect(text.endsWith('\n')).toBe(true);
+    const lines = text.slice(0, -1).split('\n');
+    expect(lines).toHaveLength(2); // one JSON object per line, nothing else
+    for (const line of lines) {
+      expect((JSON.parse(line) as JsonRpcResponse).jsonrpc).toBe('2.0');
+    }
+    handle.stop();
+  });
+
+  it('does NOT answer an LSP-style Content-Length-framed request (regression: MCP stdio is newline-delimited)', async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const logs: string[] = [];
+    const seen: JsonRpcResponse[] = [];
+    const decoder = new FrameDecoder();
+    output.on('data', (chunk: Buffer) => {
+      for (const body of decoder.push(chunk)) seen.push(JSON.parse(body) as JsonRpcResponse);
+    });
+    const handle = runStdio(new IaPMcpServer(), { input, output, log: (m) => logs.push(m) });
+
+    const body = JSON.stringify({ jsonrpc: '2.0', id: 42, method: 'ping' });
+    input.write(Buffer.from(`Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`, 'utf8'));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // The header line is not JSON → one -32700 parse error with id null. The
+    // framed body (no trailing newline) is never treated as a message, so the
+    // request id 42 is NEVER answered.
+    expect(seen.some((r) => r.id === 42)).toBe(false);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.id).toBeNull();
+    expect(seen[0]!.error?.code).toBe(-32700);
     handle.stop();
   });
 });

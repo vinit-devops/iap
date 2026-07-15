@@ -9,8 +9,9 @@
  *     { "command": "iap-mcp-server" }        // via the package `bin`
  *     { "command": "node", "args": ["packages/mcp-server/dist/bin.js"] }
  *
- * The process reads/writes JSON-RPC frames on stdio and emits nothing else on
- * stdout; a one-line readiness banner is written to stderr on startup.
+ * The process reads/writes newline-delimited JSON-RPC messages on stdio (the
+ * MCP stdio framing) and emits nothing else on stdout; a one-line readiness
+ * banner is written to stderr on startup.
  */
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

@@ -1,0 +1,31 @@
+{
+  "name": "iap",
+  "owner": {
+    "name": "IaP Maintainers"
+  },
+  "description": "Official marketplace for the IaP (Infrastructure as Prompt) Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "iap",
+      "source": "./",
+      "description": "Read-only IaP authoring and analysis: MCP tools (iap_author, iap_validate, iap_cost, iap_security, iap_compliance) and matching /iap-* slash commands. No deploy or mutation capability by construction.",
+      "version": "0.1.0",
+      "author": {
+        "name": "IaP Maintainers"
+      },
+      "homepage": "https://github.com/vinit-devops/iap",
+      "repository": "https://github.com/vinit-devops/iap",
+      "license": "Apache-2.0",
+      "category": "devops",
+      "keywords": [
+        "iap",
+        "infrastructure-as-prompt",
+        "infrastructure",
+        "mcp",
+        "cost",
+        "security",
+        "compliance"
+      ]
+    }
+  ]
+}

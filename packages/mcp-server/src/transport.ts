@@ -3,14 +3,15 @@
  *
  * This is the wire binding that turns the protocol-neutral `IaPMcpServer` into a
  * server a real assistant (Claude Code, Cursor, an IDE) can connect to. It speaks
- * JSON-RPC 2.0 over stdio using LSP-style `Content-Length` framing:
- *
- *     Content-Length: <byte-length>\r\n\r\n<json-body>
+ * JSON-RPC 2.0 over stdio using the MCP stdio framing (protocol `2025-06-18`):
+ * **newline-delimited JSON** — exactly one message per line, terminated by `\n`,
+ * with no framing headers and no embedded newlines inside a message. (MCP is not
+ * LSP: `Content-Length` headers are NOT part of the MCP stdio transport.)
  *
  * Deliberately hand-rolled with only `node:*` primitives — NO
  * `@modelcontextprotocol/sdk`, no network, no new dependencies. Protocol
  * messages go to stdout; everything else (logs, diagnostics) MUST go to stderr,
- * because any stray byte on stdout corrupts the frame stream.
+ * because any stray byte on stdout corrupts the message stream.
  *
  * The dispatcher never throws across the protocol: a failed tool call becomes an
  * MCP tool result with `isError: true`, and an unknown method becomes a JSON-RPC
@@ -127,41 +128,36 @@ export async function handleMessage(
   }
 }
 
-/** Encode a JSON-RPC message into a `Content-Length`-framed buffer. */
+/**
+ * Encode a JSON-RPC message as one newline-terminated line (MCP stdio framing).
+ * `JSON.stringify` is compact by construction — any newline inside a string
+ * value is escaped to `\n`, so the encoded message can never contain a raw
+ * embedded newline (spec: messages MUST NOT contain embedded newlines).
+ */
 export function encodeMessage(message: unknown): Buffer {
-  const body = Buffer.from(JSON.stringify(message), 'utf8');
-  const header = Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, 'ascii');
-  return Buffer.concat([header, body]);
+  return Buffer.from(`${JSON.stringify(message)}\n`, 'utf8');
 }
 
 /**
- * A streaming decoder for `Content-Length`-framed messages. Feed it raw chunks
- * (which may split a frame anywhere — mid-header or mid-body, or carry several
- * frames at once) and it returns whichever complete JSON bodies are now
- * available, buffering the remainder for the next chunk.
+ * A streaming decoder for newline-delimited JSON messages. Feed it raw chunks
+ * (which may split a message anywhere — even mid-UTF-8-codepoint — or carry
+ * several messages at once) and it returns whichever complete lines are now
+ * available, buffering the remainder for the next chunk. Tolerates `\r\n` line
+ * endings and skips blank lines.
  */
 export class FrameDecoder {
   private buffer = Buffer.alloc(0);
 
-  /** Append a chunk and drain every complete frame's JSON body. */
+  /** Append a chunk and drain every complete line's JSON body. */
   push(chunk: Buffer): string[] {
     this.buffer = Buffer.concat([this.buffer, chunk]);
     const bodies: string[] = [];
     for (;;) {
-      const headerEnd = this.buffer.indexOf('\r\n\r\n');
-      if (headerEnd === -1) break; // header not fully received yet
-      const header = this.buffer.subarray(0, headerEnd).toString('ascii');
-      const match = /content-length:\s*(\d+)/i.exec(header);
-      if (match === null) {
-        // Malformed header block — drop it and resynchronise past the separator.
-        this.buffer = this.buffer.subarray(headerEnd + 4);
-        continue;
-      }
-      const length = Number(match[1]);
-      const bodyStart = headerEnd + 4;
-      if (this.buffer.length < bodyStart + length) break; // body not fully here yet
-      bodies.push(this.buffer.subarray(bodyStart, bodyStart + length).toString('utf8'));
-      this.buffer = this.buffer.subarray(bodyStart + length);
+      const newline = this.buffer.indexOf(0x0a); // '\n'
+      if (newline === -1) break; // no complete line buffered yet
+      const line = this.buffer.subarray(0, newline).toString('utf8').trim();
+      this.buffer = this.buffer.subarray(newline + 1);
+      if (line.length > 0) bodies.push(line); // trim drops a trailing '\r'; skip blanks
     }
     return bodies;
   }
@@ -175,8 +171,9 @@ export interface StdioOptions {
 }
 
 /**
- * Run the stdio server loop: decode framed JSON-RPC from `input`, dispatch each
- * message to `server`, and write framed responses to `output`. Messages are
+ * Run the stdio server loop: decode newline-delimited JSON-RPC from `input`,
+ * dispatch each message to `server`, and write one newline-terminated response
+ * line per request to `output`. Messages are
  * processed strictly in order (responses are serialised through a promise chain)
  * so an async `tools/call` can never overtake an earlier reply.
  *

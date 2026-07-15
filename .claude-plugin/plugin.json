@@ -1,0 +1,29 @@
+{
+  "name": "iap",
+  "displayName": "IaP",
+  "version": "0.1.0",
+  "description": "IaP (Infrastructure as Prompt) for Claude Code: read-only authoring and analysis of *.iap.yaml documents via the @iap/mcp-server MCP tools (iap_author, iap_validate, iap_cost, iap_security, iap_compliance) plus /iap-* slash commands. No deploy or mutation capability by construction.",
+  "author": {
+    "name": "IaP Maintainers",
+    "url": "https://github.com/vinit-devops"
+  },
+  "homepage": "https://github.com/vinit-devops/iap",
+  "repository": "https://github.com/vinit-devops/iap",
+  "license": "Apache-2.0",
+  "keywords": [
+    "iap",
+    "infrastructure-as-prompt",
+    "infrastructure",
+    "mcp",
+    "cost",
+    "security",
+    "compliance"
+  ],
+  "commands": "./commands/",
+  "mcpServers": {
+    "iap": {
+      "command": "npx",
+      "args": ["-y", "@iap/mcp-server"]
+    }
+  }
+}

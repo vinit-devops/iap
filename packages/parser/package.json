@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
-  "license": "SEE LICENSE (TBD)",
+  "license": "Apache-2.0",
   "dependencies": {
     "@iap/model": "workspace:*",
     "ajv": "^8.17.1",

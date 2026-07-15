@@ -18,7 +18,7 @@
   "scripts": {
     "build": "node ../../tools/schema-generation/sync-schemas.mjs && tsc -p tsconfig.json"
   },
-  "license": "SEE LICENSE (TBD)",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/node": "^22.20.1",
     "typescript": "^5.7.0",

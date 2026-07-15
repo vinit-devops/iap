@@ -15,8 +15,8 @@ The `iap` CLI is a self-contained, zero-dependency package. From this repo:
 
 ```bash
 pnpm run build:cli-pkg          # builds dist-pkg/cli (a standalone package)
-npm pack ./dist-pkg/cli         # -> iap-0.1.0.tgz
-npm install -g ./iap-0.1.0.tgz  # or: npm install ./iap-0.1.0.tgz in your project
+npm pack ./dist-pkg/cli             # -> iap-cli-0.1.0.tgz (package @iap/cli)
+npm install -g ./iap-cli-0.1.0.tgz  # or: npm install ./iap-cli-0.1.0.tgz in your project
 iap --version                   # iap 0.1.0
 ```
 

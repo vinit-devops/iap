@@ -12,7 +12,9 @@
  * refs — `import.meta.url` points at `dist/iap.js` — resolve):
  *
  *   dist-pkg/cli/
- *     package.json                (name "iap", version 0.1.0, bin, NO deps)
+ *     package.json                (name "@iap/cli", bin "iap", version 0.1.0, NO deps)
+ *     README.md                   (npm page: install, workflow, scope)
+ *     LICENSE                     (Apache-2.0, copied from the repo root)
  *     dist/iap.js                 (bundle; shebang banner)
  *     schemas/*.schema.json       (8 merged, no basename collisions)
  *     registry/error-codes.yaml
@@ -37,9 +39,16 @@ function log(msg) {
   process.stdout.write(`[build-cli] ${msg}\n`);
 }
 
-/* 1. Build every @iap/* so their dist/ exist (the bundle imports from dist). */
-log('pnpm run build …');
-execFileSync('pnpm', ['run', 'build'], { cwd: repoRoot, stdio: 'inherit' });
+/* 1. Build every @iap/* so their dist/ exist (the bundle imports from dist).
+ *    Run pnpm via corepack, and the recursive build directly (not the root
+ *    `build` script, whose body invokes a bare `pnpm` that is not on PATH when
+ *    only corepack is installed). */
+log('pnpm -r run build …');
+execFileSync(
+  'corepack',
+  ['pnpm', '-r', '--filter', './packages/**', '--filter', './providers/**', 'run', 'build'],
+  { cwd: repoRoot, stdio: 'inherit' },
+);
 
 /* Clean output. */
 rmSync(outDir, { recursive: true, force: true });
@@ -144,18 +153,80 @@ copyInto(
   join(repoRoot, 'packages/cost/snapshots/reference-cloud.snapshot.json'),
 );
 
-/* 4. Emit a self-contained package.json (no workspace deps, zero runtime deps). */
+// 3e. License (Apache-2.0) from the repo root, for the npm tarball.
+cpSync(join(repoRoot, 'LICENSE'), join(outDir, 'LICENSE'));
+
+/* 4. README for the npm package page. */
+const readme = `# @iap/cli
+
+The reference CLI for **IaP — Infrastructure as Prompt**. It takes a
+natural-language requirement to a validated \`infrastructure.iap.yaml\`,
+derives architecture / cost / security / compliance, and produces a
+deterministic **plan preview** — all offline, with zero runtime dependencies.
+
+## Install
+
+\`\`\`bash
+npm install -g @iap/cli
+iap --version   # iap 0.1.0
+\`\`\`
+
+## Workflow
+
+\`\`\`bash
+iap init                                   # starter infrastructure.iap.yaml
+iap create "web app with a database"       # author from natural language
+iap validate   -f infrastructure.iap.yaml  # schema + reference + policy checks
+iap cost       -f infrastructure.iap.yaml --output json
+iap security   -f infrastructure.iap.yaml --output json
+iap compliance -f infrastructure.iap.yaml --output json
+iap diagram    -f infrastructure.iap.yaml --view architecture
+iap plan       -f infrastructure.iap.yaml --mapping <provider.iap-map.yaml> --output json
+\`\`\`
+
+v0.1 is plan-and-analyze only: the CLI does **not** deploy, maintain state, or
+reach a cloud provider. Plans are deterministic (identical \`planId\` across
+runs) and content-addressed (\`sha256:…\`).
+
+## License
+
+Apache-2.0. Part of the [IaP monorepo](https://github.com/vinit-devops/iap).
+`;
+writeFileSync(join(outDir, 'README.md'), readme);
+
+/* 5. Emit a self-contained package.json (no workspace deps, zero runtime deps).
+ *    Published name is @iap/cli (unscoped `iap` is taken on npm); the bin
+ *    command stays `iap`. */
 const srcPkg = JSON.parse(readFileSync(join(repoRoot, 'packages/cli/package.json'), 'utf8'));
 const pkg = {
-  name: 'iap',
+  name: '@iap/cli',
   version: srcPkg.version,
   description: srcPkg.description,
+  keywords: [
+    'iap',
+    'cli',
+    'infrastructure',
+    'infrastructure-as-prompt',
+    'infrastructure-as-code',
+    'ai',
+    'plan-preview',
+    'cost',
+    'security',
+    'compliance',
+  ],
   type: 'module',
   bin: { iap: 'dist/iap.js' },
   files: ['dist', 'schemas', 'registry', 'prompts', 'snapshots'],
   engines: { node: '>=22' },
   license: srcPkg.license,
+  repository: { type: 'git', url: 'git+https://github.com/vinit-devops/iap.git' },
+  homepage: 'https://github.com/vinit-devops/iap#readme',
+  bugs: { url: 'https://github.com/vinit-devops/iap/issues' },
+  publishConfig: { access: 'public' },
 };
+if (pkg.bin.iap !== 'dist/iap.js' || pkg.license !== 'Apache-2.0') {
+  throw new Error('emitted package.json lost its bin or license');
+}
 writeFileSync(join(outDir, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`);
 
 log(`done → ${outDir} (version ${pkg.version})`);

@@ -4,8 +4,30 @@
   "description": "Infrastructure as Prompt (IaP) language support: syntax registration and Language Server Protocol client (diagnostics, completion, hover, navigation, rename, code actions, architecture preview).",
   "version": "0.1.0",
   "publisher": "iap",
-  "license": "SEE LICENSE (TBD)",
-  "private": true,
+  "license": "Apache-2.0",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinit-devops/iap.git"
+  },
+  "homepage": "https://github.com/vinit-devops/iap#readme",
+  "bugs": {
+    "url": "https://github.com/vinit-devops/iap/issues"
+  },
+  "keywords": [
+    "iap",
+    "infrastructure",
+    "infrastructure-as-code",
+    "yaml",
+    "lsp",
+    "language-server",
+    "devops",
+    "cloud"
+  ],
+  "galleryBanner": {
+    "color": "#1e293b",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -41,7 +63,7 @@
         "iap.languageServer.path": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the iap-language-server executable. When empty, the extension resolves the bin from the installed @iap/language-server package."
+          "description": "Optional absolute path to an alternative iap-language-server executable. Leave empty to use the server bundled inside the extension (server/server.js), which is the default and requires no configuration. This is an escape hatch for development; it is not required."
         },
         "iap.trace.server": {
           "type": "string",
@@ -68,7 +90,10 @@
   },
   "scripts": {
     "build:vsix": "node build-vsix.mjs",
-    "smoke": "node build-vsix.mjs && node smoke.mjs"
+    "smoke": "node build-vsix.mjs && node smoke.mjs",
+    "package:vsce": "npx --yes @vscode/vsce package --no-dependencies",
+    "publish:marketplace": "npx --yes @vscode/vsce publish --no-dependencies",
+    "publish:openvsx": "npx --yes ovsx publish"
   },
   "dependencies": {
     "@iap/language-server": "workspace:*",

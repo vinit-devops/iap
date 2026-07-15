@@ -69,8 +69,21 @@ node smoke.mjs             # offline release gate (see below)
 `extension/` payload plus `[Content_Types].xml` and `extension.vsixmanifest` at
 the archive root — and zips it with the system `zip` CLI. The payload is
 **production-only**: the bundled extension, the bundled `server/` tree, the
-language configuration, the manifest and this README. The unbundled
+language configuration, the manifest, this README, the CHANGELOG, the icon and
+the license (`LICENSE.txt`, copied from the repo root). The unbundled
 `extension.js`, `src`, tests, `node_modules` and the build scripts are excluded.
+
+An equivalent `vsce` packaging path exists for the marketplace publish flow
+(`.vscodeignore` keeps its payload aligned with the hand-built one):
+
+```sh
+npm run package:vsce        # npx @vscode/vsce package --no-dependencies
+npm run publish:marketplace # npx @vscode/vsce publish --no-dependencies (needs VSCE_PAT)
+npm run publish:openvsx     # npx ovsx publish (needs OVSX_PAT)
+```
+
+The hand-built `build-vsix.mjs` path remains canonical; the publish scripts are
+prepared but require registry credentials and are never run by CI.
 
 ## Install
 

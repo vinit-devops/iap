@@ -1,0 +1,11 @@
+# vsce packaging exclusions — keep the vsce-produced payload identical to the
+# hand-assembled one (build-vsix.mjs): prod-only files, no dev tooling.
+.vscodeignore
+node_modules/**
+dist/**
+extension.js
+build-server.mjs
+build-extension.mjs
+build-vsix.mjs
+smoke.mjs
+*.vsix
