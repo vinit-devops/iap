@@ -3,7 +3,7 @@
   "displayName": "IaP",
   "description": "Infrastructure as Prompt (IaP) language support: syntax registration and Language Server Protocol client (diagnostics, completion, hover, navigation, rename, code actions, architecture preview).",
   "version": "0.1.0",
-  "publisher": "iap",
+  "publisher": "infraasprompt",
   "license": "Apache-2.0",
   "icon": "icon.png",
   "repository": {

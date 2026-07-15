@@ -9,7 +9,7 @@ up to this boundary. Run the steps **in order** — later steps depend on earlie
 **Irreversibility warning:** npm package **names are effectively permanent** once
 published — `npm unpublish` is only unrestricted for 72 hours, the name is then
 blocked for reuse for 24 hours and republishing the same version is forbidden
-forever. Marketplace/OpenVSX extension IDs (`iap.iap-vscode`) similarly persist
+forever. Marketplace/OpenVSX extension IDs (`infraasprompt.iap-vscode`) similarly persist
 after unpublish. Do not publish until the report's "What is NOT yet true" section
 has been read and accepted.
 
@@ -118,7 +118,7 @@ corepack pnpm run publish:marketplace # wraps: npx @vscode/vsce publish --no-dep
 
 ```bash
 export OVSX_PAT=<your-token>
-npx --yes ovsx create-namespace iap -p "$OVSX_PAT"
+npx --yes ovsx create-namespace infraasprompt -p "$OVSX_PAT"
 cd /Users/vinitkumar/iap/extensions/vscode
 corepack pnpm run publish:openvsx     # wraps: npx ovsx publish
 ```

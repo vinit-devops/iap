@@ -27,7 +27,7 @@ decisionsTaken: # requester-directed 2026-07-15
     cli: '@infraasprompt/cli' # bin stays `iap`; NOTE unscoped `iap` is taken on public npm (v1.1.1, third party)
     mcpServer: '@infraasprompt/mcp-server' # bin stays `iap-mcp-server`
     scopeRisk: 'RESOLVED 2026-07-15: npm org `infraasprompt` created (owner vinit-devops); original @iap/* names renamed to @infraasprompt/*'
-  marketplacePublisher: iap # VS Code Marketplace publisher id + OpenVSX namespace (to register)
+  marketplacePublisher: infraasprompt # VS Code Marketplace publisher id + OpenVSX namespace (registered 2026-07-15; was `iap` pre-registration)
   repository: 'https://github.com/vinit-devops/iap' # public; hosts marketplace.json for the Claude Code plugin
   extensionIcon: 'generated placeholder PNG (replaceable)'
   standaloneLanguageServerPublish: deferred # JetBrains/other-LSP path optional; not needed for VS Code/Cursor (bundled)
@@ -49,7 +49,7 @@ phases:
           Apache-2.0 text) committed; all 30 "SEE LICENSE (TBD)" package.json
           fields replaced with Apache-2.0. Public identities confirmed:
           @infraasprompt/cli (bin iap), @infraasprompt/mcp-server (bin iap-mcp-server), extension
-          publisher `iap`. npm org `infraasprompt` created 2026-07-15 (owner
+          publisher `infraasprompt`. npm org `infraasprompt` created 2026-07-15 (owner
           vinit-devops, token configured). Marketplace publisher + OpenVSX
           namespace registration still user actions — carried in the M20.6
           runbook.
@@ -104,15 +104,19 @@ phases:
 
       - id: M20.3
         title: VS Code Marketplace + OpenVSX publish
-        status: prepared # publishable .vsix + scripts; publisher/PAT + vsce/ovsx publish = user (runbook steps 4-5)
+        status: in-progress # Marketplace PUBLISHED 2026-07-15 (infraasprompt.iap-vscode v0.1.0, approver-directed); OpenVSX publish still pending (Eclipse account + OVSX_PAT, runbook step 5)
         dependsOn: [M20.0]
-        note: .vsix already fully self-contained (LSP + client bundled, 4-step offline smoke gate); this is the publishing wrapper. Actual vsce/ovsx publish = user action.
+        note: >-
+          Marketplace half done: `vsce publish` succeeded 2026-07-15 under
+          publisher `infraasprompt` (was `iap` pre-registration) —
+          https://marketplace.visualstudio.com/items?itemName=infraasprompt.iap-vscode
+          OpenVSX (Cursor/Windsurf extension path) remains a user action.
         exitCriteria:
-          - Fresh VS Code installs via Marketplace [PENDING-USER publish]
+          - 'Fresh VS Code installs via Marketplace [PUBLISHED 2026-07-15; live-install verification pending on a machine with VS Code]'
           - Fresh Cursor installs via OpenVSX [PENDING-USER publish]
           - 'Opening infrastructure.iap.yaml yields diagnostics/hover/completion with no manual bin setup [PENDING-USER; offline smoke:vsix green as pre-publish proof]'
         evidence:
-          - 'extensions/vscode publishable: private removed, publisher iap, icon.png (placeholder), repository/keywords/galleryBanner, CHANGELOG.md, LICENSE.txt in vsix, .vscodeignore'
+          - 'extensions/vscode publishable: private removed, publisher infraasprompt, icon.png (placeholder), repository/keywords/galleryBanner, CHANGELOG.md, LICENSE.txt in vsix, .vscodeignore'
           - '`npx @vscode/vsce package` -> clean vsix (13 files, 314KB)'
           - 'scripts package:vsce / publish:marketplace (VSCE_PAT) / publish:openvsx (OVSX_PAT) in extensions/vscode/package.json'
           - 'smoke:vsix green (step 4 skips honestly — no VS Code on this machine)'

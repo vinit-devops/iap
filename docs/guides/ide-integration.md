@@ -12,7 +12,7 @@ Published identities (v0.1.0, Apache-2.0, repo <https://github.com/vinit-devops/
 | --- | --- | --- |
 | CLI | npm `@infraasprompt/cli` | `npm i -g @infraasprompt/cli` → `iap` |
 | MCP server | npm `@infraasprompt/mcp-server` | `npx -y @infraasprompt/mcp-server` → `iap-mcp-server` |
-| VS Code extension | Marketplace `iap.iap-vscode` (publisher `iap`) | Extensions view → search "IaP" |
+| VS Code extension | Marketplace `infraasprompt.iap-vscode` (publisher `infraasprompt`) | Extensions view → search "IaP" |
 | Cursor / VSCodium extension | OpenVSX namespace `iap` | Extensions view → search "IaP" |
 | Language server | `@iap/language-server` (bin `iap-language-server`) | not yet published — build from source (see JetBrains) |
 
@@ -46,12 +46,12 @@ Because the analysis tools run the same engines as the CLI, an assistant's revie
 
 ## VS Code
 
-Install **IaP** from the Visual Studio Marketplace — extension id `iap.iap-vscode`,
-publisher `iap`: <https://marketplace.visualstudio.com/items?itemName=iap.iap-vscode>
+Install **IaP** from the Visual Studio Marketplace — extension id `infraasprompt.iap-vscode`,
+publisher `infraasprompt`: <https://marketplace.visualstudio.com/items?itemName=infraasprompt.iap-vscode>
 (live after first publish). Or from the command line:
 
 ```sh
-code --install-extension iap.iap-vscode
+code --install-extension infraasprompt.iap-vscode
 ```
 
 What you get for `*.iap.yaml` / `*.iap.yml` / `*.iap-map.yaml` (and
@@ -91,7 +91,7 @@ create `.vscode/mcp.json` in your project:
 ## Cursor
 
 Extension: Cursor installs from OpenVSX — search "IaP" in the Extensions view, or see
-<https://open-vsx.org/extension/iap/iap-vscode> (live after first publish).
+<https://open-vsx.org/extension/infraasprompt/iap-vscode> (live after first publish).
 
 MCP server, per project — `.cursor/mcp.json`:
 
