@@ -2,7 +2,7 @@
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }

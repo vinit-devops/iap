@@ -2,7 +2,7 @@
 
 How to install IaP support in your editor and connect AI assistants to the IaP MCP server.
 Every integration reuses the same reference components as the CLI — the language server
-(`@iap/language-server`) for editor features and the IaP MCP server (`@iap/mcp-server`) for
+(`@iap/language-server`) for editor features and the IaP MCP server (`@infraasprompt/mcp-server`) for
 assistant authoring/analysis — so an IDE never has its own semantics, and an assistant never
 gains a deployment path (spec ch. 19).
 
@@ -10,8 +10,8 @@ Published identities (v0.1.0, Apache-2.0, repo <https://github.com/vinit-devops/
 
 | Component | Identity | Install command / binary |
 | --- | --- | --- |
-| CLI | npm `@iap/cli` | `npm i -g @iap/cli` → `iap` |
-| MCP server | npm `@iap/mcp-server` | `npx -y @iap/mcp-server` → `iap-mcp-server` |
+| CLI | npm `@infraasprompt/cli` | `npm i -g @infraasprompt/cli` → `iap` |
+| MCP server | npm `@infraasprompt/mcp-server` | `npx -y @infraasprompt/mcp-server` → `iap-mcp-server` |
 | VS Code extension | Marketplace `iap.iap-vscode` (publisher `iap`) | Extensions view → search "IaP" |
 | Cursor / VSCodium extension | OpenVSX namespace `iap` | Extensions view → search "IaP" |
 | Language server | `@iap/language-server` (bin `iap-language-server`) | not yet published — build from source (see JetBrains) |
@@ -77,7 +77,7 @@ create `.vscode/mcp.json` in your project:
     "iap": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -100,7 +100,7 @@ MCP server, per project — `.cursor/mcp.json`:
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -113,7 +113,7 @@ Or globally — `~/.cursor/mcp.json`, same shape:
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -128,7 +128,7 @@ Add the server to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -149,7 +149,7 @@ claude plugin install iap@iap
 **2. One-liner.** Registers the MCP server directly:
 
 ```sh
-claude mcp add iap -- npx -y @iap/mcp-server
+claude mcp add iap -- npx -y @infraasprompt/mcp-server
 ```
 
 **3. Project config.** Commit a `.mcp.json` at the repo root so every collaborator gets the
@@ -160,7 +160,7 @@ server:
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -177,7 +177,7 @@ Windows: `%APPDATA%\Claude\claude_desktop_config.json` — and add:
   "mcpServers": {
     "iap": {
       "command": "npx",
-      "args": ["-y", "@iap/mcp-server"]
+      "args": ["-y", "@infraasprompt/mcp-server"]
     }
   }
 }
@@ -191,13 +191,13 @@ Two honest options today:
 
 **MCP (works now).** JetBrains AI Assistant supports MCP servers: in
 Settings → Tools → AI Assistant → Model Context Protocol (MCP), add a stdio server with
-command `npx` and arguments `-y @iap/mcp-server` (or paste the same
+command `npx` and arguments `-y @infraasprompt/mcp-server` (or paste the same
 `{"mcpServers": ...}` JSON shape used above where a JSON import is offered). This gives
 the authoring/analysis tools, not editor diagnostics.
 
 **LSP (build from source for now).** Editor features (diagnostics, completion, hover) come
 from the `iap-language-server` binary in `@iap/language-server`. That package is **not yet
-published to npm** — `npm i -g @iap/cli @iap/mcp-server` does *not* install it. Until it is
+published to npm** — `npm i -g @infraasprompt/cli @infraasprompt/mcp-server` does *not* install it. Until it is
 published, build it from source:
 
 ```sh
@@ -230,7 +230,7 @@ Feature parity with VS Code follows from sharing the same server.
 ## CLI
 
 ```sh
-npm i -g @iap/cli
+npm i -g @infraasprompt/cli
 ```
 
 installs the `iap` binary:
@@ -243,7 +243,7 @@ iap compliance infrastructure.iap.yaml # compliance evidence report
 iap plan --mapping <provider-mapping>  # deterministic provider plan
 ```
 
-npm listing: <https://www.npmjs.com/package/@iap/cli> (live after first publish).
+npm listing: <https://www.npmjs.com/package/@infraasprompt/cli> (live after first publish).
 
 ## Invariants every integration preserves
 

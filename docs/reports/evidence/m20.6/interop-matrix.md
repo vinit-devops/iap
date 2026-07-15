@@ -1,6 +1,6 @@
 # M20.6 real-client interop matrix
 
-Date: 2026-07-15. Server under test: built `@iap/mcp-server` 0.1.0 at
+Date: 2026-07-15. Server under test: built `@infraasprompt/mcp-server` 0.1.0 at
 `dist-pkg/mcp-server/dist/iap-mcp-server.js` (newline-delimited JSON-RPC over stdio).
 Nothing is published to npm; no GUI app config on this machine was modified
 (staged configs + `manual-checklist.md` are provided for the user to apply).
@@ -9,14 +9,14 @@ Cell legend:
 - **PASS-local** — proven on this machine, evidence file linked.
 - **STAGED-pending-manual** — ready-to-paste config + checklist provided; requires the
   user to apply it in the GUI app (automation is forbidden by the machine-safety rule).
-- **PENDING-publish** — blocked only on `npm publish @iap/mcp-server` (the committed
-  integration intentionally references `npx -y @iap/mcp-server`).
+- **PENDING-publish** — blocked only on `npm publish @infraasprompt/mcp-server` (the committed
+  integration intentionally references `npx -y @infraasprompt/mcp-server`).
 - **N/A-not-installed** — client not present on this machine.
 
 | Client | initialize | tools/list (5, read-only) | iap_author call | analysis call | install path proven |
 |---|---|---|---|---|---|
 | Claude Code (MCP direct) | PASS-local — [claude-code-mcp-add-connected.md](claude-code-mcp-add-connected.md), [raw-jsonrpc-initialize-tools-list.json](raw-jsonrpc-initialize-tools-list.json) | PASS-local — [trust-boundary-tools-list.md](trust-boundary-tools-list.md) | PASS-local — [claude-code-real-sessions.md](claude-code-real-sessions.md), [claude-code-session-author-committed.stream.jsonl](claude-code-session-author-committed.stream.jsonl) | PASS-local (iap_validate) — [claude-code-real-sessions.md](claude-code-real-sessions.md), [claude-code-session-validate.stream.jsonl](claude-code-session-validate.stream.jsonl) | PASS-local — `claude mcp add` → "✔ Connected" ([claude-code-mcp-add-connected.md](claude-code-mcp-add-connected.md)) |
-| Claude Code (plugin) | PENDING-publish — bundled server is `npx -y @iap/mcp-server` (unpublished): "✘ Failed to connect" ([claude-code-plugin-install.md](claude-code-plugin-install.md)) | PENDING-publish (same reason; identical binary passes locally per row above) | PENDING-publish | PENDING-publish | PASS-local — marketplace add + install + list + details (5 commands) ([claude-code-plugin-install.md](claude-code-plugin-install.md)) |
+| Claude Code (plugin) | PENDING-publish — bundled server is `npx -y @infraasprompt/mcp-server` (unpublished): "✘ Failed to connect" ([claude-code-plugin-install.md](claude-code-plugin-install.md)) | PENDING-publish (same reason; identical binary passes locally per row above) | PENDING-publish | PENDING-publish | PASS-local — marketplace add + install + list + details (5 commands) ([claude-code-plugin-install.md](claude-code-plugin-install.md)) |
 | Claude Desktop | STAGED-pending-manual — [staged-configs/claude_desktop_config.LOCAL-NOW.json](staged-configs/claude_desktop_config.LOCAL-NOW.json), [manual-checklist.md](manual-checklist.md) | STAGED-pending-manual (same) | STAGED-pending-manual (checklist step 3) | STAGED-pending-manual | STAGED-pending-manual — app present in /Applications; config staged, user applies |
 | Cursor | STAGED-pending-manual — [staged-configs/cursor-mcp.LOCAL-NOW.json](staged-configs/cursor-mcp.LOCAL-NOW.json), [manual-checklist.md](manual-checklist.md) | STAGED-pending-manual | STAGED-pending-manual | STAGED-pending-manual (checklist step 3: iap_validate) | STAGED-pending-manual — app present in /Applications; config staged, user applies |
 | Windsurf | STAGED-pending-manual — [staged-configs/windsurf-mcp_config.LOCAL-NOW.json](staged-configs/windsurf-mcp_config.LOCAL-NOW.json), [manual-checklist.md](manual-checklist.md) | STAGED-pending-manual (checklist step 3 lists tools) | STAGED-pending-manual | STAGED-pending-manual | STAGED-pending-manual — app present in /Applications; config staged, user applies |

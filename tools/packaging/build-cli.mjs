@@ -12,7 +12,7 @@
  * refs — `import.meta.url` points at `dist/iap.js` — resolve):
  *
  *   dist-pkg/cli/
- *     package.json                (name "@iap/cli", bin "iap", version 0.1.0, NO deps)
+ *     package.json                (name "@infraasprompt/cli", bin "iap", version 0.1.0, NO deps)
  *     README.md                   (npm page: install, workflow, scope)
  *     LICENSE                     (Apache-2.0, copied from the repo root)
  *     dist/iap.js                 (bundle; shebang banner)
@@ -157,7 +157,7 @@ copyInto(
 cpSync(join(repoRoot, 'LICENSE'), join(outDir, 'LICENSE'));
 
 /* 4. README for the npm package page. */
-const readme = `# @iap/cli
+const readme = `# @infraasprompt/cli
 
 The reference CLI for **IaP — Infrastructure as Prompt**. It takes a
 natural-language requirement to a validated \`infrastructure.iap.yaml\`,
@@ -167,7 +167,7 @@ deterministic **plan preview** — all offline, with zero runtime dependencies.
 ## Install
 
 \`\`\`bash
-npm install -g @iap/cli
+npm install -g @infraasprompt/cli
 iap --version   # iap 0.1.0
 \`\`\`
 
@@ -195,11 +195,11 @@ Apache-2.0. Part of the [IaP monorepo](https://github.com/vinit-devops/iap).
 writeFileSync(join(outDir, 'README.md'), readme);
 
 /* 5. Emit a self-contained package.json (no workspace deps, zero runtime deps).
- *    Published name is @iap/cli (unscoped `iap` is taken on npm); the bin
+ *    Published name is @infraasprompt/cli (unscoped `iap` and the @iap scope are taken on npm); the bin
  *    command stays `iap`. */
 const srcPkg = JSON.parse(readFileSync(join(repoRoot, 'packages/cli/package.json'), 'utf8'));
 const pkg = {
-  name: '@iap/cli',
+  name: '@infraasprompt/cli',
   version: srcPkg.version,
   description: srcPkg.description,
   keywords: [

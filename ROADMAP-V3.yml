@@ -24,9 +24,9 @@ executionSequence:
 decisionsTaken: # requester-directed 2026-07-15
   license: Apache-2.0
   npmIdentity:
-    cli: '@iap/cli' # bin stays `iap`; NOTE unscoped `iap` is taken on public npm (v1.1.1, third party)
-    mcpServer: '@iap/mcp-server' # bin stays `iap-mcp-server`
-    scopeRisk: '@iap org availability unverifiable without npm login; runbook carries fallback rename'
+    cli: '@infraasprompt/cli' # bin stays `iap`; NOTE unscoped `iap` is taken on public npm (v1.1.1, third party)
+    mcpServer: '@infraasprompt/mcp-server' # bin stays `iap-mcp-server`
+    scopeRisk: 'RESOLVED 2026-07-15: npm org `infraasprompt` created (owner vinit-devops); original @iap/* names renamed to @infraasprompt/*'
   marketplacePublisher: iap # VS Code Marketplace publisher id + OpenVSX namespace (to register)
   repository: 'https://github.com/vinit-devops/iap' # public; hosts marketplace.json for the Claude Code plugin
   extensionIcon: 'generated placeholder PNG (replaceable)'
@@ -48,19 +48,21 @@ phases:
           Apache-2.0 chosen by requester 2026-07-15. Root LICENSE (canonical
           Apache-2.0 text) committed; all 30 "SEE LICENSE (TBD)" package.json
           fields replaced with Apache-2.0. Public identities confirmed:
-          @iap/cli (bin iap), @iap/mcp-server (bin iap-mcp-server), extension
-          publisher `iap`. Account registration (npm org @iap, Marketplace
-          publisher, OpenVSX namespace) requires user credentials — carried in
-          the M20.6 runbook.
+          @infraasprompt/cli (bin iap), @infraasprompt/mcp-server (bin iap-mcp-server), extension
+          publisher `iap`. npm org `infraasprompt` created 2026-07-15 (owner
+          vinit-devops, token configured). Marketplace publisher + OpenVSX
+          namespace registration still user actions — carried in the M20.6
+          runbook.
         exitCriteria:
           - LICENSE committed [PASS]
           - pnpm run check:names still green [PASS]
-          - Accounts provisioned [PENDING-USER]
+          - 'Accounts provisioned [npm PASS (org infraasprompt); Marketplace/OpenVSX PENDING-USER]'
           - Approver sign-off recorded [PENDING-USER]
         evidence:
           - LICENSE
           - 'grep -rn "SEE LICENSE" --include=package.json . -> 0 matches'
-          - 'docs/reports/distribution-release-runbook.md (account creation steps 1, 4, 5 + @iap-scope fallback rename)'
+          - 'npm org ls infraasprompt -> vinit-devops owner'
+          - 'docs/reports/distribution-release-runbook.md (remaining account steps 4, 5)'
 
       - id: M20.1
         title: Self-contained MCP server package
@@ -88,8 +90,8 @@ phases:
         dependsOn: [M20.1]
         note: Agent prepares to the publish boundary (dry-runs, tarballs, metadata); actual `npm publish` is a user action in the M20.6 runbook.
         exitCriteria:
-          - 'npm i -g @iap/cli gives a working iap on a machine with no repo checkout [PENDING-USER publish]'
-          - 'npx @iap/mcp-server starts the server on a machine with no repo checkout [PENDING-USER publish]'
+          - 'npm i -g @infraasprompt/cli gives a working iap on a machine with no repo checkout [PENDING-USER publish]'
+          - 'npx @infraasprompt/mcp-server starts the server on a machine with no repo checkout [PENDING-USER publish]'
         evidence:
           - '`npm publish --dry-run` clean for BOTH dist-pkg/cli and dist-pkg/mcp-server'
           - 'dist-pkg/cli: publishConfig public + repository/homepage/bugs + LICENSE + README (parity with mcp-server)'
@@ -113,7 +115,7 @@ phases:
 
       - id: M20.4
         title: Claude Code plugin
-        status: prepared # manifests + commands validated, local-path install proven; committed npx form needs @iap/mcp-server published (runbook step 6)
+        status: prepared # manifests + commands validated, local-path install proven; committed npx form needs @infraasprompt/mcp-server published (runbook step 6)
         dependsOn: [M20.2]
         exitCriteria:
           - 'claude plugin install iap registers the MCP server [PENDING-publish; local-path install proven]'
@@ -122,7 +124,7 @@ phases:
           - '.claude-plugin/plugin.json + .claude-plugin/marketplace.json validate clean incl. --strict'
           - 'commands/iap-{author,validate,cost,security,compliance}.md'
           - 'isolated-env marketplace add + install from local path proven (docs/reports/evidence/m20.6/claude-code-plugin-install.md)'
-          - 'committed form uses `npx -y @iap/mcp-server` (pending publish by design)'
+          - 'committed form uses `npx -y @infraasprompt/mcp-server` (pending publish by design)'
 
       - id: M20.5
         title: Ready-to-use MCP client configs + install docs
@@ -160,7 +162,7 @@ phases:
 
     releaseGates:
       - Root LICENSE (Apache-2.0) committed; no "SEE LICENSE (TBD)" remains
-      - Clean-machine gate — npm i -g @iap/cli && iap validate; npx @iap/mcp-server handshake (no repo checkout)
+      - Clean-machine gate — npm i -g @infraasprompt/cli && iap validate; npx @infraasprompt/mcp-server handshake (no repo checkout)
       - Marketplace gate — install from Marketplace (VS Code) and OpenVSX (Cursor); live diagnostics on infrastructure.iap.yaml
       - Claude plugin gate — claude plugin install iap; iap_author then iap_validate in a session
       - Interop matrix — each of the 5 clients lists the 5 tools and runs one author + one analysis call

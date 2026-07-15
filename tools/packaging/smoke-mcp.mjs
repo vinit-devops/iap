@@ -1,6 +1,6 @@
 /**
  * smoke-mcp.mjs — the release gate for the externally installable
- * `@iap/mcp-server` package (roadmap-v3 M20.1).
+ * `@infraasprompt/mcp-server` package (roadmap-v3 M20.1).
  *
  * Proves that a CLEAN environment with an empty node_modules can install the
  * packaged MCP server and drive it over stdio JSON-RPC. It:
@@ -207,7 +207,8 @@ try {
   if (!existsSync(bin)) fail('installed bin node_modules/.bin/iap-mcp-server not found');
 
   /* 3. The installed package must be fully self-contained. */
-  const installed = join(proj, 'node_modules', '@iap', 'mcp-server');
+  const pkgName = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8')).name;
+  const installed = join(proj, 'node_modules', ...pkgName.split('/'));
   const deps = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8')).dependencies;
   if (deps !== undefined && Object.keys(deps).length > 0) {
     fail(`installed package.json has dependencies: ${JSON.stringify(deps)}`);

@@ -5,8 +5,8 @@ config. The ready-to-paste entries live in `staged-configs/` in TWO variants eac
 
 - `*.LOCAL-NOW.json` — works today: runs the built local server via
   `node /Users/vinitkumar/iap/dist-pkg/mcp-server/dist/iap-mcp-server.js`.
-- `*.POST-PUBLISH.json` — for after `@iap/mcp-server` is published to npm:
-  `npx -y @iap/mcp-server`. Will NOT connect until publish.
+- `*.POST-PUBLISH.json` — for after `@infraasprompt/mcp-server` is published to npm:
+  `npx -y @infraasprompt/mcp-server`. Will NOT connect until publish.
 
 General merge rule for every app below: the staged file contains one entry under
 `mcpServers` named `"iap"`. If your config file already exists, add ONLY the

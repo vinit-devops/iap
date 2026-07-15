@@ -31,22 +31,14 @@ git remote add origin https://github.com/vinit-devops/iap.git   # if not yet add
 git push -u origin main
 ```
 
-## Step 1 — npm account + `@iap` org (~15–30 min)
+## Step 1 — npm account + org — ✅ DONE 2026-07-15
 
-```bash
-npm login
-```
-
-Then create the `iap` org (owns the `@iap` scope) at
-<https://www.npmjs.com/org/create> — org name `iap`, free/public plan — **or**
-verify you already own the scope:
-
-```bash
-npm org ls iap
-```
-
-**If the `iap` org name is unavailable** → jump to the **Fallback rename** section
-at the bottom of this step list, then return here.
+Resolved: authenticated as `vinit-devops` (token in `~/.npmrc`); npm org
+**`infraasprompt`** created (`npm org ls infraasprompt` → `vinit-devops - owner`).
+The published identities were renamed accordingly across the repo:
+**`@infraasprompt/cli`** (bin `iap`) and **`@infraasprompt/mcp-server`**
+(bin `iap-mcp-server`). The original `@iap/*` plan and its fallback section
+(bottom of this document) are retained for the historical record only.
 
 ## Step 2 — publish the two npm packages (~10 min, IRREVERSIBLE)
 
@@ -72,20 +64,20 @@ npm publish
 CLI, from any machine without the repo:
 
 ```bash
-npm i -g @iap/cli && iap --version
+npm i -g @infraasprompt/cli && iap --version
 ```
 
 MCP server handshake one-liner (expect a single JSON line whose
-`result.serverInfo.name` is `@iap/mcp-server`):
+`result.serverInfo.name` is `@infraasprompt/mcp-server`):
 
 ```bash
-printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0.0.0"}}}' | npx -y @iap/mcp-server
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0.0.0"}}}' | npx -y @infraasprompt/mcp-server
 ```
 
 Register in Claude Code and confirm "✔ Connected":
 
 ```bash
-claude mcp add iap -- npx -y @iap/mcp-server
+claude mcp add iap -- npx -y @infraasprompt/mcp-server
 claude mcp list
 ```
 
@@ -137,7 +129,7 @@ corepack pnpm run publish:openvsx     # wraps: npx ovsx publish
 ## Step 6 — Claude Code plugin (~10 min; requires steps 0 and 2)
 
 The marketplace manifest lives in the repo (`.claude-plugin/marketplace.json`),
-so this works as soon as the repo is pushed (step 0) and `@iap/mcp-server` is on
+so this works as soon as the repo is pushed (step 0) and `@infraasprompt/mcp-server` is on
 npm (step 2):
 
 ```bash
@@ -177,48 +169,13 @@ Commit and push the tracker change.
 
 ---
 
-## Fallback rename — only if the `@iap` npm scope is unavailable
+## Fallback rename — RESOLVED (historical)
 
-Both fallback names were verified 404/available on npm on 2026-07-15:
-**`iap-cli`** and **`iap-mcp-server`** (unscoped). The unscoped name `iap` itself
-is taken by a third party — do not use it.
-
-The two authoritative name edits (the builders stamp the published `package.json`):
-
-1. `tools/packaging/build-cli.mjs` — in the emitted manifest,
-   `name: '@iap/cli'` → `name: 'iap-cli'` (also update the `@iap/cli` /
-   `npm install -g @iap/cli` mentions in the README template inside the same file).
-2. `tools/packaging/build-mcp.mjs` — `name: '@iap/mcp-server'` →
-   `name: 'iap-mcp-server'` (also the README template's install/config snippets,
-   including the `npx -y @iap/mcp-server` example).
-
-Files that reference the published names and must be updated to match
-(from `grep -rn "@iap/cli\|@iap/mcp-server"`, excluding in-repo workspace package
-names, which stay `@iap/*` — they are private and never published):
-
-- `docs/guides/ide-integration.md` — all `@iap/cli` / `npx -y @iap/mcp-server`
-  occurrences (install table, all 7 client config snippets, npm listing link).
-- `.claude-plugin/plugin.json` — `mcpServers.iap.args`
-  (`["-y", "@iap/mcp-server"]` → `["-y", "iap-mcp-server"]`) and the description.
-- `docs/reports/evidence/m20.6/staged-configs/*.POST-PUBLISH.json` (3 files) —
-  the `npx -y @iap/mcp-server` args.
-- `docs/reports/evidence/m20.6/manual-checklist.md` — the `@iap/mcp-server`
-  mentions.
-- `examples/iap-demo/README.md` — the `npm pack ./dist-pkg/cli` comment naming
-  `@iap/cli`.
-- `docs/reports/distribution-release-v0.1.md` and this runbook.
-
-Note: `serverInfo.name` (`packages/mcp-server/src/transport.ts` and
-`src/server.ts`, asserted by `tools/packaging/smoke-mcp.mjs`) is the server's
-self-identification, not the npm registry name — it may stay `@iap/mcp-server`;
-no source change is required for the fallback.
-
-Then rebuild and re-verify the dry-runs before returning to step 2:
-
-```bash
-cd /Users/vinitkumar/iap
-corepack pnpm run build:cli-pkg && corepack pnpm run build:mcp-pkg
-corepack pnpm run smoke:cli && corepack pnpm run smoke:mcp
-cd dist-pkg/cli && npm publish --dry-run
-cd ../mcp-server && npm publish --dry-run
-```
+This section originally covered the case where the `@iap` npm scope was
+unavailable. That happened: the scope could not be obtained, so on 2026-07-15
+the npm org **`infraasprompt`** was created and the rename was executed
+repo-wide — the published names are now **`@infraasprompt/cli`** and
+**`@infraasprompt/mcp-server`** (bins unchanged: `iap`, `iap-mcp-server`;
+in-repo workspace package names stay `@iap/*`, private and never published;
+`serverInfo.name` remains `@iap/mcp-server` as product self-identification).
+The unscoped names `iap-cli` / `iap-mcp-server` remain an unused alternative.

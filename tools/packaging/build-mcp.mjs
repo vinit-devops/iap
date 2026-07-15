@@ -1,6 +1,6 @@
 /**
  * build-mcp.mjs — produce an EXTERNALLY INSTALLABLE, self-contained
- * `@iap/mcp-server` package under `dist-pkg/mcp-server/` (roadmap-v3 M20.1).
+ * `@infraasprompt/mcp-server` package under `dist-pkg/mcp-server/` (roadmap-v3 M20.1).
  *
  * The in-repo `@iap/mcp-server` depends on 6 `@iap/* workspace:*` packages; an
  * external `npm install` cannot resolve `workspace:*`. The whole MCP graph is
@@ -12,7 +12,7 @@
  * refs — `import.meta.url` points at `dist/iap-mcp-server.js` — resolve):
  *
  *   dist-pkg/mcp-server/
- *     package.json                (name "@iap/mcp-server", bin, ZERO deps)
+ *     package.json                (name "@infraasprompt/mcp-server", bin, ZERO deps)
  *     README.md                   (npm page: tools, trust boundary, client config)
  *     LICENSE                     (Apache-2.0, copied from the repo root)
  *     dist/iap-mcp-server.js      (bundle; shebang banner)
@@ -164,7 +164,7 @@ copyInto(
 cpSync(join(repoRoot, 'LICENSE'), join(outDir, 'LICENSE'));
 
 /* 4. README for the npm package page. */
-const readme = `# @iap/mcp-server
+const readme = `# @infraasprompt/mcp-server
 
 A read-only [MCP](https://modelcontextprotocol.io) (Model Context Protocol)
 server for **IaP — Infrastructure as Prompt**. It lets an AI assistant
@@ -192,7 +192,7 @@ intent-compiler gate: an LLM never writes YAML into the source of truth.
 ## Client configuration
 
 \`\`\`json
-{ "mcpServers": { "iap": { "command": "npx", "args": ["-y", "@iap/mcp-server"] } } }
+{ "mcpServers": { "iap": { "command": "npx", "args": ["-y", "@infraasprompt/mcp-server"] } } }
 \`\`\`
 
 The server speaks JSON-RPC 2.0 over stdio (newline-delimited JSON, one
@@ -208,7 +208,7 @@ writeFileSync(join(outDir, 'README.md'), readme);
 /* 5. Emit a self-contained package.json (no workspace deps, zero runtime deps). */
 const srcPkg = JSON.parse(readFileSync(join(repoRoot, 'packages/mcp-server/package.json'), 'utf8'));
 const pkg = {
-  name: '@iap/mcp-server',
+  name: '@infraasprompt/mcp-server',
   version: srcPkg.version,
   description:
     'Read-only MCP (Model Context Protocol) server for IaP — Infrastructure as Prompt. Exposes authoring and analysis tools (iap_author, iap_validate, iap_cost, iap_security, iap_compliance) over stdio; no deployment or mutation tools.',
