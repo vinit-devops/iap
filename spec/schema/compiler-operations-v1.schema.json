@@ -1,0 +1,961 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/compiler-operations-v1.schema.json",
+  "title": "IaP Compiler Operation Batch v1",
+  "description": "Schema for a proposal batch (apiVersion operations.iap.dev/v1) per IEP-0009: an ordered list of enveloped compiler operations, applied transactionally to an authored IaP document by the operation gate. The operation vocabulary is closed in v1 (twelve types); unknown types fail structural validation instead of entering YAML. Envelopes carry identity, confidence, assumptions, required clarifications, and provenance; validationResult and previewDiff are gate OUTPUTS that MAY be echoed back on a stored or replayed envelope — the gate always recomputes both and never trusts supplied values. Update-shaped operations carry explicit change.set / change.unset lists (phase-3 design decision 2): no merge-patch ambiguity. This schema is a structural pre-filter used for structured-output enforcement against model adapters; the document schema (iap-v1.schema.json) remains the authority for the resulting document, enforced by the gate's transactional dry-run.",
+  "type": "object",
+  "required": ["apiVersion", "operations"],
+  "properties": {
+    "apiVersion": {
+      "description": "Operation-batch format identifier; always operations.iap.dev/v1.",
+      "const": "operations.iap.dev/v1"
+    },
+    "operations": {
+      "description": "The ordered operations of this proposal. Application is sequential and transactional: any operation failing validation aborts the whole batch and leaves the document untouched (IEP-0009 rule 1). An empty proposal is meaningless and is rejected.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/envelope" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "resourceId": {
+      "description": "DNS-label grammar shared with the document schema: resource identifiers, profile names, and policy ids (spec ch. 2 §2.6.1).",
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "namespaceName": {
+      "description": "Extension namespace grammar (spec ch. 11 §11.1). Namespaces are flat; SetExtensionValue is scoped to exactly one namespace.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "kindName": {
+      "description": "The closed v1 kind vocabulary (core plus reserved registry kinds, spec ch. 3/ch. 5). A hallucinated kind fails here, structurally, before any YAML exists.",
+      "enum": [
+        "Application",
+        "Service",
+        "Job",
+        "Function",
+        "Gateway",
+        "Database",
+        "Cache",
+        "ObjectStore",
+        "Volume",
+        "Queue",
+        "Topic",
+        "Identity",
+        "Secret",
+        "Network",
+        "Certificate",
+        "DnsZone",
+        "Stream",
+        "Workflow",
+        "SearchIndex",
+        "Registry",
+        "Dashboard",
+        "Alert"
+      ]
+    },
+    "dotPath": {
+      "description": "Dot path with non-empty segments (e.g. spec.capacity.storage); array elements by zero-based index. Paths are relative to the construct the operation targets. Keys containing a literal dot are not addressable in v1.",
+      "type": "string",
+      "pattern": "^[^.]+(\\.[^.]+)*$"
+    },
+    "changeSetUnset": {
+      "description": "Explicit update payload (phase-3 design decision 2, resolving IEP-0009 open question 1): set maps target-relative dot paths to their new values; unset lists target-relative dot paths to remove. At least one of the two is required (minProperties); no merge-patch semantics exist.",
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "set": {
+          "description": "Map of target-relative dot paths to the exact values to write. Missing intermediate objects are created; writing through an existing non-container value is refused by the gate.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/dotPath" }
+        },
+        "unset": {
+          "description": "Target-relative dot paths to remove. Removing an absent path is an idempotent no-op.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/dotPath" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "labels": {
+      "description": "Free-form key/value labels; values are always strings (mirrors the document schema).",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9._/-]{0,61}[a-zA-Z0-9])?$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 256
+      }
+    },
+    "relationshipEdge": {
+      "description": "Inline edge payload (spec ch. 4). The operation's target resource is always the edge source.",
+      "type": "object",
+      "required": ["type", "target"],
+      "properties": {
+        "type": {
+          "description": "Relationship verb; the v1 verb set is closed (spec ch. 4 §4.3).",
+          "enum": [
+            "dependsOn",
+            "connectsTo",
+            "routesTo",
+            "publishesTo",
+            "consumesFrom",
+            "replicatesTo",
+            "storesDataIn",
+            "protectedBy",
+            "monitoredBy",
+            "authenticatedBy"
+          ]
+        },
+        "target": {
+          "description": "Resource identifier of the edge target; must resolve in the document at the point this operation applies.",
+          "$ref": "#/$defs/resourceId"
+        },
+        "description": {
+          "description": "Human documentation for the edge.",
+          "type": "string"
+        },
+        "port": {
+          "description": "Target port asserted by this edge.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "protocol": {
+          "description": "Wire protocol asserted by this edge.",
+          "enum": ["tcp", "udp", "http", "https", "grpc", "amqp", "mqtt"]
+        },
+        "access": {
+          "description": "Access level asserted by this edge (connectsTo/storesDataIn only).",
+          "enum": ["read", "write", "read-write", "admin"]
+        },
+        "path": {
+          "description": "Route path prefix (routesTo only).",
+          "type": "string"
+        },
+        "host": {
+          "description": "Route host match (routesTo only).",
+          "type": "string"
+        }
+      },
+      "patternProperties": {
+        "^x-": true
+      },
+      "additionalProperties": false
+    },
+    "relationshipRef": {
+      "description": "Identifies one existing inline edge on the target resource by its (verb, target) pair. Resolution refuses when no edge matches (dangling-target) or more than one matches (ambiguous-target); verb or target changes are expressed as remove + create, never as an update.",
+      "type": "object",
+      "required": ["type", "target"],
+      "properties": {
+        "type": {
+          "description": "Relationship verb of the edge being addressed.",
+          "enum": [
+            "dependsOn",
+            "connectsTo",
+            "routesTo",
+            "publishesTo",
+            "consumesFrom",
+            "replicatesTo",
+            "storesDataIn",
+            "protectedBy",
+            "monitoredBy",
+            "authenticatedBy"
+          ]
+        },
+        "target": {
+          "description": "Resource identifier the edge points at.",
+          "$ref": "#/$defs/resourceId"
+        }
+      },
+      "additionalProperties": false
+    },
+    "policyCondition": {
+      "description": "Policy condition tree (spec ch. 7 §7.3): a {field, operator, value} leaf or an allOf/anyOf/not combinator over further conditions.",
+      "oneOf": [
+        {
+          "description": "Condition leaf: a dot path from the resource entry root, a closed operator, and an operand.",
+          "type": "object",
+          "required": ["field", "operator"],
+          "properties": {
+            "field": {
+              "description": "Dot path from the resource entry root (e.g. spec.encryption.atRest).",
+              "$ref": "#/$defs/dotPath"
+            },
+            "operator": {
+              "description": "Comparison operator; the v1 operator set is closed (spec ch. 7 §7.4).",
+              "enum": [
+                "equals",
+                "not-equals",
+                "in",
+                "not-in",
+                "exists",
+                "absent",
+                "greater-than",
+                "less-than",
+                "matches"
+              ]
+            },
+            "value": {
+              "description": "Operand for the operator; omitted for exists/absent."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "Conjunction: every member condition must hold.",
+          "type": "object",
+          "required": ["allOf"],
+          "properties": {
+            "allOf": {
+              "description": "Member conditions, all of which must hold.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/policyCondition" }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "Disjunction: at least one member condition must hold.",
+          "type": "object",
+          "required": ["anyOf"],
+          "properties": {
+            "anyOf": {
+              "description": "Member conditions, at least one of which must hold.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/policyCondition" }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "Negation of one member condition.",
+          "type": "object",
+          "required": ["not"],
+          "properties": {
+            "not": {
+              "description": "The condition being negated.",
+              "$ref": "#/$defs/policyCondition"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "finding": {
+      "description": "One machine-readable validation finding in the ch. 8 §8.6 format, produced by the deterministic pipeline during the gate's dry run. IaP codes pass through untouched.",
+      "type": "object",
+      "required": ["code", "severity", "path", "message"],
+      "properties": {
+        "code": {
+          "description": "IaP error code, ^IAP[1-8][0-9]{2}$ (ch. 8 §8.1).",
+          "type": "string",
+          "pattern": "^IAP[1-8][0-9]{2}$"
+        },
+        "severity": {
+          "description": "error invalidates the document; warning never does (ch. 8 §8.2).",
+          "enum": ["error", "warning"]
+        },
+        "path": {
+          "description": "Dot path from the document root to the offending value.",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable explanation; not intended for programmatic matching.",
+          "type": "string"
+        },
+        "policyId": {
+          "description": "The violated policy's id (phase 5/7 findings only).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "envelope": {
+      "description": "One enveloped operation: the typed change request plus the metadata that makes AI proposals inspectable, individually validated, replayable, and model-independent (IEP-0009).",
+      "type": "object",
+      "required": [
+        "operationId",
+        "type",
+        "target",
+        "confidence",
+        "assumptions",
+        "requiredClarifications",
+        "provenance"
+      ],
+      "properties": {
+        "operationId": {
+          "description": "Caller-supplied operation identity, unique within the batch; cited by operation-log entries, confirmations, and per-field provenance records (OP-4). Never generated from ambient state.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "type": {
+          "description": "The operation type; the v1 vocabulary is closed at exactly these twelve (IEP-0009). Unknown types are rejected structurally.",
+          "enum": [
+            "CreateResource",
+            "UpdateResource",
+            "RemoveResource",
+            "CreateRelationship",
+            "UpdateRelationship",
+            "RemoveRelationship",
+            "ApplyProfile",
+            "RemoveProfile",
+            "AddPolicy",
+            "ChangeConstraint",
+            "SetMetadata",
+            "SetExtensionValue"
+          ]
+        },
+        "target": {
+          "description": "What the operation addresses; the required members depend on the operation type (see the per-type branches of this schema).",
+          "type": "object",
+          "properties": {
+            "resourceId": {
+              "description": "Resource identifier being created, changed, or removed; for relationship operations, the edge SOURCE; for resource-level SetExtensionValue, the refined resource.",
+              "$ref": "#/$defs/resourceId"
+            },
+            "profile": {
+              "description": "Profile name being applied or removed (ApplyProfile/RemoveProfile).",
+              "$ref": "#/$defs/resourceId"
+            },
+            "policyId": {
+              "description": "Policy id being added or changed (AddPolicy/ChangeConstraint).",
+              "$ref": "#/$defs/resourceId"
+            },
+            "namespace": {
+              "description": "Extension namespace being written (SetExtensionValue only); the operation is scoped to exactly this namespace (ch. 11 non-interference).",
+              "$ref": "#/$defs/namespaceName"
+            },
+            "relationship": {
+              "description": "Existing edge being updated or removed (UpdateRelationship/RemoveRelationship).",
+              "$ref": "#/$defs/relationshipRef"
+            }
+          },
+          "additionalProperties": false
+        },
+        "change": {
+          "description": "The operation payload; its shape is constrained per operation type by the branches below. Remove-type operations carry no change."
+        },
+        "sourceSpan": {
+          "description": "Where in the source input this operation was extracted from; enables review UIs to highlight the originating text.",
+          "type": "object",
+          "required": ["input", "start", "end"],
+          "properties": {
+            "input": {
+              "description": "Identifier of the source input (e.g. a natural-language request id).",
+              "type": "string"
+            },
+            "start": {
+              "description": "Zero-based start offset (inclusive) within the source input.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "end": {
+              "description": "Zero-based end offset (exclusive) within the source input.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "text": {
+              "description": "The quoted source text, for display.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "confidence": {
+          "description": "Extraction confidence in [0, 1]. Below the session threshold (default 0.8, phase-3 design decision 2 / IEP-0009 open question 3) the operation cannot commit without a recorded confirmation (OP-3).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "assumptions": {
+          "description": "Values the proposer assumed rather than extracted. ANY non-empty list forces human confirmation before commit (IEP-0009 rule 2); an empty array is an explicit claim that nothing was assumed.",
+          "type": "array",
+          "items": {
+            "description": "One assumed value and why it was assumed.",
+            "type": "object",
+            "required": ["field", "assumed", "reason"],
+            "properties": {
+              "field": {
+                "description": "Target-relative dot path of the assumed field.",
+                "$ref": "#/$defs/dotPath"
+              },
+              "assumed": {
+                "description": "The assumed value (any JSON value)."
+              },
+              "reason": {
+                "description": "Why the value was assumed rather than asked for.",
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "requiredClarifications": {
+          "description": "Open questions that block this operation. ANY non-empty list forces human confirmation before commit (IEP-0009 rule 2); the deterministic clarification engine (roadmap §3.3, M3.3) populates these.",
+          "type": "array",
+          "items": {
+            "description": "One machine-readable clarification question.",
+            "type": "object",
+            "required": ["id", "question"],
+            "properties": {
+              "id": {
+                "description": "Stable question identifier, referenced by the answering confirmation.",
+                "type": "string"
+              },
+              "question": {
+                "description": "The question, phrased for a human.",
+                "type": "string"
+              },
+              "field": {
+                "description": "Target-relative dot path of the field the question blocks.",
+                "$ref": "#/$defs/dotPath"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "provenance": {
+          "description": "Where this proposal came from. The source vocabulary is closed (phase-3 design decision 6); mapping-default is reserved — mapping defaults exist right of the boundary and never flow back.",
+          "type": "object",
+          "required": ["source", "channel"],
+          "properties": {
+            "source": {
+              "description": "Closed provenance source vocabulary (phase-3 design decision 6, OP-4).",
+              "enum": [
+                "explicit-user",
+                "confirmed-clarification",
+                "organization-profile",
+                "policy",
+                "iap-default",
+                "mapping-default",
+                "accepted-recommendation"
+              ]
+            },
+            "channel": {
+              "description": "The authoring surface that produced the proposal (IEP-0009 summary: natural language, guided UI, IDE commands, visual designer; api covers programmatic callers).",
+              "enum": ["natural-language", "guided-ui", "ide-command", "visual-designer", "api"]
+            },
+            "modelId": {
+              "description": "Identifier of the model/adapter that produced the proposal, for the audit log. Never influences application: the same confirmed batch produces the same document regardless of this value (OP-2).",
+              "type": "string"
+            },
+            "promptVersion": {
+              "description": "Version of the prompt artifact used, for the audit log (M3.4 prompt registry).",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "validationResult": {
+          "description": "Gate OUTPUT, optionally echoed back on stored/replayed envelopes: the dry-run validation outcome. The gate recomputes this on every apply and never trusts a supplied value.",
+          "type": "object",
+          "required": ["status", "findings"],
+          "properties": {
+            "status": {
+              "description": "pass when the dry run produced no error-severity findings.",
+              "enum": ["pass", "fail"]
+            },
+            "findings": {
+              "description": "The dry run's findings, in the ch. 8 §8.6 machine-readable format.",
+              "type": "array",
+              "items": { "$ref": "#/$defs/finding" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "previewDiff": {
+          "description": "Gate OUTPUT, optionally echoed back on stored/replayed envelopes: the semantic preview diff. The gate recomputes this on every apply and never trusts a supplied value.",
+          "type": "object",
+          "required": ["format"],
+          "properties": {
+            "format": {
+              "description": "Preview diff format identifier; always iap-semantic-diff/v1.",
+              "const": "iap-semantic-diff/v1"
+            },
+            "adds": {
+              "description": "Document paths added by the change (a whole added subtree reports its root path only).",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "removes": {
+              "description": "Document paths removed by the change.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "changes": {
+              "description": "Document paths whose canonical value changed.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "destructive": {
+              "description": "True when the change removes a stateful resource or touches a replacement-eligible field (ch. 14 §14.2, phase-3 design decision 8); destructive changes require explicit acknowledgment in the confirmation.",
+              "type": "boolean"
+            },
+            "destructiveOperations": {
+              "description": "The operations that made the diff destructive, with machine-readable reasons.",
+              "type": "array",
+              "items": {
+                "description": "One destructive-operation classification.",
+                "type": "object",
+                "required": ["operationId", "resourceId", "kind", "reason", "paths"],
+                "properties": {
+                  "operationId": {
+                    "description": "The destructive operation's id.",
+                    "type": "string"
+                  },
+                  "resourceId": {
+                    "description": "The affected resource.",
+                    "$ref": "#/$defs/resourceId"
+                  },
+                  "kind": {
+                    "description": "The affected resource's kind.",
+                    "$ref": "#/$defs/kindName"
+                  },
+                  "reason": {
+                    "description": "stateful-remove: RemoveResource on a stateful kind; replace-eligible-update: an update touching a replacement-eligible field per the kind's ch. 3 lifecycle rules.",
+                    "enum": ["stateful-remove", "replace-eligible-update"]
+                  },
+                  "paths": {
+                    "description": "The touched replacement-eligible paths (empty for stateful-remove).",
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/dotPath" }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is CreateResource.", "const": "CreateResource" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "CreateResource target: the identifier of the resource to create.",
+                "type": "object",
+                "required": ["resourceId"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier for the new resource; must not already exist.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+                "description": "The complete resource entry to create. extensions is deliberately absent: SetExtensionValue is the sole path into extensions (ch. 11).",
+                "type": "object",
+                "required": ["kind"],
+                "properties": {
+                  "kind": {
+                    "description": "The new resource's kind (closed v1 vocabulary).",
+                    "$ref": "#/$defs/kindName"
+                  },
+                  "description": {
+                    "description": "Human documentation for the resource.",
+                    "type": "string"
+                  },
+                  "labels": {
+                    "description": "Selectable key/value labels.",
+                    "$ref": "#/$defs/labels"
+                  },
+                  "spec": {
+                    "description": "Kind-specific intent fields; the document schema validates the content during the gate's dry run.",
+                    "type": "object"
+                  },
+                  "relationships": {
+                    "description": "Inline edges declared with the resource; the new resource is the source. Edge targets must resolve at the point this operation applies.",
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/relationshipEdge" }
+                  }
+                },
+                "patternProperties": {
+                  "^x-": true
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is UpdateResource.", "const": "UpdateResource" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "UpdateResource target: the resource being updated.",
+                "type": "object",
+                "required": ["resourceId"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier of the existing resource to update.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "Explicit set/unset payload with target-relative dot paths (design decision 2).",
+              "$ref": "#/$defs/changeSetUnset"
+            }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is RemoveResource.", "const": "RemoveResource" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "target": {
+                "description": "RemoveResource target: the resource being removed.",
+                "type": "object",
+                "required": ["resourceId"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier of the existing resource to remove.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is CreateRelationship.", "const": "CreateRelationship" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "CreateRelationship target: the SOURCE resource of the new edge.",
+                "type": "object",
+                "required": ["resourceId"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier of the existing resource that declares the edge (the edge source).",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "The complete inline edge to add; the target resource is the source.",
+              "$ref": "#/$defs/relationshipEdge"
+            }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is UpdateRelationship.", "const": "UpdateRelationship" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "UpdateRelationship target: the edge source resource plus the (verb, target) pair identifying the edge.",
+                "type": "object",
+                "required": ["resourceId", "relationship"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier of the resource that declares the edge (the edge source).",
+                    "$ref": "#/$defs/resourceId"
+                  },
+                  "relationship": {
+                    "description": "The (verb, target) pair identifying the edge on the source resource.",
+                    "$ref": "#/$defs/relationshipRef"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "Explicit set/unset payload with target-relative dot paths (design decision 2).",
+              "$ref": "#/$defs/changeSetUnset"
+            }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is RemoveRelationship.", "const": "RemoveRelationship" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "target": {
+                "description": "RemoveRelationship target: the edge source resource plus the (verb, target) pair identifying the edge.",
+                "type": "object",
+                "required": ["resourceId", "relationship"],
+                "properties": {
+                  "resourceId": {
+                    "description": "Identifier of the resource that declares the edge (the edge source).",
+                    "$ref": "#/$defs/resourceId"
+                  },
+                  "relationship": {
+                    "description": "The (verb, target) pair identifying the edge on the source resource.",
+                    "$ref": "#/$defs/relationshipRef"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is ApplyProfile.", "const": "ApplyProfile" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "ApplyProfile target: the profile name to create or wholly replace (upsert; profiles are complete definitions, not patches of patches).",
+                "type": "object",
+                "required": ["profile"],
+                "properties": {
+                  "profile": {
+                    "description": "Name of the profile definition being written.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+                "description": "The complete profile definition (spec ch. 6).",
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "description": {
+                    "description": "Human documentation for the profile.",
+                    "type": "string"
+                  },
+                  "extends": {
+                    "description": "Name of one other profile whose overrides are applied first.",
+                    "$ref": "#/$defs/resourceId"
+                  },
+                  "overrides": {
+                    "description": "RFC 7386 JSON Merge Patch applied to the document when this profile is active.",
+                    "type": "object"
+                  }
+                },
+                "patternProperties": {
+                  "^x-": true
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is RemoveProfile.", "const": "RemoveProfile" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "target": {
+                "description": "RemoveProfile target: the profile definition being removed.",
+                "type": "object",
+                "required": ["profile"],
+                "properties": {
+                  "profile": {
+                    "description": "Name of the existing profile definition to remove.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is AddPolicy.", "const": "AddPolicy" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "AddPolicy target: the id of the policy being added; must not already exist.",
+                "type": "object",
+                "required": ["policyId"],
+                "properties": {
+                  "policyId": {
+                    "description": "Identifier for the new policy (written as the policy's id).",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+                "description": "The policy body (spec ch. 7); the id comes from target.policyId. target is required explicitly — the gate materializes no implicit targeting.",
+                "type": "object",
+                "required": ["target", "rule", "effect"],
+                "properties": {
+                  "description": {
+                    "description": "Human documentation for the policy.",
+                    "type": "string"
+                  },
+                  "target": {
+                    "description": "What the policy targets: kinds and/or a label selector; {} targets every resource (ch. 7 §7.2).",
+                    "type": "object",
+                    "properties": {
+                      "kinds": {
+                        "description": "Kinds the policy targets.",
+                        "type": "array",
+                        "items": { "$ref": "#/$defs/kindName" },
+                        "uniqueItems": true
+                      },
+                      "selector": {
+                        "description": "Label selector narrowing the targeted resources.",
+                        "type": "object",
+                        "required": ["labels"],
+                        "properties": {
+                          "kinds": {
+                            "description": "Kinds the selector matches.",
+                            "type": "array",
+                            "items": { "$ref": "#/$defs/kindName" },
+                            "uniqueItems": true
+                          },
+                          "labels": {
+                            "description": "Labels a resource must carry to match.",
+                            "$ref": "#/$defs/labels"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "rule": {
+                    "description": "The policy condition tree the effect applies to (ch. 7 §7.3).",
+                    "$ref": "#/$defs/policyCondition"
+                  },
+                  "effect": {
+                    "description": "deny: violation fails validation; warn: violation is reported; require: the rule MUST hold (ch. 7 §7.5).",
+                    "enum": ["deny", "warn", "require"]
+                  },
+                  "params": {
+                    "description": "Named scalar parameters referenced by the rule.",
+                    "type": "object",
+                    "additionalProperties": { "type": ["string", "number", "boolean"] }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is ChangeConstraint.", "const": "ChangeConstraint" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "ChangeConstraint target: the existing policy whose constraint is being changed.",
+                "type": "object",
+                "required": ["policyId"],
+                "properties": {
+                  "policyId": {
+                    "description": "Identifier of the existing policy to change.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "Explicit set/unset payload with target-relative dot paths (design decision 2).",
+              "$ref": "#/$defs/changeSetUnset"
+            }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is SetMetadata.", "const": "SetMetadata" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "SetMetadata target: the document metadata block is singular, so the target carries no members.",
+                "type": "object",
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "Explicit set/unset payload with target-relative dot paths (design decision 2).",
+              "$ref": "#/$defs/changeSetUnset"
+            }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "description": "Branch discriminator: applies when the operation type is SetExtensionValue.", "const": "SetExtensionValue" } },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["change"],
+            "properties": {
+              "target": {
+                "description": "SetExtensionValue target: the namespace being written, and the resource whose extensions block is refined (omitted for document-level registration).",
+                "type": "object",
+                "required": ["namespace"],
+                "properties": {
+                  "namespace": {
+                    "description": "The extension namespace this operation is scoped to; paths in the change are relative to extensions.<namespace> and structurally cannot escape it.",
+                    "$ref": "#/$defs/namespaceName"
+                  },
+                  "resourceId": {
+                    "description": "Resource whose extensions.<namespace> block is refined; omitted for the document-level registration block.",
+                    "$ref": "#/$defs/resourceId"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "change": {
+              "description": "Explicit set/unset payload with target-relative dot paths (design decision 2).",
+              "$ref": "#/$defs/changeSetUnset"
+            }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

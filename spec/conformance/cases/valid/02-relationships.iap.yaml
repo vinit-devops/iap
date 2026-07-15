@@ -1,0 +1,79 @@
+# Conformance case: valid/02-relationships
+# expected: pass
+# reason: Exercises both relationship declaration forms. Inline edges: connectsTo
+#         with port/protocol/access attributes and authenticatedBy -> Identity.
+#         Top-level rule edge: selector-based monitoredBy from every tier=data
+#         resource to a reserved-kind Alert (validators SHOULD warn IAP801 for
+#         the reserved kind; warnings do not affect conformance).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: order-platform
+  owner: payments-team
+
+resources:
+  api:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/order-api:2.3.1
+      exposure: internal
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: connectsTo
+        target: session-cache
+        port: 6379
+        protocol: tcp
+        access: read-write
+      - type: authenticatedBy
+        target: api-identity
+
+  orders-db:
+    kind: Database
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      availability: high
+
+  session-cache:
+    kind: Cache
+    labels:
+      tier: data
+    spec:
+      engine: redis-compatible
+      capacity:
+        memory: 2Gi
+
+  api-identity:
+    kind: Identity
+    spec:
+      type: workload
+
+  data-alerts:
+    kind: Alert
+    description: Reserved kind in v1; accepted with warning IAP801.
+    spec:
+      severity: high
+
+relationships:
+  - type: monitoredBy
+    source:
+      selector:
+        labels:
+          tier: data
+    target: data-alerts
+    description: Every data-tier resource delivers telemetry to the shared alert.

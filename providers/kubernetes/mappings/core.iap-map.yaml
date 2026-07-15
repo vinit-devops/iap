@@ -1,0 +1,460 @@
+# Kubernetes core mapping (IEP-0012 core certification; spec ch. 12).
+#
+# Realizes eight kinds on an in-cluster substrate: workloads via
+# Deployment/Service/HPA, data services via operator-managed clusters
+# (PostgresCluster, RedisFailover), traffic via Gateway API, messaging via an
+# operator-managed broker queue, object storage via a COSI-style Bucket.
+# `exposure: private` is realized as a default-deny NetworkPolicy scoped to
+# the resource's pods — the same abstract capability the AWS package attests
+# via security-group non-reachability (IEP-0012 "Provider impact").
+#
+# Fail-closed surface (deliberate rejections, ch. 12 §12.3):
+# - Database: only class=relational + engine=postgresql (operator-managed);
+#   mysql/mariadb and the non-relational classes are rejected, not emulated.
+# - availability: maximum rejected everywhere it can appear in this matrix —
+#   a single cluster cannot attest a multi-region SLO floor.
+# - Service: artifact.type=container-image and runtime=container only;
+#   exposure=public rejected (public entry belongs to Gateway).
+# - Queue: delivery=exactly-once rejected (broker attests at-least-once).
+# - observability.traces=required rejected on every kind: this realization
+#   ships no tracing pipeline it could attest.
+# - Cache: memcached-compatible rejected; ObjectStore: exposure=public and
+#   lifecycle rules rejected; Gateway: tls.certificate references rejected
+#   (no Certificate realization).
+apiVersion: mapping.iap.dev/v1
+provider: kubernetes
+version: 0.1.0
+specCompat: ">=1.0.0 <2.0.0"
+description: >-
+  Kubernetes core mapping: Deployment+Service+HPA for Service, Gateway API
+  for Gateway, operator-managed PostgreSQL/Redis/broker for the data kinds,
+  COSI-style Bucket for ObjectStore, NetworkPolicy denial for private
+  exposure.
+
+mappings:
+  Application:
+    supports:
+      fields:
+        - spec.components
+        - spec.version
+    realize:
+      - targets: [kubernetes:core:Namespace]
+        derive:
+          managedBy:
+            constant: iap
+          appVersionLabel:
+            from: spec.version
+    outputs:
+      identifier:
+        from: kubernetes:core:Namespace.metadata.name
+
+  Gateway:
+    supports:
+      fields:
+        - spec.exposure
+        - spec.domains
+        - spec.tls.minimumVersion
+        - spec.observability
+      values:
+        spec.exposure: [public, internal]
+        spec.observability.traces: [none, preferred]
+      relationships: [routesTo]
+    realize:
+      - targets:
+          - kubernetes:gateway:Gateway
+          - kubernetes:gateway:HTTPRoute
+        derive:
+          kubernetes:gateway:Gateway.gatewayClassName:
+            from: spec.exposure
+            map:
+              public: external
+              internal: internal
+          kubernetes:gateway:Gateway.listenerProtocol:
+            constant: HTTPS
+          kubernetes:gateway:Gateway.tlsMinimumVersion:
+            from: spec.tls.minimumVersion
+            map:
+              "1.2": TLSv1_2
+              "1.3": TLSv1_3
+          kubernetes:gateway:HTTPRoute.pathMatchType:
+            constant: PathPrefix
+    outputs:
+      identifier:
+        from: kubernetes:gateway:Gateway.metadata.name
+      endpoint:
+        from: kubernetes:gateway:Gateway.status.address
+
+  Service:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.runtime
+        - spec.size
+        - spec.resources
+        - spec.scaling
+        - spec.exposure
+        - spec.availability
+        - spec.ports
+        - spec.healthCheck
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+        spec.runtime: [container]
+        spec.exposure: [private, internal]
+        spec.availability: [standard, high]
+        spec.observability.traces: [none, preferred]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - publishesTo
+        - consumesFrom
+        - storesDataIn
+        - authenticatedBy
+    realize:
+      - targets:
+          - kubernetes:apps:Deployment
+          - kubernetes:core:Service
+          - kubernetes:autoscaling:HorizontalPodAutoscaler
+          - kubernetes:networking:NetworkPolicy
+        derive:
+          kubernetes:apps:Deployment.image:
+            from: spec.artifact.reference
+          kubernetes:apps:Deployment.cpuRequest:
+            from: spec.size
+            map:
+              xs: 250m
+              s: 500m
+              m: "1"
+              l: "2"
+              xl: "4"
+          kubernetes:apps:Deployment.memoryRequest:
+            from: spec.size
+            map:
+              xs: 512Mi
+              s: 1Gi
+              m: 2Gi
+              l: 4Gi
+              xl: 8Gi
+          kubernetes:apps:Deployment.replicas:
+            from: spec.scaling.min
+          kubernetes:apps:Deployment.zoneSpread:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          kubernetes:apps:Deployment.probePath:
+            from: spec.healthCheck.path
+          kubernetes:apps:Deployment.probePort:
+            from: spec.healthCheck.port
+          kubernetes:apps:Deployment.probeInterval:
+            from: spec.healthCheck.interval
+          kubernetes:core:Service.type:
+            constant: ClusterIP
+          kubernetes:autoscaling:HorizontalPodAutoscaler.minReplicas:
+            from: spec.scaling.min
+          kubernetes:autoscaling:HorizontalPodAutoscaler.maxReplicas:
+            from: spec.scaling.max
+          kubernetes:autoscaling:HorizontalPodAutoscaler.targetCPUUtilizationPercentage:
+            from: spec.scaling.targetUtilization
+          kubernetes:networking:NetworkPolicy.defaultDenyIngress:
+            from: spec.exposure
+            map:
+              private: true
+              internal: false
+          kubernetes:networking:NetworkPolicy.allowFromDeclaredConnections:
+            constant: true
+    outputs:
+      identifier:
+        from: kubernetes:core:Service.metadata.name
+      endpoint:
+        from: kubernetes:core:Service.clusterDnsName
+
+  Database:
+    supports:
+      fields:
+        - spec.class
+        - spec.engine
+        - spec.engineVersion
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.capacity.storage
+        - spec.size
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.class: [relational]
+        spec.engine: [postgresql]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+        spec.observability.traces: [none, preferred]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - when:
+          spec.class: relational
+        targets:
+          - kubernetes:postgres-operator:PostgresCluster
+          - kubernetes:core:Secret
+          - kubernetes:networking:NetworkPolicy
+        derive:
+          kubernetes:postgres-operator:PostgresCluster.engine:
+            from: spec.engine
+            map:
+              postgresql: postgres
+          kubernetes:postgres-operator:PostgresCluster.postgresVersion:
+            from: spec.engineVersion
+          kubernetes:postgres-operator:PostgresCluster.instances:
+            from: spec.availability
+            map:
+              standard: 1
+              high: 2
+          kubernetes:postgres-operator:PostgresCluster.synchronousReplication:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          kubernetes:postgres-operator:PostgresCluster.storage:
+            from: spec.capacity.storage
+          kubernetes:postgres-operator:PostgresCluster.storageClassEncrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          kubernetes:postgres-operator:PostgresCluster.tlsRequired:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+          kubernetes:postgres-operator:PostgresCluster.backupsEnabled:
+            from: spec.resilience.backup
+            map:
+              required: true
+              preferred: true
+              none: false
+          kubernetes:postgres-operator:PostgresCluster.recoveryPointObjective:
+            from: spec.resilience.recoveryPointObjective
+          kubernetes:postgres-operator:PostgresCluster.recoveryTimeObjective:
+            from: spec.resilience.recoveryTimeObjective
+          kubernetes:postgres-operator:PostgresCluster.cpuRequest:
+            from: spec.size
+            map:
+              xs: 250m
+              s: 500m
+              m: "1"
+              l: "2"
+              xl: "4"
+          kubernetes:postgres-operator:PostgresCluster.memoryRequest:
+            from: spec.size
+            map:
+              xs: 1Gi
+              s: 2Gi
+              m: 4Gi
+              l: 8Gi
+              xl: 16Gi
+          kubernetes:core:Secret.secretType:
+            constant: connection-credentials
+          kubernetes:networking:NetworkPolicy.defaultDenyIngress:
+            from: spec.exposure
+            map:
+              private: true
+          kubernetes:networking:NetworkPolicy.allowFromDeclaredConnections:
+            constant: true
+    outputs:
+      identifier:
+        from: kubernetes:postgres-operator:PostgresCluster.metadata.name
+      endpoint:
+        from: kubernetes:postgres-operator:PostgresCluster.primaryServiceDns
+      connectionSecret:
+        from: kubernetes:core:Secret.metadata.name
+
+  Cache:
+    supports:
+      fields:
+        - spec.engine
+        - spec.capacity.memory
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.observability
+      values:
+        spec.engine: [redis-compatible]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+        spec.observability.traces: [none, preferred]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - when:
+          spec.engine: redis-compatible
+        targets:
+          - kubernetes:redis-operator:RedisFailover
+          - kubernetes:core:Secret
+          - kubernetes:networking:NetworkPolicy
+        derive:
+          kubernetes:redis-operator:RedisFailover.redisReplicas:
+            from: spec.availability
+            map:
+              standard: 1
+              high: 3
+          kubernetes:redis-operator:RedisFailover.sentinelReplicas:
+            constant: 3
+          kubernetes:redis-operator:RedisFailover.memoryLimit:
+            from: spec.capacity.memory
+          kubernetes:redis-operator:RedisFailover.tlsEnabled:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+          kubernetes:redis-operator:RedisFailover.persistenceEnabled:
+            constant: false
+          kubernetes:redis-operator:RedisFailover.authEnabled:
+            constant: true
+          kubernetes:core:Secret.secretType:
+            constant: connection-credentials
+          kubernetes:networking:NetworkPolicy.defaultDenyIngress:
+            from: spec.exposure
+            map:
+              private: true
+          kubernetes:networking:NetworkPolicy.allowFromDeclaredConnections:
+            constant: true
+    outputs:
+      identifier:
+        from: kubernetes:redis-operator:RedisFailover.metadata.name
+      endpoint:
+        from: kubernetes:redis-operator:RedisFailover.masterServiceDns
+      connectionSecret:
+        from: kubernetes:core:Secret.metadata.name
+
+  ObjectStore:
+    supports:
+      fields:
+        - spec.versioning
+        - spec.exposure
+        - spec.encryption
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.exposure: [private]
+        spec.observability.traces: [none, preferred]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets:
+          - kubernetes:objectstorage:Bucket
+          - kubernetes:networking:NetworkPolicy
+        derive:
+          kubernetes:objectstorage:Bucket.versioningEnabled:
+            from: spec.versioning
+            map:
+              enabled: true
+              disabled: false
+          kubernetes:objectstorage:Bucket.encryptionAtRest:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          kubernetes:objectstorage:Bucket.tlsOnly:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+          kubernetes:objectstorage:Bucket.backupEnabled:
+            from: spec.resilience.backup
+            map:
+              required: true
+              preferred: true
+              none: false
+          kubernetes:networking:NetworkPolicy.defaultDenyIngress:
+            from: spec.exposure
+            map:
+              private: true
+          kubernetes:networking:NetworkPolicy.allowFromDeclaredConnections:
+            constant: true
+    outputs:
+      identifier:
+        from: kubernetes:objectstorage:Bucket.metadata.name
+      endpoint:
+        from: kubernetes:objectstorage:Bucket.endpoint
+
+  Queue:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.deadLetter
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+        spec.observability.traces: [none, preferred]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - when:
+          spec.ordering: fifo
+        targets: [kubernetes:messaging:Queue]
+        derive:
+          queueType:
+            constant: quorum
+          singleActiveConsumer:
+            constant: true
+          messageTtl:
+            from: spec.messageRetention
+          deadLetterEnabled:
+            from: spec.deadLetter.enabled
+          deadLetterMaxReceives:
+            from: spec.deadLetter.maxReceives
+          storageClassEncrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          tlsRequired:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+      - targets: [kubernetes:messaging:Queue]
+        derive:
+          queueType:
+            constant: classic
+          singleActiveConsumer:
+            constant: false
+          messageTtl:
+            from: spec.messageRetention
+          deadLetterEnabled:
+            from: spec.deadLetter.enabled
+          deadLetterMaxReceives:
+            from: spec.deadLetter.maxReceives
+          storageClassEncrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          tlsRequired:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+    outputs:
+      identifier:
+        from: kubernetes:messaging:Queue.metadata.name
+      endpoint:
+        from: kubernetes:messaging:Queue.amqpDns
+
+  Identity:
+    supports:
+      fields:
+        - spec.type
+      values:
+        spec.type: [workload]
+    realize:
+      - targets: [kubernetes:core:ServiceAccount]
+        derive:
+          automountToken:
+            constant: true
+          workloadIdentity:
+            constant: true
+    outputs:
+      identifier:
+        from: kubernetes:core:ServiceAccount.metadata.name

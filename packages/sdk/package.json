@@ -1,0 +1,33 @@
+{
+  "name": "@iap/sdk",
+  "version": "0.1.0",
+  "description": "Reference SDK facade for the Infrastructure as Prompt (IaP): load, validate, canonicalize, graph, serialize, extension registration (spec ch. 21)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/graph": "workspace:*",
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "@iap/policy": "workspace:*",
+    "@iap/validator": "workspace:*",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

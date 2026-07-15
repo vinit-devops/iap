@@ -1,0 +1,97 @@
+# TEST FIXTURE (test material only): tiny mapping exercising every loader
+# verification — constrained supports matrices, first-match-wins rules with a
+# default case, total derive maps, bare and target-qualified derive keys, and
+# complete abstract-output binding.
+apiVersion: mapping.iap.dev/v1
+provider: tiny
+version: 1.0.0
+specCompat: ">=1.0.0 <2.0.0"
+description: Fixture mapping for Database and Queue (test material only)
+
+mappings:
+  Database:
+    supports:
+      fields:
+        - spec.class
+        - spec.engine
+        - spec.engineVersion
+        - spec.availability
+        - spec.encryption.atRest
+        - spec.encryption.inTransit
+        - spec.exposure
+        - spec.capacity.storage
+        - spec.size
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.class: [relational]
+        spec.engine: [postgresql, mysql]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - when:
+          spec.class: relational
+        targets:
+          - tiny:sql:Instance
+          - tiny:secrets:Secret
+        derive:
+          tiny:sql:Instance.engine:
+            from: spec.engine
+            map:
+              postgresql: postgres
+              mysql: mysql
+          tiny:sql:Instance.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          tiny:sql:Instance.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          tiny:sql:Instance.storage:
+            from: spec.capacity.storage
+          tiny:sql:Instance.public:
+            constant: false
+    outputs:
+      identifier:
+        from: tiny:sql:Instance.id
+      endpoint:
+        from: tiny:sql:Instance.endpoint
+      connectionSecret:
+        from: tiny:secrets:Secret.ref
+
+  Queue:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.deadLetter
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+      relationships: [dependsOn]
+    realize:
+      - when:
+          spec.ordering: fifo
+        targets: [tiny:queue:Queue]
+        derive:
+          fifo:
+            constant: true
+          retention:
+            from: spec.messageRetention
+      - targets: [tiny:queue:Queue]
+        derive:
+          tiny:queue:Queue.fifo:
+            constant: false
+          tiny:queue:Queue.retention:
+            from: spec.messageRetention
+    outputs:
+      identifier:
+        from: tiny:queue:Queue.arn
+      endpoint:
+        from: tiny:queue:Queue.url

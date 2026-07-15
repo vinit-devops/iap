@@ -1,0 +1,17 @@
+# Conformance corpus: schema-valid document declaring a kind (Function) the
+# AWS core mapping does not cover. The mapping MUST fail closed with an
+# unsupported-kind diagnostic naming the kind — a plan is complete or absent,
+# never partial (ch. 12 §12.3).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: aws-function-image-resizer
+
+resources:
+  image-resizer:
+    kind: Function
+    description: Thumbnail generation on upload
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/image-resizer:2.0.1

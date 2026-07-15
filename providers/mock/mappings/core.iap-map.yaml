@@ -1,0 +1,616 @@
+# Mock provider core mapping (IEP-0012 reference package). Deliberately
+# interesting coverage: constrained values matrices (Database.availability,
+# Queue.delivery — exercising expect: rejected), a multi-rule first-match
+# kind (Queue, Database), total derive maps over both constrained and full-enum
+# domains, bare and target-qualified derive keys, and complete abstract
+# output binding for every supported kind.
+#
+# M7.4 widening (phase-7 design decision 6): every kind the nine official
+# examples in spec/examples/ actually declare is covered — all thirteen core
+# kinds plus the reserved kinds Stream, Dashboard, and Alert — so the
+# golden-plan suite can plan every example through this package. The honest
+# rejection surface stays: availability "maximum" on the data kinds
+# (Database, Cache), Database classes outside relational/timeseries/key-value,
+# exactly-once delivery, and non-private data exposure are all OUTSIDE the
+# matrix and rejected loudly (ch. 12 §12.3). Kinds outside this artifact
+# (e.g. the reserved Workflow kind) reject with unsupported-kind.
+apiVersion: mapping.iap.dev/v1
+provider: mock
+version: 1.1.0
+specCompat: ">=1.0.0 <2.0.0"
+description: >-
+  Mock in-memory substrate mapping for every core kind plus the reserved
+  Stream, Dashboard, and Alert kinds used by the official examples
+
+mappings:
+  Application:
+    supports:
+      fields:
+        - spec.components
+        - spec.version
+      relationships: [dependsOn]
+    realize:
+      - targets: [mock:core:Group]
+        derive:
+          groupKind:
+            constant: application
+          version:
+            from: spec.version
+    outputs:
+      identifier:
+        from: mock:core:Group.id
+
+  Service:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.runtime
+        - spec.size
+        - spec.scaling
+        - spec.exposure
+        - spec.availability
+        - spec.ports
+        - spec.healthCheck
+        - spec.configuration
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+        spec.runtime: [container]
+        spec.exposure: [internal, private]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - publishesTo
+        - consumesFrom
+        - storesDataIn
+        - authenticatedBy
+        - monitoredBy
+    realize:
+      - targets: [mock:core:Compute]
+        derive:
+          # bare keys: assigned to the rule's first (only) target
+          image:
+            from: spec.artifact.reference
+          cpuUnits:
+            from: spec.size
+            map:
+              xs: 256
+              s: 512
+              m: 1024
+              l: 2048
+              xl: 4096
+          replicasMin:
+            from: spec.scaling.min
+          replicasMax:
+            from: spec.scaling.max
+          zones:
+            from: spec.availability
+            map:
+              standard: 1
+              high: 2
+              maximum: 3
+          reachable:
+            from: spec.exposure
+            map:
+              internal: network
+              private: mesh
+          tlsInternal:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+    outputs:
+      identifier:
+        from: mock:core:Compute.id
+      endpoint:
+        from: mock:core:Compute.endpoint
+
+  Job:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.schedule
+        - spec.size
+        - spec.timeout
+        - spec.retries
+        - spec.concurrency
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - publishesTo
+        - storesDataIn
+        - authenticatedBy
+        - monitoredBy
+    realize:
+      - targets: [mock:core:Task]
+        derive:
+          image:
+            from: spec.artifact.reference
+          schedule:
+            from: spec.schedule
+          cpuUnits:
+            from: spec.size
+            map:
+              xs: 256
+              s: 512
+              m: 1024
+              l: 2048
+              xl: 4096
+          timeout:
+            from: spec.timeout
+          retries:
+            from: spec.retries
+          serial:
+            from: spec.concurrency
+            map:
+              allow: false
+              forbid: true
+              replace: true
+    outputs:
+      identifier:
+        from: mock:core:Task.id
+
+  Function:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.size
+        - spec.timeout
+        - spec.concurrency
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - publishesTo
+        - consumesFrom
+        - storesDataIn
+        - authenticatedBy
+        - monitoredBy
+    realize:
+      - targets: [mock:core:Invoker]
+        derive:
+          image:
+            from: spec.artifact.reference
+          memoryUnits:
+            from: spec.size
+            map:
+              xs: 128
+              s: 256
+              m: 512
+              l: 1024
+              xl: 2048
+          timeout:
+            from: spec.timeout
+          maxConcurrency:
+            from: spec.concurrency.max
+    outputs:
+      identifier:
+        from: mock:core:Invoker.id
+      endpoint:
+        from: mock:core:Invoker.endpoint
+
+  Gateway:
+    supports:
+      fields:
+        - spec.exposure
+        - spec.domains
+        - spec.tls
+        - spec.observability
+      relationships: [dependsOn, routesTo]
+    realize:
+      - targets: [mock:core:Edge]
+        derive:
+          scheme:
+            from: spec.exposure
+            map:
+              public: internet
+              internal: network
+          tlsFloor:
+            from: spec.tls.minimumVersion
+            map:
+              "1.2": tls12
+              "1.3": tls13
+          accessLogs:
+            from: spec.observability.logs
+            map:
+              required: true
+              preferred: true
+              none: false
+    outputs:
+      identifier:
+        from: mock:core:Edge.id
+      endpoint:
+        from: mock:core:Edge.endpoint
+
+  Database:
+    supports:
+      fields:
+        - spec.class
+        - spec.engine
+        - spec.engineVersion
+        - spec.availability
+        - spec.encryption.atRest
+        - spec.encryption.inTransit
+        - spec.exposure
+        - spec.capacity.storage
+        - spec.capacity.throughput
+        - spec.size
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.class: [relational, timeseries, key-value]
+        spec.engine: [postgresql, mysql]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+      relationships: [dependsOn, monitoredBy, replicatesTo]
+    realize:
+      - when:
+          spec.class: relational
+        targets:
+          - mock:core:Store
+          - mock:core:SecretBox
+        derive:
+          # target-qualified keys: two targets, explicit assignment
+          mock:core:Store.engine:
+            from: spec.engine
+            map:
+              postgresql: postgres
+              mysql: mysql
+          mock:core:Store.engineVersion:
+            from: spec.engineVersion
+          mock:core:Store.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          mock:core:Store.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          mock:core:Store.storage:
+            from: spec.capacity.storage
+          mock:core:Store.throughput:
+            from: spec.capacity.throughput
+          mock:core:Store.public:
+            constant: false
+          mock:core:SecretBox.purpose:
+            constant: connection
+      - when:
+          spec.class: timeseries
+        targets:
+          - mock:core:Store
+          - mock:core:SecretBox
+        derive:
+          mock:core:Store.engine:
+            constant: tsdb
+          mock:core:Store.engineVersion:
+            from: spec.engineVersion
+          mock:core:Store.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          mock:core:Store.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          mock:core:Store.storage:
+            from: spec.capacity.storage
+          mock:core:Store.throughput:
+            from: spec.capacity.throughput
+          mock:core:Store.public:
+            constant: false
+          mock:core:SecretBox.purpose:
+            constant: connection
+      - when:
+          spec.class: key-value
+        targets:
+          - mock:core:Store
+          - mock:core:SecretBox
+        derive:
+          mock:core:Store.engine:
+            constant: kvstore
+          mock:core:Store.engineVersion:
+            from: spec.engineVersion
+          mock:core:Store.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          mock:core:Store.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          mock:core:Store.storage:
+            from: spec.capacity.storage
+          mock:core:Store.throughput:
+            from: spec.capacity.throughput
+          mock:core:Store.public:
+            constant: false
+          mock:core:SecretBox.purpose:
+            constant: connection
+    outputs:
+      identifier:
+        from: mock:core:Store.id
+      endpoint:
+        from: mock:core:Store.endpoint
+      connectionSecret:
+        from: mock:core:SecretBox.ref
+
+  Cache:
+    supports:
+      fields:
+        - spec.engine
+        - spec.capacity.memory
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.observability
+      values:
+        spec.availability: [standard, high]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets:
+          - mock:core:Cache
+          - mock:core:SecretBox
+        derive:
+          mock:core:Cache.engine:
+            from: spec.engine
+            map:
+              redis-compatible: redis
+              memcached-compatible: memcached
+          mock:core:Cache.memory:
+            from: spec.capacity.memory
+          mock:core:Cache.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          mock:core:Cache.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          mock:core:Cache.reachable:
+            from: spec.exposure
+            map:
+              private: mesh
+              internal: network
+          mock:core:SecretBox.purpose:
+            constant: connection
+    outputs:
+      identifier:
+        from: mock:core:Cache.id
+      endpoint:
+        from: mock:core:Cache.endpoint
+      connectionSecret:
+        from: mock:core:SecretBox.ref
+
+  ObjectStore:
+    supports:
+      fields:
+        - spec.versioning
+        - spec.exposure
+        - spec.encryption
+        - spec.lifecycle
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.exposure: [private]
+      relationships: [dependsOn, monitoredBy, replicatesTo]
+    realize:
+      - targets: [mock:core:Bucket]
+        derive:
+          versioned:
+            from: spec.versioning
+            map:
+              enabled: true
+              disabled: false
+          public:
+            constant: false
+          encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          backups:
+            from: spec.resilience.backup
+    outputs:
+      identifier:
+        from: mock:core:Bucket.id
+      endpoint:
+        from: mock:core:Bucket.endpoint
+
+  Volume:
+    supports:
+      fields:
+        - spec.capacity.storage
+        - spec.accessMode
+        - spec.performance
+        - spec.encryption
+        - spec.resilience
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:Disk]
+        derive:
+          storage:
+            from: spec.capacity.storage
+          mode:
+            from: spec.accessMode
+            map:
+              single-writer: rwo
+              multi-reader: rox
+              multi-writer: rwx
+          tier:
+            from: spec.performance
+            map:
+              standard: std
+              high: fast
+              maximum: max
+          encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          backups:
+            from: spec.resilience.backup
+    outputs:
+      identifier:
+        from: mock:core:Disk.id
+
+  Queue:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.deadLetter
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      # first-match-wins: fifo queues take this rule…
+      - when:
+          spec.ordering: fifo
+        targets: [mock:core:Queue]
+        derive:
+          fifo:
+            constant: true
+          retention:
+            from: spec.messageRetention
+          atLeastOnce:
+            constant: true
+      # …everything else falls through to the default rule.
+      - targets: [mock:core:Queue]
+        derive:
+          mock:core:Queue.fifo:
+            constant: false
+          mock:core:Queue.retention:
+            from: spec.messageRetention
+          mock:core:Queue.atLeastOnce:
+            constant: true
+    outputs:
+      identifier:
+        from: mock:core:Queue.id
+      endpoint:
+        from: mock:core:Queue.endpoint
+
+  Topic:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:Topic]
+        derive:
+          ordered:
+            from: spec.ordering
+            map:
+              none: false
+              ordered: true
+          retention:
+            from: spec.messageRetention
+          atLeastOnce:
+            constant: true
+    outputs:
+      identifier:
+        from: mock:core:Topic.id
+      endpoint:
+        from: mock:core:Topic.endpoint
+
+  Identity:
+    supports:
+      fields:
+        - spec.type
+      relationships: [dependsOn]
+    realize:
+      - targets: [mock:core:Principal]
+        derive:
+          principalKind:
+            from: spec.type
+    outputs:
+      identifier:
+        from: mock:core:Principal.id
+
+  Secret:
+    supports:
+      fields:
+        - spec.source
+        - spec.rotation
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:SecretBox]
+        derive:
+          material:
+            from: spec.source
+            map:
+              generated: platform
+              provided: operator
+              external: synchronized
+          rotationEnabled:
+            from: spec.rotation.policy
+            map:
+              required: true
+              preferred: true
+              none: false
+          rotationInterval:
+            from: spec.rotation.interval
+    outputs:
+      identifier:
+        from: mock:core:SecretBox.id
+
+  # Reserved v1 kinds (loose spec, no abstract outputs — ch. 3 §3.17): the
+  # official examples declare Stream, Dashboard, and Alert, so this package
+  # realizes them honestly instead of rejecting them.
+  Stream:
+    supports:
+      fields:
+        - spec.retention
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:Flow]
+        derive:
+          retention:
+            from: spec.retention
+
+  Dashboard:
+    supports:
+      fields:
+        - spec.audience
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:Panel]
+        derive:
+          audience:
+            from: spec.audience
+
+  Alert:
+    supports:
+      fields:
+        - spec.severityFloor
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [mock:core:Signal]
+        derive:
+          severityFloor:
+            from: spec.severityFloor

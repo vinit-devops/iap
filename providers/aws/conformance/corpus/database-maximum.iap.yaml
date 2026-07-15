@@ -1,0 +1,20 @@
+# Conformance corpus: schema-valid document whose spec.availability value is
+# OUTSIDE the AWS mapping's supports matrix for Database ([standard, high]) —
+# the single-region RDS realization cannot attest the >=99.99% SLO floor that
+# "maximum" asserts, so the mapping MUST reject it loudly (expect: rejected),
+# never silently downgrade it (ch. 12 §12.3).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: aws-database-maximum
+
+resources:
+  analytics-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+      availability: maximum
+      encryption:
+        atRest: required
+        inTransit: required

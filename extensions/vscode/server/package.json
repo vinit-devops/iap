@@ -1,0 +1,5 @@
+{
+  "name": "iap-language-server-bundle",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,13 @@
+# Kubernetes package conformance: a document declaring a kind this package
+# does not cover (Function). An uncovered kind fails closed at mapping time
+# (unsupported-kind diagnostic), so the harness verdict is `rejected` — the
+# `unsupported` verdict is reserved for capabilities with no registered
+# attestation on a plan that mapped successfully (see webapp-core's
+# backup-unattested assertion).
+apiVersion: conformance.iap.dev/v1
+case: function-uncovered
+document: corpus/image-resizer.iap.yaml
+assertions:
+  - id: uncovered-kind-fails-closed
+    capability: compute.eventInvoked
+    expect: rejected

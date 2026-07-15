@@ -1,0 +1,28 @@
+# Conformance case: invalid/10-dangling-component
+# expected: IAP202
+# reason: Passes schema validation (every components entry is a well-formed
+#         resource identifier), but the Application component "ghost-worker"
+#         names no resource in the profile-merged document. Fails phase 2
+#         (reference resolution) with IAP202 (dangling Application component).
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: dangling-component-case
+
+resources:
+  shop:
+    kind: Application
+    spec:
+      components:
+        - web
+        - ghost-worker
+
+  web:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/web:1.0.0

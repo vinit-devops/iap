@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/iap-mapping-v1.schema.json",
+  "title": "IaP Provider Mapping v1",
+  "description": "Schema for provider mapping artifacts (*.iap-map.yaml). A mapping is a pure function from a canonical IaP document to a provider plan: byte-identical canonical output for identical inputs, no ambient lookups at mapping time. Mappings are fail-closed: a document using any kind, field, or value outside the declared support matrix MUST be rejected. Mappings never modify IaP semantics.",
+  "type": "object",
+  "required": ["apiVersion", "provider", "version", "specCompat", "mappings"],
+  "properties": {
+    "apiVersion": { "const": "mapping.iap.dev/v1" },
+    "provider": {
+      "description": "Provider namespace this mapping realizes (matches the extension namespace grammar).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": { "$ref": "#/$defs/semver" },
+    "specCompat": {
+      "description": "IaP specification version range this mapping supports (semver range expression).",
+      "type": "string",
+      "minLength": 1
+    },
+    "description": { "type": "string" },
+    "mappings": {
+      "description": "One entry per supported IaP kind.",
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "Application", "Service", "Job", "Function", "Gateway",
+          "Database", "Cache", "ObjectStore", "Volume", "Queue", "Topic",
+          "Identity", "Secret",
+          "Network", "Certificate", "DnsZone", "Stream", "Workflow",
+          "SearchIndex", "Registry", "Dashboard", "Alert"
+        ]
+      },
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/kindMapping" }
+    }
+  },
+  "patternProperties": { "^x-": true },
+  "additionalProperties": false,
+
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+    },
+    "fieldPath": {
+      "description": "Dot path into the resource entry (e.g. spec.availability).",
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*$"
+    },
+    "kindMapping": {
+      "type": "object",
+      "required": ["supports", "realize"],
+      "properties": {
+        "supports": {
+          "description": "Fail-closed coverage matrix. fields lists every supported field path; values constrains supported enum values per field. Anything outside this matrix MUST cause rejection, never silent dropping.",
+          "type": "object",
+          "required": ["fields"],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/fieldPath" },
+              "uniqueItems": true
+            },
+            "values": {
+              "description": "Per-field allowed values, keyed by field path.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": ["string", "number", "boolean"] }
+              }
+            },
+            "relationships": {
+              "description": "Relationship verbs this mapping can realize for edges whose source is this kind.",
+              "type": "array",
+              "items": {
+                "enum": ["dependsOn", "connectsTo", "routesTo", "publishesTo", "consumesFrom", "replicatesTo", "storesDataIn", "protectedBy", "monitoredBy", "authenticatedBy"]
+              },
+              "uniqueItems": true
+            }
+          },
+          "patternProperties": { "^x-": true },
+          "additionalProperties": false
+        },
+        "realize": {
+          "description": "Ordered realization rules. The first rule whose when-clause matches applies; rules are evaluated deterministically.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["targets"],
+            "properties": {
+              "when": {
+                "description": "Field-path -> exact-value match conditions; all must hold. Omit to always apply.",
+                "type": "object",
+                "additionalProperties": { "type": ["string", "number", "boolean"] }
+              },
+              "targets": {
+                "description": "Provider resource types produced (provider-namespaced identifiers, e.g. aws:rds:DBInstance).",
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*:[A-Za-z0-9:._-]+$" },
+                "uniqueItems": true
+              },
+              "derive": {
+                "description": "Deterministic derivations of provider attributes from IaP fields: each entry maps a provider attribute to a source field and a value map or constant.",
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "from": { "$ref": "#/$defs/fieldPath" },
+                    "map": {
+                      "description": "Exact IaP value -> provider value lookup. MUST cover every supported value of the source field.",
+                      "type": "object",
+                      "additionalProperties": { "type": ["string", "number", "boolean"] }
+                    },
+                    "constant": { "type": ["string", "number", "boolean"] }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "patternProperties": { "^x-": true },
+            "additionalProperties": false
+          }
+        },
+        "outputs": {
+          "description": "Bindings of the kind's abstract output attributes (endpoint, connectionSecret, identifier, ...) to provider plan attributes. Every abstract attribute the core spec declares for this kind MUST be bound.",
+          "type": "object",
+          "propertyNames": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$" },
+          "additionalProperties": {
+            "type": "object",
+            "required": ["from"],
+            "properties": {
+              "from": { "type": "string", "description": "Provider plan attribute path (e.g. aws:rds:DBInstance.endpoint)." }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    }
+  }
+}

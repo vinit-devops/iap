@@ -1,0 +1,28 @@
+{
+  "name": "@iap/state",
+  "version": "0.1.0",
+  "description": "State backend for IaP (spec ch. 13, IEP-0010): a pluggable StateBackend interface with lease-based locking (fail-closed), CAS writes on a monotonic revision, an integrity-hashed object store, and an append-only history record. Includes a local in-memory/development backend.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

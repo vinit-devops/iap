@@ -1,0 +1,221 @@
+# Enterprise PCI-scoped payment workload.
+# Demonstrates: compliance frameworks, declarative policies, secrets with rotation,
+# private-only networking, label-based PCI scoping, and selector rule edges.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: payment-processing
+  description: PCI DSS scoped payment processing workload
+  owner: team-payments
+  organization: example-corp
+  labels:
+    dataClassification: restricted
+
+compliance:
+  frameworks: [pci-dss-4.0, soc2]
+
+profiles:
+  production:
+    description: Production hardening on top of the PCI baseline
+    overrides:
+      resources:
+        payments-api:
+          spec:
+            availability: high
+            scaling: { min: 3, max: 12 }
+        cardholder-db:
+          spec:
+            availability: high
+
+resources:
+  internal-edge:
+    kind: Gateway
+    description: Internal-only entry point; no public exposure in PCI scope
+    spec:
+      exposure: internal
+      domains: [payments.internal.example.com]
+      tls:
+        minimumVersion: "1.3"
+    relationships:
+      - type: routesTo
+        target: payments-api
+        protocol: https
+        path: /
+
+  payments-api:
+    kind: Service
+    labels:
+      tier: application
+      pci-scope: "true"
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/payments-api:5.1.0
+      size: m
+      exposure: private
+      encryption:
+        atRest: required
+        inTransit: required
+      observability:
+        logs: required
+        metrics: required
+        traces: preferred
+      scaling:
+        min: 2
+        max: 8
+    relationships:
+      - type: connectsTo
+        target: cardholder-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: storesDataIn
+        target: audit-archive
+        access: write
+      - type: authenticatedBy
+        target: payments-identity
+      - type: dependsOn
+        target: db-credentials
+
+  cardholder-db:
+    kind: Database
+    description: Cardholder data store — PCI scope
+    labels:
+      tier: data
+      pci-scope: "true"
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      exposure: private
+      encryption:
+        atRest: required
+        inTransit: required
+      capacity:
+        storage: 100Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 4h
+      observability:
+        logs: required
+        metrics: required
+
+  audit-archive:
+    kind: ObjectStore
+    description: Immutable audit log archive (12-month retention before archive tier)
+    labels:
+      tier: data
+      pci-scope: "true"
+    spec:
+      versioning: enabled
+      exposure: private
+      lifecycle:
+        - after: 365d
+          action: archive
+      resilience:
+        backup: preferred
+
+  db-credentials:
+    kind: Secret
+    description: Database credentials, platform-generated and rotated
+    labels:
+      pci-scope: "true"
+    spec:
+      source: generated
+      rotation:
+        policy: required
+        interval: 30d
+
+  payments-identity:
+    kind: Identity
+    spec:
+      type: workload
+
+  pci-alerts:
+    kind: Alert
+    description: Reserved kind — security alerting channel for PCI-scoped resources
+    spec:
+      severityFloor: high
+
+  payments-app:
+    kind: Application
+    spec:
+      components: [internal-edge, payments-api, cardholder-db, audit-archive, db-credentials, payments-identity]
+      version: "5.1.0"
+
+relationships:
+  # Everything in PCI scope is monitored by the security alerting channel.
+  - type: monitoredBy
+    source:
+      selector:
+        labels:
+          pci-scope: "true"
+    target: pci-alerts
+
+policies:
+  - id: encryption-at-rest-required
+    description: PCI-scoped data services MUST encrypt at rest
+    target:
+      kinds: [Database, ObjectStore, Cache, Volume]
+      selector:
+        labels:
+          pci-scope: "true"
+    rule:
+      field: spec.encryption.atRest
+      operator: equals
+      value: required
+    effect: require
+    params:
+      severity: critical
+
+  - id: no-public-exposure
+    description: Nothing in this document may be publicly exposed
+    target: {}
+    rule:
+      field: spec.exposure
+      operator: equals
+      value: public
+    effect: deny
+
+  - id: backup-required-for-data
+    description: Data stores MUST have required backups
+    target:
+      kinds: [Database]
+    rule:
+      field: spec.resilience.backup
+      operator: equals
+      value: required
+    effect: require
+
+  - id: logging-required-in-scope
+    description: PCI-scoped resources MUST emit logs (targets exactly the kinds that carry observability, per ch. 7)
+    target:
+      kinds: [Service, Job, Function, Gateway, Database, Cache, ObjectStore, Queue, Topic]
+      selector:
+        labels:
+          pci-scope: "true"
+    rule:
+      field: spec.observability.logs
+      operator: equals
+      value: required
+    effect: require
+
+  - id: secret-rotation-required
+    description: Secrets MUST rotate at least every 90 days
+    target:
+      kinds: [Secret]
+    rule:
+      allOf:
+        - field: spec.rotation.policy
+          operator: equals
+          value: required
+        - field: spec.rotation.interval
+          operator: less-than
+          value: 90d
+    effect: require
+
+outputs:
+  payments-endpoint:
+    resource: internal-edge
+    attribute: endpoint

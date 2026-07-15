@@ -1,0 +1,33 @@
+{
+  "name": "@iap/designer-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Runnable local web shell over the headless @iap/designer session (roadmap Phase 19, M19.4). A dependency-free node:http server serves a thin canvas UI; every edit is driven server-side through DesignerSession's gate, so the browser holds no authoring logic and the IaP document stays the single source of truth.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "iap-designer": "./dist/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/designer": "workspace:*",
+    "@iap/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

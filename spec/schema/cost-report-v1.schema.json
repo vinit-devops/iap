@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/cost-report-v1.schema.json",
+  "title": "IaP Cost Report v1",
+  "description": "The cost report a conformant cost tool emits (spec ch. 16 §16.2/§16.8, IEP-0005). A pure function of three versioned inputs — the canonical profile-merged document (identified by modelHash), a mapping cost model (costModel), and a content-addressed price snapshot (priceSnapshot) — so identical inputs yield a byte-identical report (§16.9).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reportVersion",
+    "formatVersion",
+    "document",
+    "profile",
+    "modelHash",
+    "priceSnapshot",
+    "costModel",
+    "currency",
+    "resources",
+    "rollups",
+    "totals",
+    "suggestions"
+  ],
+  "properties": {
+    "reportVersion": { "type": "string", "const": "1" },
+    "formatVersion": { "type": "integer", "const": 1 },
+    "document": {
+      "type": "string",
+      "description": "metadata.name of the priced document."
+    },
+    "profile": {
+      "type": ["string", "null"],
+      "description": "The active profile the report is relative to (null = base document). One report per profile (§16.3)."
+    },
+    "modelHash": {
+      "type": "string",
+      "description": "SHA-256 (hex) of the canonical model the report was computed from — the reproducibility anchor (§16.9).",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "priceSnapshot": {
+      "type": "string",
+      "description": "The price snapshot content address (id#sha256:<hex>) used for every amount below."
+    },
+    "costModel": {
+      "type": "string",
+      "description": "The cost model identity as id@version."
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 currency; one per report.",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource id → cost entry, sorted by id.",
+      "additionalProperties": { "$ref": "#/$defs/resourceCost" }
+    },
+    "rollups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["byApplication", "byLabel"],
+      "properties": {
+        "byApplication": {
+          "type": "object",
+          "description": "Application id → aggregated cost over its components.",
+          "additionalProperties": { "$ref": "#/$defs/rollup" }
+        },
+        "byLabel": {
+          "type": "object",
+          "description": "'key=value' → aggregated cost over resources carrying that label.",
+          "additionalProperties": { "$ref": "#/$defs/rollup" }
+        }
+      }
+    },
+    "totals": { "$ref": "#/$defs/rollup" },
+    "suggestions": {
+      "type": "array",
+      "description": "Deterministic optimization suggestions (§16.4); advisory only.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "resource", "detail", "estimatedMonthlySavings"],
+        "properties": {
+          "rule": { "type": "string", "description": "The deterministic rule id that fired." },
+          "resource": { "type": "string", "description": "The affected resource id." },
+          "detail": { "type": "string" },
+          "estimatedMonthlySavings": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "confidence": {
+      "type": "string",
+      "enum": ["exact", "estimate", "unknown"],
+      "description": "exact: price fully determined by declared fields; estimate: usage-dependent, priced from stated assumptions; unknown: the cost model does not cover this resource, or a required price is missing from the snapshot (§16.2)."
+    },
+    "resourceCost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "confidence", "assumptions"],
+      "properties": {
+        "kind": { "type": "string" },
+        "estimatedMonthly": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Projected cost per 730-hour month. ABSENT when confidence is unknown (no guessed numbers, §16.2)."
+        },
+        "estimatedHourly": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Projected cost per hour. Absent when confidence is unknown."
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "assumptions": {
+          "type": "array",
+          "description": "Every usage assumption behind an estimate, and (for unknown) the reason it could not be priced.",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rollup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["estimatedMonthly", "confidence", "lowerBound"],
+      "properties": {
+        "estimatedMonthly": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Sum of the priced members' estimatedMonthly."
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "lowerBound": {
+          "type": "boolean",
+          "description": "True when the aggregate omits one or more unknown-confidence members — the total is a lower bound (§16.2)."
+        }
+      }
+    }
+  }
+}

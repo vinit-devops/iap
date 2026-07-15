@@ -1,0 +1,36 @@
+# Conformance case: invalid/18-policy-require-violation
+# expected: IAP502
+# reason: Passes schema validation (policy and resource are each well-formed),
+#         but the require policy's condition — the mandatory state
+#         spec.encryption.atRest equals required — evaluates false for the
+#         targeted Database "orders-db", which explicitly weakens atRest to
+#         preferred. Fails phase 5 (policy evaluation) with IAP502 (require
+#         violation; autofix-eligible equals leaf). Requires a full IaP
+#         validator — plain JSON Schema validation MUST report this document
+#         as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: policy-require-violation-case
+
+resources:
+  orders-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+      encryption:
+        atRest: preferred
+        inTransit: required
+
+policies:
+  - id: encryption-at-rest-required
+    description: Every database must require encryption at rest.
+    target:
+      kinds: [Database]
+    rule:
+      field: spec.encryption.atRest
+      operator: equals
+      value: required
+    effect: require

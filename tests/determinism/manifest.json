@@ -1,0 +1,25 @@
+{
+  "description": "Pinned input identities for the golden-plan suite (PL-4). Every determinism-input identity is pinned here or derived from a pinned artifact: the profile per example (null = base document), the shared identity elements below, the mock provider package (mapping version from its signed manifest), the empty state snapshot (revision 0), and the planner version from @iap/planner. profileHashes are computed by the runner as sha256 over the canonical serialization of the named profile definition in the source document.",
+  "provider": "mock",
+  "identities": {
+    "policyBundles": {},
+    "extensionVersions": {},
+    "discoverySnapshot": null,
+    "pricingSnapshot": null
+  },
+  "examples": {
+    "basic-webapp": { "profile": "production" },
+    "data-processing": { "profile": null },
+    "enterprise-pci": { "profile": "production" },
+    "hybrid-environment": { "profile": "cloud" },
+    "import-intent": { "profile": null },
+    "kubernetes-platform": { "profile": null },
+    "multi-region": {
+      "profile": null,
+      "expect": "rejection",
+      "reason": "users-db-primary declares availability: maximum on Database, which the mock mapping's honest values constraint (standard | high) deliberately rejects (ch. 12 §12.3); the example declares no profiles, so no profile pin can avoid it. The golden is the deterministic fail-closed diagnostic set instead of a plan."
+    },
+    "private-internal-service": { "profile": null },
+    "serverless-api": { "profile": null }
+  }
+}

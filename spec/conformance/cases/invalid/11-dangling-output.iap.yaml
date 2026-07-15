@@ -1,0 +1,27 @@
+# Conformance case: invalid/11-dangling-output
+# expected: IAP203
+# reason: Passes schema validation (the outputs entry is well-formed), but
+#         outputs.api-endpoint.resource names "api-gateway", which is not
+#         declared in the profile-merged document. Fails phase 2 (reference
+#         resolution) with IAP203 (dangling output resource). Requires a full
+#         IaP validator — plain JSON Schema validation MUST report this
+#         document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: dangling-output-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+
+outputs:
+  api-endpoint:
+    resource: api-gateway
+    attribute: endpoint
+    description: References a resource that does not exist.

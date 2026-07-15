@@ -1,0 +1,19 @@
+# Conformance case: invalid/02-bad-enum
+# expected: schema-invalid
+# reason: "very-high" is not a member of the availability enum
+#         (standard | high | maximum). Availability is a closed SLO vocabulary;
+#         free-form gradations are rejected. Fails phase 1 (schema validation).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: bad-enum-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+      availability: very-high

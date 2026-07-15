@@ -1,0 +1,97 @@
+# Mock provider conformance corpus (test material): the package's primary
+# Conforming Document — Service + Database + fifo/unordered Queues + Secret,
+# with a production profile the cases canonicalize against and an
+# extensions.mock refinement block the package's extension schema governs.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: mock-webshop
+  description: Reference corpus document for the mock provider conformance cases
+
+profiles:
+  production:
+    description: Highly available production shape
+    overrides:
+      resources:
+        web:
+          spec:
+            size: l
+            scaling: { min: 2, max: 6 }
+        orders-db:
+          spec:
+            availability: high
+
+resources:
+  web:
+    kind: Service
+    description: Storefront HTTP service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/webshop:2.1.0
+      size: m
+      exposure: internal
+      availability: standard
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+      healthCheck:
+        path: /healthz
+        port: 8080
+        interval: 30s
+      scaling:
+        min: 1
+        max: 3
+        targetUtilization: 70
+    extensions:
+      mock:
+        partition: alpha
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: publishesTo
+        target: jobs
+      - type: consumesFrom
+        target: emails
+      - type: dependsOn
+        target: api-token
+
+  orders-db:
+    kind: Database
+    description: Primary order store
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: standard
+      encryption:
+        atRest: required
+        inTransit: required
+      capacity:
+        storage: 20Gi
+
+  jobs:
+    kind: Queue
+    description: Order-processing work queue (fifo realize rule)
+    spec:
+      ordering: fifo
+
+  emails:
+    kind: Queue
+    description: Outbound e-mail queue (default realize rule)
+    spec:
+      ordering: none
+      messageRetention: 3d
+
+  api-token:
+    kind: Secret
+    description: Platform-generated API token
+    spec:
+      source: generated
+      rotation:
+        policy: required
+        interval: 30d

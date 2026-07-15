@@ -1,0 +1,31 @@
+{
+  "name": "@iap/migrate",
+  "version": "0.1.0",
+  "description": "Migration importers for IaP (roadmap Phase 18): translate existing infrastructure (Kubernetes manifests; Terraform/CloudFormation/Pulumi/Crossplane follow the same interface) into IaP through the operation gate, so imported infrastructure is valid IaP with unmappable constructs reported explicitly, never guessed.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/intent-compiler": "workspace:*",
+    "@iap/model": "workspace:*",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@iap/sdk": "workspace:*",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

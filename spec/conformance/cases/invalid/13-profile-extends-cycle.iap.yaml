@@ -1,0 +1,40 @@
+# Conformance case: invalid/13-profile-extends-cycle
+# expected: IAP205
+# reason: Passes schema validation (each extends is a well-formed profile
+#         name), but profile "staging" extends "production" and "production"
+#         extends "staging", so neither extends chain terminates at a root.
+#         A profile MUST NOT appear twice in its own chain (chapter 6 §6.5);
+#         the cycle aborts the merge with IAP205 (profile reference error).
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: profile-extends-cycle-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+
+profiles:
+  staging:
+    description: Extends production, which extends staging — a cycle.
+    extends: production
+    overrides:
+      resources:
+        api:
+          spec:
+            size: s
+  production:
+    description: Extends staging, closing the cycle.
+    extends: staging
+    overrides:
+      resources:
+        api:
+          spec:
+            size: l

@@ -1,0 +1,89 @@
+# Conformance corpus: the basic-webapp production slice — service, relational
+# database, cache, queue, and object store — used for the satisfied/unsupported
+# capability assertions of the webapp-core case. Derived from
+# spec/examples/basic-webapp.iap.yaml; the Kubernetes package runs the same
+# corpus to prove the two-target exit criterion.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: aws-webapp-core
+  description: Storefront production slice for AWS conformance assertions
+  owner: team-web
+
+resources:
+  web:
+    kind: Service
+    description: Storefront HTTP service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/storefront:1.4.2
+      size: l
+      exposure: internal
+      availability: high
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+      healthCheck:
+        path: /healthz
+        port: 8080
+        interval: 30s
+      scaling:
+        min: 2
+        max: 6
+        targetUtilization: 70
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: connectsTo
+        target: session-cache
+        port: 6379
+        protocol: tcp
+        access: read-write
+      - type: storesDataIn
+        target: assets
+        access: read-write
+
+  orders-db:
+    kind: Database
+    description: Primary order store
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: high
+      encryption:
+        atRest: required
+        inTransit: required
+      capacity:
+        storage: 20Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1d
+        recoveryTimeObjective: 4h
+
+  session-cache:
+    kind: Cache
+    spec:
+      engine: redis-compatible
+      availability: high
+      capacity:
+        memory: 1Gi
+
+  work-queue:
+    kind: Queue
+    description: Order processing queue
+    spec:
+      ordering: fifo
+      messageRetention: 4d
+
+  assets:
+    kind: ObjectStore
+    description: Product images and static assets
+    spec:
+      versioning: enabled
+      exposure: private

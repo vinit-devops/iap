@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/conformance-case-v1.schema.json",
+  "title": "IaP Provider Conformance Case v1",
+  "description": "Schema for declarative capability-assertion cases (apiVersion conformance.iap.dev/v1) per IEP-0012. The shared harness runs the package's mapping over the referenced corpus document with the fixed inputs, then evaluates each capability through the package's attestation functions — pure predicates over plan attributes registered per (capability, target type) — and compares the verdict to expect.",
+  "type": "object",
+  "required": ["apiVersion", "case", "document", "assertions"],
+  "properties": {
+    "apiVersion": {
+      "description": "Case format identifier; always conformance.iap.dev/v1.",
+      "const": "conformance.iap.dev/v1"
+    },
+    "case": {
+      "description": "Unique case name within the package's conformance corpus.",
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    },
+    "document": {
+      "description": "Corpus-relative path of the Conforming Document the mapping is applied to (unless an assertion overrides it).",
+      "$ref": "#/$defs/relativePath"
+    },
+    "profile": {
+      "description": "Active profile the document is canonicalized against before mapping; omitted means the base document.",
+      "type": "string",
+      "minLength": 1
+    },
+    "mappingInputs": {
+      "description": "Explicit mapping inputs (named scalar parameters) supplied to the invocation; part of the plan's hashed input identity (ch. 12 §12.2 — never ambient lookups).",
+      "type": "object",
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "assertions": {
+      "description": "Machine-checkable claims evaluated against the generated plan (or against the rejection outcome).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/assertion" }
+    }
+  },
+  "patternProperties": { "^x-": true },
+  "additionalProperties": false,
+
+  "$defs": {
+    "relativePath": {
+      "description": "Corpus-relative POSIX path. Segments MUST NOT be . or .. and the path MUST NOT be absolute.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+    },
+    "assertion": {
+      "description": "One capability assertion: which resource, which abstract capability, and the expected verdict.",
+      "type": "object",
+      "required": ["id", "capability", "expect"],
+      "properties": {
+        "id": {
+          "description": "Unique assertion identifier within the case.",
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        },
+        "select": {
+          "description": "Which document resource the assertion is evaluated against; omitted (typical for expect: rejected) evaluates against every resource.",
+          "type": "object",
+          "required": ["resource"],
+          "properties": {
+            "resource": {
+              "description": "Resource identifier in the corpus document.",
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+            },
+            "kind": {
+              "description": "Optional kind guard; the selected resource MUST declare this kind.",
+              "enum": [
+                "Application",
+                "Service",
+                "Job",
+                "Function",
+                "Gateway",
+                "Database",
+                "Cache",
+                "ObjectStore",
+                "Volume",
+                "Queue",
+                "Topic",
+                "Identity",
+                "Secret",
+                "Network",
+                "Certificate",
+                "DnsZone",
+                "Stream",
+                "Workflow",
+                "SearchIndex",
+                "Registry",
+                "Dashboard",
+                "Alert"
+              ]
+            }
+          },
+          "patternProperties": { "^x-": true },
+          "additionalProperties": false
+        },
+        "capability": {
+          "description": "Abstract capability being asserted, in Chapter 5 vocabulary (e.g. encryption.atRest, exposure.private, availability.zonesMinimum).",
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$"
+        },
+        "params": {
+          "description": "Scalar parameters passed to the attestation function (e.g. min: 2 for availability.zonesMinimum).",
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number", "boolean"] }
+        },
+        "expect": {
+          "description": "Expected verdict: satisfied (attestations hold on the plan), rejected (the mapping fails closed with diagnostics), or unsupported (no attestation is registered for the capability on any produced target type).",
+          "enum": ["satisfied", "rejected", "unsupported"]
+        },
+        "document": {
+          "description": "Optional per-assertion corpus document override (used by expect: rejected cases exercising out-of-matrix documents).",
+          "$ref": "#/$defs/relativePath"
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    }
+  }
+}

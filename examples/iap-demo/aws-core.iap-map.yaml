@@ -1,0 +1,403 @@
+# AWS reference mapping — core certification slice (spec ch. 12, IEP-0012).
+#
+# Realizations: Service -> ECS on Fargate behind an ALB target group;
+# Database (relational) -> RDS instance + subnet group + Secrets Manager
+# secret; Cache (redis-compatible) -> ElastiCache replication group + auth
+# secret; Gateway -> application load balancer + ACM certificate; Queue ->
+# SQS queue; ObjectStore -> S3 bucket; Identity -> IAM role; Application ->
+# Resource Groups group.
+#
+# The supports matrices are deliberately honest and fail-closed: anything
+# these realizations cannot attest (Database availability "maximum", public
+# object stores, exactly-once queue delivery, dead-letter redrive, database
+# throughput floors) is OUTSIDE the matrix and rejected loudly at mapping
+# time — never silently dropped or downgraded (ch. 12 §12.3).
+apiVersion: mapping.iap.dev/v1
+provider: aws
+version: 0.1.0
+specCompat: '>=1.0.0 <2.0.0'
+description: >-
+  AWS reference mapping for the production-slice kinds (Service, Database,
+  Cache, Gateway, Queue, ObjectStore) plus the Identity and Application
+  kinds the shared acceptance corpus declares.
+
+mappings:
+  Service:
+    supports:
+      fields:
+        - spec.artifact
+        - spec.runtime
+        - spec.size
+        - spec.scaling
+        - spec.exposure
+        - spec.availability
+        - spec.ports
+        - spec.healthCheck
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+        spec.runtime: [container]
+        spec.exposure: [internal, private]
+        spec.availability: [standard, high]
+      relationships: [dependsOn, connectsTo, storesDataIn, authenticatedBy]
+    realize:
+      - targets:
+          - aws:ecs:Service
+          - aws:elasticloadbalancing:TargetGroup
+        derive:
+          aws:ecs:Service.launchType:
+            constant: FARGATE
+          aws:ecs:Service.image:
+            from: spec.artifact.reference
+          aws:ecs:Service.cpu:
+            from: spec.size
+            map:
+              xs: 256
+              s: 512
+              m: 1024
+              l: 2048
+              xl: 4096
+          aws:ecs:Service.memory:
+            from: spec.size
+            map:
+              xs: 512
+              s: 1024
+              m: 2048
+              l: 4096
+              xl: 8192
+          aws:ecs:Service.desiredCount:
+            from: spec.scaling.min
+          aws:ecs:Service.autoScalingMaxCapacity:
+            from: spec.scaling.max
+          aws:ecs:Service.autoScalingTargetCpuUtilization:
+            from: spec.scaling.targetUtilization
+          aws:ecs:Service.assignPublicIp:
+            constant: false
+          aws:ecs:Service.availabilityZoneSpread:
+            from: spec.availability
+            map:
+              standard: 2
+              high: 3
+          aws:ecs:Service.serviceConnectEnabled:
+            constant: true
+          aws:elasticloadbalancing:TargetGroup.targetType:
+            constant: ip
+          aws:elasticloadbalancing:TargetGroup.healthCheckPath:
+            from: spec.healthCheck.path
+          aws:elasticloadbalancing:TargetGroup.healthCheckInterval:
+            from: spec.healthCheck.interval
+    outputs:
+      identifier:
+        from: aws:ecs:Service.serviceArn
+      endpoint:
+        from: aws:ecs:Service.serviceConnectEndpoint
+
+  Database:
+    supports:
+      fields:
+        - spec.class
+        - spec.engine
+        - spec.engineVersion
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.capacity.storage
+        - spec.size
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.class: [relational]
+        spec.engine: [postgresql, mysql]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+      relationships: [dependsOn, monitoredBy, protectedBy]
+    realize:
+      - when:
+          spec.class: relational
+        targets:
+          - aws:rds:DBInstance
+          - aws:rds:DBSubnetGroup
+          - aws:secretsmanager:Secret
+        derive:
+          aws:rds:DBInstance.engine:
+            from: spec.engine
+            map:
+              postgresql: postgres
+              mysql: mysql
+          aws:rds:DBInstance.engineVersion:
+            from: spec.engineVersion
+          aws:rds:DBInstance.instanceClass:
+            from: spec.size
+            map:
+              xs: db.t4g.micro
+              s: db.t4g.small
+              m: db.m7g.large
+              l: db.m7g.xlarge
+              xl: db.m7g.2xlarge
+          aws:rds:DBInstance.multiAZ:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          aws:rds:DBInstance.storageEncrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          aws:rds:DBInstance.requireSecureTransport:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+          aws:rds:DBInstance.allocatedStorage:
+            from: spec.capacity.storage
+          aws:rds:DBInstance.publiclyAccessible:
+            constant: false
+          aws:rds:DBInstance.backupRetentionPeriod:
+            from: spec.resilience.backup
+            map:
+              required: 30
+              preferred: 7
+              none: 0
+          aws:rds:DBInstance.deletionProtection:
+            constant: true
+          aws:rds:DBInstance.enablePerformanceInsights:
+            from: spec.observability.metrics
+            map:
+              required: true
+              preferred: true
+              none: false
+          aws:rds:DBSubnetGroup.subnetTier:
+            constant: private
+          aws:secretsmanager:Secret.generateSecretString:
+            constant: true
+    outputs:
+      identifier:
+        from: aws:rds:DBInstance.dbInstanceIdentifier
+      endpoint:
+        from: aws:rds:DBInstance.endpoint
+      connectionSecret:
+        from: aws:secretsmanager:Secret.arn
+
+  Cache:
+    supports:
+      fields:
+        - spec.engine
+        - spec.capacity.memory
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.observability
+      values:
+        spec.engine: [redis-compatible]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+      relationships: [dependsOn]
+    realize:
+      - targets:
+          - aws:elasticache:ReplicationGroup
+          - aws:secretsmanager:Secret
+        derive:
+          aws:elasticache:ReplicationGroup.engine:
+            from: spec.engine
+            map:
+              redis-compatible: redis
+          aws:elasticache:ReplicationGroup.cacheNodeMemory:
+            from: spec.capacity.memory
+          aws:elasticache:ReplicationGroup.atRestEncryptionEnabled:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          aws:elasticache:ReplicationGroup.transitEncryptionEnabled:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+          aws:elasticache:ReplicationGroup.automaticFailoverEnabled:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          aws:elasticache:ReplicationGroup.numCacheClusters:
+            from: spec.availability
+            map:
+              standard: 1
+              high: 2
+          aws:elasticache:ReplicationGroup.authTokenEnabled:
+            constant: true
+          aws:secretsmanager:Secret.generateSecretString:
+            constant: true
+    outputs:
+      identifier:
+        from: aws:elasticache:ReplicationGroup.replicationGroupId
+      endpoint:
+        from: aws:elasticache:ReplicationGroup.primaryEndpoint
+      connectionSecret:
+        from: aws:secretsmanager:Secret.arn
+
+  Gateway:
+    supports:
+      fields:
+        - spec.exposure
+        - spec.domains
+        - spec.tls
+        - spec.observability
+      relationships: [dependsOn, routesTo]
+    realize:
+      - targets:
+          - aws:elasticloadbalancing:LoadBalancer
+          - aws:acm:Certificate
+        derive:
+          aws:elasticloadbalancing:LoadBalancer.loadBalancerType:
+            constant: application
+          aws:elasticloadbalancing:LoadBalancer.scheme:
+            from: spec.exposure
+            map:
+              public: internet-facing
+              internal: internal
+          aws:elasticloadbalancing:LoadBalancer.sslPolicy:
+            from: spec.tls.minimumVersion
+            map:
+              '1.2': ELBSecurityPolicy-TLS13-1-2-2021-06
+              '1.3': ELBSecurityPolicy-TLS13-1-3-2021-06
+          aws:elasticloadbalancing:LoadBalancer.dropInvalidHeaderFields:
+            constant: true
+          aws:elasticloadbalancing:LoadBalancer.accessLogsEnabled:
+            from: spec.observability.logs
+            map:
+              required: true
+              preferred: true
+              none: false
+          aws:acm:Certificate.validationMethod:
+            constant: DNS
+    outputs:
+      identifier:
+        from: aws:elasticloadbalancing:LoadBalancer.loadBalancerArn
+      endpoint:
+        from: aws:elasticloadbalancing:LoadBalancer.dnsName
+
+  Queue:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.deadLetter
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+        spec.deadLetter.enabled: [false]
+      relationships: [dependsOn]
+    realize:
+      - when:
+          spec.ordering: fifo
+        targets: [aws:sqs:Queue]
+        derive:
+          fifoQueue:
+            constant: true
+          contentBasedDeduplication:
+            constant: true
+          messageRetentionPeriod:
+            from: spec.messageRetention
+          sqsManagedSseEnabled:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          enforceTlsInTransit:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+      - targets: [aws:sqs:Queue]
+        derive:
+          fifoQueue:
+            constant: false
+          messageRetentionPeriod:
+            from: spec.messageRetention
+          sqsManagedSseEnabled:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          enforceTlsInTransit:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+    outputs:
+      identifier:
+        from: aws:sqs:Queue.queueArn
+      endpoint:
+        from: aws:sqs:Queue.queueUrl
+
+  ObjectStore:
+    supports:
+      fields:
+        - spec.versioning
+        - spec.exposure
+        - spec.encryption
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.exposure: [private]
+      relationships: [dependsOn]
+    realize:
+      - targets: [aws:s3:Bucket]
+        derive:
+          versioningStatus:
+            from: spec.versioning
+            map:
+              enabled: Enabled
+              disabled: Suspended
+          blockPublicAccess:
+            constant: true
+          sseAlgorithm:
+            from: spec.encryption.atRest
+            map:
+              required: aws:kms
+              preferred: AES256
+          enforceTlsOnly:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
+    outputs:
+      identifier:
+        from: aws:s3:Bucket.arn
+      endpoint:
+        from: aws:s3:Bucket.regionalDomainName
+
+  Identity:
+    supports:
+      fields:
+        - spec.type
+      values:
+        spec.type: [workload]
+    realize:
+      - targets: [aws:iam:Role]
+        derive:
+          assumeRoleService:
+            constant: ecs-tasks.amazonaws.com
+    outputs:
+      identifier:
+        from: aws:iam:Role.roleArn
+
+  Application:
+    supports:
+      fields:
+        - spec.components
+        - spec.version
+    realize:
+      - targets: [aws:resourcegroups:Group]
+        derive:
+          resourceQueryType:
+            constant: TAG_FILTERS_1_0
+          applicationVersionTag:
+            from: spec.version
+    outputs:
+      identifier:
+        from: aws:resourcegroups:Group.groupArn

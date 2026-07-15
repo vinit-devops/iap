@@ -1,0 +1,24 @@
+# Conformance case: invalid/08-scaling-min-gt-max
+# expected: IAP104
+# reason: Passes schema validation (min and max each satisfy their own bounds),
+#         but scaling.min (5) exceeds scaling.max (2), violating the normative
+#         cross-field constraint scaling.min <= scaling.max of chapter 3.
+#         Fails the IAP104 structural checks that JSON Schema cannot express.
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: scaling-min-gt-max-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+      scaling:
+        min: 5
+        max: 2

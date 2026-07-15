@@ -1,0 +1,6 @@
+# SUPERSEDED — the IIS→IaP rename became a HARD, no-compatibility cut.
+# This interim (compat-era) map has been replaced by:
+#   docs/migrations/iis-to-iap-hard-rename-map.yaml
+# See also: docs/reports/iis-to-iap-hard-rename-inventory.md
+superseded: true
+replacedBy: docs/migrations/iis-to-iap-hard-rename-map.yaml

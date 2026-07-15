@@ -1,0 +1,24 @@
+# Conformance case: invalid/12-dangling-certificate
+# expected: IAP204
+# reason: Passes schema validation (tls.certificate is a well-formed resource
+#         identifier), but the Gateway references certificate "shop-tls-cert",
+#         which names no Certificate resource in the profile-merged document.
+#         Fails phase 2 (reference resolution) with IAP204 (dangling
+#         certificate reference). Requires a full IaP validator — plain JSON
+#         Schema validation MUST report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: dangling-certificate-case
+
+resources:
+  edge:
+    kind: Gateway
+    spec:
+      exposure: public
+      domains:
+        - shop.example.com
+      tls:
+        minimumVersion: "1.3"
+        certificate: shop-tls-cert

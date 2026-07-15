@@ -1,0 +1,29 @@
+{
+  "name": "@iap/mcp",
+  "version": "0.1.0",
+  "description": "MCP and authoritative-knowledge framework for IaP (spec ch. 20, IEP-0013): knowledge sources, a trust-classified source registry, content-addressed knowledge snapshots with citation and staleness, and authoring-engine integration. Knowledge in, nothing out — MCP enriches authoring and validation and never participates in execution or planning.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*",
+    "@iap/intent-compiler": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

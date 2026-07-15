@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/providers/mock/extension.schema.json",
+  "title": "mock provider extension refinement",
+  "description": "Schema for extensions.mock blocks: provider-facing refinement the mock mapping MAY read under the non-interference constraints of ch. 11. Values here never alter core intent semantics.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Extension package version registered at document level.",
+      "type": "string"
+    },
+    "partition": {
+      "description": "In-memory substrate partition the realized objects are placed in.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "tags": {
+      "description": "Opaque provider-side labels attached to realized substrate objects.",
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

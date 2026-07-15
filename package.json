@@ -1,0 +1,44 @@
+{
+  "name": "iap-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Infrastructure as Prompt (IaP) — specification, reference SDK, and ecosystem monorepo",
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/**' --filter './providers/**' run build",
+    "test": "vitest run",
+    "test:spec": "node tests/conformance/run.mjs",
+    "test:providers": "node tests/conformance/providers.mjs",
+    "test:determinism": "node tests/determinism/run.mjs",
+    "test:eval": "node tests/evaluation/run.mjs",
+    "test:benchmarks": "node tests/benchmarks/run.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --filter './packages/**' --filter './providers/**' exec tsc --noEmit",
+    "check:names": "node tools/check-legacy-names.mjs",
+    "scan:secrets": "node tools/security/scan-secrets.mjs",
+    "sbom": "node tools/security/gen-sbom.mjs",
+    "smoke:designer": "pnpm --filter @iap/designer-app run build && node apps/designer/smoke.mjs",
+    "smoke:playground": "pnpm --filter @iap/playground run build && node apps/playground/smoke.mjs",
+    "smoke:vsix": "node extensions/vscode/build-vsix.mjs && node extensions/vscode/smoke.mjs",
+    "build:cli-pkg": "node tools/packaging/build-cli.mjs",
+    "smoke:cli": "node tools/packaging/build-cli.mjs && node tools/packaging/smoke-cli.mjs",
+    "smoke:demo": "node tools/packaging/build-cli.mjs && node tools/packaging/demo-e2e.mjs",
+    "verify": "pnpm run build && pnpm run lint && pnpm run test && pnpm run test:spec && pnpm run test:providers && pnpm run test:determinism && pnpm run test:eval && pnpm run check:names && pnpm run scan:secrets"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^22.20.1",
+    "ajv": "^8.17.1",
+    "eslint": "^9.20.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^3.0.0",
+    "yaml": "^2.7.0"
+  }
+}

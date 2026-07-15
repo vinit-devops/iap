@@ -1,0 +1,31 @@
+{
+  "name": "@iap/ai-review",
+  "version": "0.1.0",
+  "description": "AI review engine for IaP (spec ch. 19, roadmap Phase 17): deterministic, explainable review findings over a document with source citations and hard guardrails — every suggestion is advisory (warn-level at most), cites its basis, never mutates infrastructure, and reaches the model only through the intent-compiler acceptance gate. The platform operates fully without AI.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/compliance": "workspace:*",
+    "@iap/model": "workspace:*",
+    "@iap/security": "workspace:*"
+  },
+  "devDependencies": {
+    "@iap/sdk": "workspace:*",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

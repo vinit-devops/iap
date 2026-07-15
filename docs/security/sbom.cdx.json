@@ -1,0 +1,471 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "iap",
+      "version": "0.1.0",
+      "description": "Infrastructure as Prompt — Developer Preview v0.1"
+    },
+    "properties": [
+      {
+        "name": "iap:sbom-scope",
+        "value": "workspace components + runtime dependencies (dev/build tooling excluded)"
+      },
+      {
+        "name": "iap:note",
+        "value": "Deterministic; generate timestamp is intentionally omitted for reproducibility."
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "@iap/ai-review",
+      "name": "@iap/ai-review",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/ai-review@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/ai-review"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/architecture",
+      "name": "@iap/architecture",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/architecture@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/architecture"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/cli",
+      "name": "@iap/cli",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/cli@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/cli"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/compliance",
+      "name": "@iap/compliance",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/compliance@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/compliance"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/control-plane",
+      "name": "@iap/control-plane",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/control-plane@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/control-plane"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/cost",
+      "name": "@iap/cost",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/cost@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/cost"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/deploy",
+      "name": "@iap/deploy",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/deploy@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/deploy"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/designer",
+      "name": "@iap/designer",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/designer@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/designer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/graph",
+      "name": "@iap/graph",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/graph@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/intent-compiler",
+      "name": "@iap/intent-compiler",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/intent-compiler@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/intent-compiler"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/language-server",
+      "name": "@iap/language-server",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/language-server@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/language-server"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/mcp",
+      "name": "@iap/mcp",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/mcp@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/mcp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/mcp-server",
+      "name": "@iap/mcp-server",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/mcp-server@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/mcp-server"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/migrate",
+      "name": "@iap/migrate",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/migrate@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/migrate"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/model",
+      "name": "@iap/model",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/model@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/model"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/parser",
+      "name": "@iap/parser",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/parser@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/parser"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/planner",
+      "name": "@iap/planner",
+      "version": "0.2.0",
+      "purl": "pkg:npm/%40iap/planner@0.2.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/planner"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/policy",
+      "name": "@iap/policy",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/policy@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/policy"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/provider-sdk",
+      "name": "@iap/provider-sdk",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/provider-sdk@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/provider-sdk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/sdk",
+      "name": "@iap/sdk",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/sdk@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/sdk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/security",
+      "name": "@iap/security",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/security@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/security"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/state",
+      "name": "@iap/state",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/state@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/state"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/validator",
+      "name": "@iap/validator",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/validator@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "packages/validator"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/provider-aws",
+      "name": "@iap/provider-aws",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/provider-aws@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "providers/aws"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/provider-kubernetes",
+      "name": "@iap/provider-kubernetes",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/provider-kubernetes@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "providers/kubernetes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/provider-mock",
+      "name": "@iap/provider-mock",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/provider-mock@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "providers/mock"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "@iap/designer-app",
+      "name": "@iap/designer-app",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40iap/designer-app@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "apps/designer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "iap-vscode",
+      "name": "iap-vscode",
+      "version": "0.1.0",
+      "purl": "pkg:npm/iap-vscode@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:workspace-path",
+          "value": "extensions/vscode"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "ajv",
+      "name": "ajv",
+      "version": "8.20.0",
+      "purl": "pkg:npm/ajv@8.20.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:specifier",
+          "value": "^8.17.1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "vscode-languageserver",
+      "name": "vscode-languageserver",
+      "version": "^9.0.1",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:specifier",
+          "value": "^9.0.1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "vscode-languageserver-textdocument",
+      "name": "vscode-languageserver-textdocument",
+      "version": "^1.0.12",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:specifier",
+          "value": "^1.0.12"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "yaml",
+      "name": "yaml",
+      "version": "2.9.0",
+      "purl": "pkg:npm/yaml@2.9.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "iap:specifier",
+          "value": "^2.7.0"
+        }
+      ]
+    }
+  ]
+}

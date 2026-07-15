@@ -1,0 +1,1 @@
+an internal web service running container image registry.example.com/web:1.0.0 connected to a managed postgres database

@@ -1,0 +1,19 @@
+# Conformance case: valid/01-minimal
+# expected: pass
+# reason: Smallest useful conforming document — one Service with an artifact.
+#         Exercises the three required top-level keys (apiVersion, metadata, resources)
+#         and the required Service field (spec.artifact).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: minimal-service
+
+resources:
+  web:
+    kind: Service
+    description: A single request-serving workload with all portable defaults.
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/web:1.0.0

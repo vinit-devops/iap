@@ -1,0 +1,19 @@
+# Conformance case: invalid/06-bad-resource-id
+# expected: schema-invalid
+# reason: The resource key "Order_API" violates the DNS-label identifier
+#         grammar ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ (uppercase letters and
+#         underscores are not permitted). Rejected by the propertyNames
+#         constraint on the resources map. Fails phase 1 (schema validation).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: bad-resource-id-case
+
+resources:
+  Order_API:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/order-api:1.0.0

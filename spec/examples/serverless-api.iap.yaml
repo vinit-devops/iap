@@ -1,0 +1,163 @@
+# Serverless API: public gateway routing directly to functions over a key-value store.
+# Demonstrates: Function-centric compute, routesTo with Function targets on distinct paths,
+# key-value Database class, topic-triggered function, storesDataIn, workload identity.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: shortlink-api
+  description: Serverless URL-shortening API
+  owner: team-edge
+  labels:
+    domain: sharing
+
+resources:
+  edge:
+    kind: Gateway
+    description: Public entry point; each route invokes a function
+    spec:
+      exposure: public
+      domains: [go.example.com]
+      tls:
+        minimumVersion: "1.3"
+    relationships:
+      - type: routesTo
+        target: create-link
+        protocol: https
+        path: /links
+      - type: routesTo
+        target: resolve-link
+        protocol: https
+        path: /r
+
+  create-link:
+    kind: Function
+    description: Creates a short link and records the mapping
+    labels:
+      tier: compute
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/create-link:2.1.0
+      size: s
+      timeout: 10s
+      concurrency:
+        max: 200
+    relationships:
+      - type: connectsTo
+        target: links-db
+        access: read-write
+      - type: publishesTo
+        target: link-events
+      - type: authenticatedBy
+        target: api-identity
+
+  resolve-link:
+    kind: Function
+    description: Resolves a short link and emits a click event
+    labels:
+      tier: compute
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/resolve-link:2.1.0
+      size: s
+      timeout: 5s
+      concurrency:
+        max: 500
+    relationships:
+      - type: connectsTo
+        target: links-db
+        access: read
+      - type: publishesTo
+        target: link-events
+      - type: authenticatedBy
+        target: api-identity
+
+  archive-clicks:
+    kind: Function
+    description: Consumes click events from the topic and archives them for analytics
+    labels:
+      tier: compute
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/archive-clicks:1.3.4
+      size: xs
+      timeout: 60s
+    relationships:
+      - type: consumesFrom
+        target: link-events
+      - type: storesDataIn
+        target: click-archive
+        access: write
+      - type: authenticatedBy
+        target: api-identity
+
+  links-db:
+    # key-value class: no engine in the v1 enum applies, so engine is omitted (wire
+    # protocol is left to the mapping; the application depends only on the class).
+    kind: Database
+    description: Short-link mapping store
+    labels:
+      tier: data
+    spec:
+      class: key-value
+      availability: high
+      capacity:
+        storage: 10Gi
+        throughput: 2000rps
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 2h
+
+  click-archive:
+    kind: ObjectStore
+    description: Raw click-event archive
+    labels:
+      tier: data
+    spec:
+      versioning: disabled
+      exposure: private
+      lifecycle:
+        - after: 180d
+          action: archive
+
+  link-events:
+    kind: Topic
+    description: Link lifecycle and click events
+    labels:
+      tier: messaging
+    spec:
+      delivery: at-least-once
+      ordering: none
+      messageRetention: 3d
+
+  api-identity:
+    kind: Identity
+    description: Shared workload identity for all functions
+    spec:
+      type: workload
+
+  shortlink-app:
+    kind: Application
+    spec:
+      components:
+        - edge
+        - create-link
+        - resolve-link
+        - archive-clicks
+        - links-db
+        - click-archive
+        - link-events
+      version: "2.1.0"
+
+outputs:
+  api-endpoint:
+    resource: edge
+    attribute: endpoint
+    description: Public URL of the short-link API
+  links-db-secret:
+    resource: links-db
+    attribute: connectionSecret
+    description: Handle to the link store connection secret

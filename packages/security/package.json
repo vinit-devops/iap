@@ -1,0 +1,29 @@
+{
+  "name": "@iap/security",
+  "version": "0.1.0",
+  "description": "Security analysis engine for IaP (spec ch. 15): derives least-privilege grants, the zero-trust reachability graph, and encryption/secret posture entirely from the canonical document, and emits the IAP6xx security findings with deterministic risk scoring. Security is derived, never annotated.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@iap/sdk": "workspace:*",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

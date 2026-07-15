@@ -1,0 +1,48 @@
+{
+  "apiVersion": "plugin.iap.dev/v1",
+  "name": "iap-provider-kubernetes",
+  "namespace": "kubernetes",
+  "version": "0.1.0",
+  "specCompat": ">=1.0.0 <2.0.0",
+  "sdkCompat": ">=0.1.0 <1.0.0",
+  "certificationLevel": "core",
+  "artifacts": {
+    "mappings": [
+      "mappings/core.iap-map.yaml"
+    ],
+    "extensionSchema": "schema/extension.schema.json",
+    "conformanceCases": "conformance/"
+  },
+  "capabilities": {
+    "kinds": [
+      "Application",
+      "Cache",
+      "Database",
+      "Gateway",
+      "Identity",
+      "ObjectStore",
+      "Queue",
+      "Service"
+    ]
+  },
+  "integrity": {
+    "digests": {
+      "conformance/cases/fail-closed.case.yaml": "sha256:e9b517b7e094b39f40c70a30764b3f62e876a46419a0204bc7616f5994a550de",
+      "conformance/cases/function-uncovered.case.yaml": "sha256:d4eff586b8be401cd30db8226d959f08fd6753bcaaab302b00c6bc7e2c2e63b9",
+      "conformance/cases/queue-fifo.case.yaml": "sha256:da5947f922171fe81ebc1d90a53a16083ad9a4e64ed1b2b4388d01cbb7b3e80c",
+      "conformance/cases/webapp-core.case.yaml": "sha256:2cd66f259e4fd4ab41a82c46bc67dbd789510d07e58e04f419dd65450fd0a329",
+      "conformance/corpus/basic-webapp.iap.yaml": "sha256:672bbbcb6c5db8ecbee0000f8bd99e1acbe05875ffcf986080a686d4559cf1a5",
+      "conformance/corpus/image-resizer.iap.yaml": "sha256:b8d28f4cd7c75021ba2563a8d619c3af1475416415e7a123c97b92539b99efb5",
+      "conformance/corpus/orders-mysql.iap.yaml": "sha256:7045f194c9feea63611b017acb8e55265892ceeb81adb67b6490d39d34b00cd5",
+      "conformance/corpus/queue-exactly-once.iap.yaml": "sha256:0ee4f9fef01320b1b66d48d320d92bdf1879020de370f95ea71238f9a26ceb76",
+      "conformance/corpus/work-queue.iap.yaml": "sha256:17a495ab36921ec0c933699a6adf2984e4eb2528c0fafe83223a179c1af9b45e",
+      "mappings/core.iap-map.yaml": "sha256:1dbaaa68ead9df47cd0de1b3404496cebec72b953062b995bbf8db56d70c12ef",
+      "schema/extension.schema.json": "sha256:acf755588f51707e016141ead02553ab267682fd81802fe9ec600807cc0118c7"
+    }
+  },
+  "signature": {
+    "keyId": "kubernetes-test-2026",
+    "alg": "ed25519",
+    "value": "+MLLhUjW+WEE3QuJyAyHTzzvNtNlRkWYUY6RrPAVdBSnz3teqTvhwhYw2JJvfwaa6/wBA+s5Ag5XJlqNaLZoAw=="
+  }
+}

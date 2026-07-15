@@ -1,0 +1,1 @@
+{"diagnostics":[{"field":"spec.availability","kind":"Database","message":"resource \"users-db-primary\" (Database) sets spec.availability = \"maximum\"; the mapping supports only [\"standard\",\"high\"]","reason":"unsupported-value","resourceId":"users-db-primary","value":"maximum"}]}

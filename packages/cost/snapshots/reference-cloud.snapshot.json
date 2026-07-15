@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "id": "reference-cloud-2026-07-01",
+  "provider": "reference-cloud",
+  "currency": "USD",
+  "region": "global",
+  "asOf": "2026-07-01T00:00:00Z",
+  "source": "illustrative list prices — reference cost model demonstration snapshot, not real vendor pricing",
+  "prices": {
+    "compute.size.xs.hour": { "unit": "instance-hour", "amount": 0.012 },
+    "compute.size.s.hour": { "unit": "instance-hour", "amount": 0.024 },
+    "compute.size.m.hour": { "unit": "instance-hour", "amount": 0.048 },
+    "compute.size.l.hour": { "unit": "instance-hour", "amount": 0.096 },
+    "compute.size.xl.hour": { "unit": "instance-hour", "amount": 0.192 },
+    "gateway.hour": { "unit": "instance-hour", "amount": 0.025 },
+    "storage.database.gib-month": { "unit": "gib-month", "amount": 0.115 },
+    "storage.block.gib-month": { "unit": "gib-month", "amount": 0.08 },
+    "storage.object.gib-month": { "unit": "gib-month", "amount": 0.021 },
+    "memory.cache.gib-month": { "unit": "gib-month", "amount": 18.0 },
+    "throughput.rps.unit-month": { "unit": "rps-month", "amount": 0.09 },
+    "throughput.iops.unit-month": { "unit": "iops-month", "amount": 0.006 },
+    "messaging.million-messages": { "unit": "million-messages", "amount": 0.4 }
+  }
+}

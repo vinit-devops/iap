@@ -1,0 +1,12 @@
+# Mock provider conformance case: a document declaring a kind the package
+# does not map (the reserved Workflow kind — every kind the official
+# examples use is covered since M7.4) fails closed at mapping time with an
+# unsupported-kind diagnostic. The assertion carries no select — rejected
+# cases evaluate the whole-document mapping outcome.
+apiVersion: conformance.iap.dev/v1
+case: unsupported-kind-fails-closed
+document: corpus/workflow-orchestrator.iap.yaml
+assertions:
+  - id: workflow-kind-rejected
+    capability: provider.kindCoverage
+    expect: rejected

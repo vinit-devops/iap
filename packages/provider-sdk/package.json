@@ -1,0 +1,32 @@
+{
+  "name": "@iap/provider-sdk",
+  "version": "0.1.0",
+  "description": "Provider plugin framework for IaP (spec ch. 12, IEP-0012): signed plugin manifest + loader with digest pinning and static coverage-tiling verification, pure mapping engine producing provenance-carrying provider plans, and the shared conformance-case evaluator",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "node ../../tools/schema-generation/sync-schemas.mjs && tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "ajv": "^8.17.1",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

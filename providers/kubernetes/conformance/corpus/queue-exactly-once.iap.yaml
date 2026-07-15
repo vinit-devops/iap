@@ -1,0 +1,14 @@
+# Conformance corpus (kubernetes provider): a Queue demanding exactly-once
+# delivery, which the operator-managed broker cannot attest — outside the
+# supports matrix, rejected at mapping time.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: k8s-queue-exactly-once
+
+resources:
+  payment-events:
+    kind: Queue
+    description: Queue demanding delivery semantics the realization cannot honor
+    spec:
+      delivery: exactly-once

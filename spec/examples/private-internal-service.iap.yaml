@@ -1,0 +1,160 @@
+# Private internal service: zero public surface — no Gateway, nothing internet-reachable.
+# Demonstrates: internal and private exposure, service-to-service connectsTo, secret
+# rotation, a deny policy forbidding public exposure on every kind, observability intent.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: internal-ledger
+  description: Double-entry ledger service reachable only inside the organization
+  owner: team-finance
+  organization: example-corp
+  labels:
+    dataClassification: confidential
+
+resources:
+  ledger-api:
+    kind: Service
+    description: Ledger API consumed by other internal systems over the org network
+    labels:
+      tier: application
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/ledger-api:6.4.1
+      size: m
+      exposure: internal
+      availability: high
+      ports:
+        - name: grpc
+          port: 9443
+          protocol: grpc
+      observability:
+        logs: required
+        metrics: required
+        traces: preferred
+      scaling:
+        min: 2
+        max: 8
+        targetUtilization: 70
+    relationships:
+      - type: connectsTo
+        target: ledger-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: connectsTo
+        target: balance-cache
+        port: 6379
+        protocol: tcp
+        access: read-write
+      - type: authenticatedBy
+        target: ledger-identity
+      - type: dependsOn
+        target: ledger-db-credentials
+
+  reconciler:
+    kind: Service
+    description: Reconciliation worker; reachable only via its declared relationships
+    labels:
+      tier: application
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/ledger-reconciler:6.4.1
+      size: s
+      exposure: private
+      observability:
+        logs: required
+        metrics: required
+      scaling:
+        min: 1
+        max: 4
+    relationships:
+      - type: connectsTo
+        target: ledger-api
+        port: 9443
+        protocol: grpc
+        access: read
+      - type: authenticatedBy
+        target: ledger-identity
+
+  ledger-db:
+    kind: Database
+    description: Ledger of record
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      exposure: private
+      availability: high
+      encryption:
+        atRest: required
+        inTransit: required
+      capacity:
+        storage: 50Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 15m
+        recoveryTimeObjective: 2h
+      observability:
+        logs: required
+        metrics: required
+
+  balance-cache:
+    kind: Cache
+    description: Hot account-balance cache
+    labels:
+      tier: data
+    spec:
+      engine: redis-compatible
+      exposure: private
+      capacity:
+        memory: 2Gi
+      observability:
+        metrics: required
+
+  ledger-db-credentials:
+    kind: Secret
+    description: Database credentials, platform-generated and rotated
+    spec:
+      source: generated
+      rotation:
+        policy: required
+        interval: 45d
+
+  ledger-identity:
+    kind: Identity
+    description: Workload identity shared by the ledger workloads
+    spec:
+      type: workload
+
+  ledger-app:
+    kind: Application
+    spec:
+      components:
+        - ledger-api
+        - reconciler
+        - ledger-db
+        - balance-cache
+        - ledger-db-credentials
+      version: "6.4.1"
+
+policies:
+  - id: deny-public-exposure
+    description: Nothing in this document may ever be publicly exposed, on any kind
+    target: {}
+    rule:
+      field: spec.exposure
+      operator: equals
+      value: public
+    effect: deny
+    params:
+      severity: critical
+
+outputs:
+  ledger-endpoint:
+    resource: ledger-api
+    attribute: endpoint
+    description: Organization-internal endpoint of the ledger API

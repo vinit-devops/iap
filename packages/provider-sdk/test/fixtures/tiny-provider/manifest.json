@@ -1,0 +1,36 @@
+{
+  "apiVersion": "plugin.iap.dev/v1",
+  "name": "iap-provider-tiny",
+  "namespace": "tiny",
+  "version": "1.0.0",
+  "specCompat": ">=1.0.0 <2.0.0",
+  "sdkCompat": ">=0.1.0 <1.0.0",
+  "certificationLevel": "core",
+  "artifacts": {
+    "mappings": [
+      "mappings/core.iap-map.yaml"
+    ],
+    "extensionSchema": "schema/extension.schema.json",
+    "conformanceCases": "conformance/"
+  },
+  "capabilities": {
+    "kinds": [
+      "Database",
+      "Queue"
+    ]
+  },
+  "integrity": {
+    "digests": {
+      "conformance/cases/database-core.case.yaml": "sha256:5ba43a0b5594bb91c828f805e1fd81e0c9a4431f65b4f024302b5ef48d944b21",
+      "conformance/corpus/orders.iap.yaml": "sha256:26f0999294f752a539affeb0ba2c975d9e78589052d0eff3337385e00ef62c34",
+      "conformance/corpus/queue-exactly-once.iap.yaml": "sha256:7d3a2f60503f9812cf4d51657c90b3719f5692a2b8e1e0641c20d6b8404554d6",
+      "mappings/core.iap-map.yaml": "sha256:52023b1df93d13bee4ef9dd9f9c5a87699d125bb5b7b7c114c8d58874b8a021f",
+      "schema/extension.schema.json": "sha256:dd0bbc456e9f3dfc2d1cce8f0fd96a41b6710032dd1a9a4979f31c1a4192f9ae"
+    }
+  },
+  "signature": {
+    "keyId": "test-only-2026",
+    "alg": "ed25519",
+    "value": "QCx9w8JswIFHDCQOYuWpqQrA/p1GwSk6gigzRyDewvQrBtWoscjt+2BQdvcBjN8nG9ty06JRX4nsfwENNBa5AQ=="
+  }
+}

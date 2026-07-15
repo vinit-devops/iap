@@ -1,0 +1,45 @@
+{
+  "apiVersion": "plugin.iap.dev/v1",
+  "name": "iap-provider-aws",
+  "namespace": "aws",
+  "version": "0.1.0",
+  "specCompat": ">=1.0.0 <2.0.0",
+  "sdkCompat": ">=0.1.0 <1.0.0",
+  "certificationLevel": "core",
+  "artifacts": {
+    "mappings": [
+      "mappings/core.iap-map.yaml"
+    ],
+    "extensionSchema": "schema/extension.schema.json",
+    "conformanceCases": "conformance/"
+  },
+  "capabilities": {
+    "kinds": [
+      "Application",
+      "Cache",
+      "Database",
+      "Gateway",
+      "Identity",
+      "ObjectStore",
+      "Queue",
+      "Service"
+    ]
+  },
+  "integrity": {
+    "digests": {
+      "conformance/cases/database-availability-maximum.case.yaml": "sha256:497094e163acdc90a0a12ec89672a6e8afa338823f8adca07076184c3b374bd3",
+      "conformance/cases/function-unsupported-kind.case.yaml": "sha256:6c3690b0fa8d70331fe509598f87631c5e9d39713e9277253638fb2118143dfd",
+      "conformance/cases/webapp-core.case.yaml": "sha256:5c18ddfccd5f265e0cab46d84fefa68694dd0bc7ed83449bc7f88e0516e81e2f",
+      "conformance/corpus/database-maximum.iap.yaml": "sha256:50eaa18adb36efd59d209eaa9f5a8ae992c23e3c069fd88c53e1531207fab86e",
+      "conformance/corpus/function-image-resizer.iap.yaml": "sha256:b9f7cc776b3ce2221a5bd2bed8c0b124da4a34824a9b960d7ae7268f0fd1ad0e",
+      "conformance/corpus/webapp-core.iap.yaml": "sha256:6c13148a2d0960366452568d6e3db175478cb43258fb86e1b2fb4396ea70707a",
+      "mappings/core.iap-map.yaml": "sha256:25c8102e2f5edd666cc2998671f0a1adc3f7a15ea7aa30e3d90245ae6cb2ce22",
+      "schema/extension.schema.json": "sha256:2835acb5432c875d4425247ad0da7abaabd9dfba4bbe9891e6c542e0d341a8e3"
+    }
+  },
+  "signature": {
+    "keyId": "aws-test-2026",
+    "alg": "ed25519",
+    "value": "LhgWQXxA6Qvb6G7Ys1MPufBp9WwrPBmWT/aYuE6FawlzQ61vavRD6IJj8n/iHhu4ySWqTCkoCR9uKJYLyNlKBw=="
+  }
+}

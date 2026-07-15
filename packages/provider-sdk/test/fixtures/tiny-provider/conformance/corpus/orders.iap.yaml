@@ -1,0 +1,27 @@
+# TEST FIXTURE (test material only): conforming corpus document for the tiny
+# provider's conformance cases.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: tiny-orders
+
+resources:
+  orders-db:
+    kind: Database
+    description: Primary order store
+    spec:
+      class: relational
+      engine: postgresql
+      availability: high
+      encryption:
+        atRest: required
+        inTransit: required
+
+  work-queue:
+    kind: Queue
+    description: Order processing queue
+    spec:
+      ordering: fifo
+    relationships:
+      - type: dependsOn
+        target: orders-db

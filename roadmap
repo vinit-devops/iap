@@ -1,0 +1,2606 @@
+# Master Implementation Prompt: Build the Complete Infrastructure Intent Specification Ecosystem
+
+## 1. Role
+
+Act as a principal platform architect, cloud infrastructure engineer, language-tooling engineer, security architect, product engineer, and open-source maintainer.
+
+Your responsibility is to implement the complete **Infrastructure Intent Specification ecosystem**, abbreviated as **IIS**, through a controlled, phase-based roadmap.
+
+Do not treat this as a single web application or a Terraform code generator. IIS is an open infrastructure-intent standard and a supporting ecosystem consisting of:
+
+* A machine-readable specification
+* A canonical infrastructure model
+* A natural-language intent compiler
+* A deterministic validator and planner
+* Provider mapping packages
+* A deployment and state engine
+* A CLI
+* A language server
+* IDE integrations
+* Architecture visualization
+* Policy, security, cost, and compliance engines
+* MCP-based knowledge enrichment
+* A visual infrastructure designer
+* Enterprise governance capabilities
+
+Implement each phase completely before proceeding to dependent phases.
+
+---
+
+# 2. Current Project State
+
+The following IIS v1 artifacts already exist and must be treated as the starting point:
+
+* IIS version `1.0.0`
+* Status: Draft
+* API version: `iis.dev/v1`
+* Multi-document specification repository
+* Twenty-four specification chapters
+* `schema/iis-v1.schema.json`
+* `schema/iis-mapping-v1.schema.json`
+* Complete end-to-end IIS examples
+* Valid and invalid conformance cases
+* A flat `resources:` model
+* Resource entries using a `kind:` discriminator
+* Provider-independent core vocabulary
+* Provider-specific extensions and mapping artifacts
+* Thirteen core resource kinds
+* First-class relationship semantics
+* Profile, policy, validation, dependency, planning, security, cost, compliance, AI, MCP, SDK, CLI, LSP, and conformance chapters
+
+Do not redesign or replace the IIS v1 specification without an approved IIS Enhancement Proposal.
+
+Before implementation, inspect the existing repository and create a gap report showing:
+
+* Complete artifacts
+* Incomplete artifacts
+* Schema/documentation inconsistencies
+* Missing conformance coverage
+* Ambiguous normative requirements
+* Implementation blockers
+* Proposed non-breaking corrections
+* Changes requiring an IIS Enhancement Proposal
+
+---
+
+# 3. Product Vision
+
+IIS allows users to express infrastructure requirements without learning Terraform, HCL, CloudFormation, Pulumi, Kubernetes manifests, AWS CLI parameters, or the IIS syntax itself.
+
+The primary user experience is:
+
+```text
+Natural-language requirement
+        ↓
+Intent understanding
+        ↓
+Clarification and completeness checks
+        ↓
+Structured draft intent
+        ↓
+Canonical Infrastructure Model
+        ↓
+Deterministic IIS serialization
+        ↓
+Schema and semantic validation
+        ↓
+Policy, security, cost and compliance analysis
+        ↓
+Provider mapping
+        ↓
+Deterministic execution plan
+        ↓
+Human approval
+        ↓
+Provider API execution
+        ↓
+State, verification and drift management
+```
+
+Example user request:
+
+> Create a production-ready, highly available container platform in AWS with PostgreSQL, private networking, autoscaling, monitoring, encrypted backups, workload identity, and PCI DSS controls. Keep the estimated monthly infrastructure cost below $4,000.
+
+The platform must convert this request into a valid `infrastructure.iis.yaml` document after asking only the questions that are genuinely required.
+
+The user must not be required to understand IIS syntax.
+
+---
+
+# 4. Source-of-Truth Model
+
+Clearly separate desired intent, runtime representation, actual state, and history.
+
+## 4.1 Desired-state source of truth
+
+The portable, persistent, Git-friendly desired-state source of truth is:
+
+```text
+infrastructure.iis.yaml
+```
+
+This file:
+
+* Is generated and maintained by the platform
+* Can be committed to Git
+* Can be reviewed in pull requests
+* Can be generated from natural language, forms, IDE commands, or direct editing
+* Can be consumed by any conformant implementation
+* Must not contain credentials or sensitive state
+* Must produce a stable normalized representation
+
+Although direct editing must remain supported, ordinary users should not need to write IIS manually.
+
+## 4.2 Canonical runtime representation
+
+The **Canonical Infrastructure Model**, or CIM, is the normalized in-memory representation created from the IIS document.
+
+The CIM contains:
+
+* Normalized resources
+* Resolved defaults
+* Resource kinds and versions
+* Relationships
+* Derived dependencies
+* Effective profiles
+* Effective policies
+* Provider-independent constraints
+* Abstract outputs
+* Validation metadata
+* Provenance for generated and user-supplied values
+
+All planning and analysis components operate on the CIM rather than raw YAML.
+
+The CIM is canonical during processing, but the portable desired-state artifact remains the IIS document.
+
+## 4.3 Actual infrastructure state
+
+Maintain a separate, system-owned state artifact or state backend.
+
+It stores:
+
+* Provider resource identifiers
+* Provider resource types
+* Account, subscription, project, cluster, and region bindings
+* Last observed configuration
+* Last successfully applied desired-state hash
+* Provider API versions
+* Resource lifecycle status
+* Outputs
+* Dependency bindings
+* Deployment identifiers
+* Drift information
+* Imported resources
+* Sensitive references, never plaintext secrets
+* Lock and concurrency metadata
+
+State must never be embedded in the IIS document.
+
+## 4.4 Immutable execution history
+
+Every plan and deployment must generate an immutable record containing:
+
+* Input IIS hash
+* Canonical model hash
+* Effective profile and policy hashes
+* Provider mapping versions
+* Plan
+* Approvals
+* Actor identity
+* Timestamps
+* Resources created, changed, replaced, imported, or destroyed
+* Cost impact
+* Security and compliance findings
+* Execution logs
+* Rollback result
+* Verification result
+* State version before and after deployment
+
+---
+
+# 5. Non-Negotiable Architectural Principles
+
+## 5.1 Intent over implementation
+
+The IIS core describes outcomes and constraints, not cloud products or imperative steps.
+
+## 5.2 Users do not need to learn IIS syntax
+
+Natural language, guided forms, IDE actions, and visual design are normal authoring methods.
+
+Direct IIS editing is an advanced, optional workflow.
+
+## 5.3 AI never executes infrastructure
+
+AI may:
+
+* Understand natural language
+* Extract intent
+* Identify missing details
+* Generate clarification questions
+* Propose IIS modifications
+* Explain plans
+* Explain cost, security, and compliance findings
+* Generate documentation
+* Suggest improvements
+
+AI must never:
+
+* Call provider mutation APIs
+* Apply a deployment plan
+* Change actual state
+* Bypass validation
+* Bypass policy
+* Approve its own plan
+* Select destructive behavior without explicit deterministic rules
+* Invent unsupported provider parameters
+* Infer required production decisions silently
+
+## 5.4 Deterministic execution
+
+Once the IIS document is finalized, execution must not depend on AI, an LLM, MCP availability, or conversational history.
+
+The same inputs and component versions must produce the same normalized model and execution plan.
+
+Determinism inputs include:
+
+* IIS document
+* Profile versions
+* Policy versions
+* Extension versions
+* Provider mapping version
+* Provider discovery snapshot
+* Pricing snapshot where relevant
+* Planner version
+* Explicit deployment target
+
+## 5.5 Fail closed
+
+Planning and deployment must stop when:
+
+* Required intent is unresolved
+* A mapping is incomplete
+* A provider capability is unsupported
+* Policy validation fails
+* A required authoritative check cannot be completed
+* State locking fails
+* Drift creates an unsafe plan
+* A destructive operation lacks approval
+* A resource mapping would weaken declared intent
+
+## 5.6 Provider logic does not leak into the core
+
+AWS, Azure, GCP, Kubernetes, Cloudflare, and on-premises behavior belongs in provider mappings and namespaced extensions.
+
+## 5.7 Plans are inspectable
+
+Every planned resource and provider parameter must be traceable to:
+
+* A user-supplied intent
+* An explicit default
+* A profile
+* A policy
+* A provider mapping rule
+* A provider discovery result
+* An approved recommendation
+
+## 5.8 No hidden defaults
+
+Every applied default must have:
+
+* A stable identifier
+* A source
+* A version
+* An explanation
+* A visible representation in the plan
+* An option to override where policy permits
+
+## 5.9 The diagram is derived
+
+Architecture diagrams, network diagrams, security diagrams, dependency views, and data-flow views must be generated from the same canonical model used for planning.
+
+Manual diagrams must never be treated as a source of truth.
+
+---
+
+# 6. Authoring Methods
+
+All authoring methods must produce or modify the same Canonical Infrastructure Model and serialize it into the same IIS document.
+
+## 6.1 Natural language
+
+This is the primary beginner workflow.
+
+Support:
+
+* Initial infrastructure creation
+* Incremental changes
+* Resource removal
+* Constraint changes
+* Environment cloning
+* Cost reduction requests
+* Security hardening requests
+* Compliance requirements
+* Explanations of proposed changes
+
+Natural-language input must never directly mutate the IIS document. It must first produce structured compiler operations.
+
+## 6.2 Guided UI
+
+The visual application must support progressive disclosure.
+
+### Basic mode
+
+Expose outcome-oriented settings such as:
+
+* Workload type
+* Environment
+* Expected usage
+* Availability requirement
+* Data classification
+* Public or private exposure
+* Scaling requirement
+* Backup requirement
+* Compliance requirement
+* Cost budget
+* Preferred geography
+
+### Advanced mode
+
+Expose the complete supported configuration surface for the selected provider mapping, including required and optional provider parameters.
+
+Advanced settings must:
+
+* Remain isolated in namespaced extensions
+* Be validated against provider schemas
+* Show provider documentation
+* Show default values
+* Explain operational and cost impact
+* Warn when a setting weakens declared intent
+* Never silently override core IIS requirements
+
+## 6.3 IDE commands and assistant integration
+
+Users must be able to create and modify infrastructure from:
+
+* VS Code
+* Cursor
+* Claude Code
+* Windsurf
+* JetBrains IDEs
+* Other MCP-capable or LSP-capable development environments
+
+Example operations:
+
+```text
+Create infrastructure for this application
+Add a private PostgreSQL database
+Make this service highly available
+Show the infrastructure architecture
+Estimate the monthly cost
+Explain the security risks
+Generate a deployment plan
+```
+
+IDE assistants call IIS tools. They must not manipulate provider resources directly.
+
+## 6.4 Direct IIS editing
+
+Advanced users can edit `infrastructure.iis.yaml`.
+
+Provide:
+
+* JSON Schema validation
+* LSP completion
+* Hover documentation
+* Formatting
+* Diagnostics
+* Quick fixes
+* Relationship navigation
+* Live diagrams
+* Plan previews
+
+---
+
+# 7. Target System Architecture
+
+Implement the ecosystem as independently testable layers.
+
+```text
+Authoring Interfaces
+├── Natural language
+├── Guided UI
+├── IDE integrations
+├── CLI
+└── Direct IIS editing
+        │
+        ▼
+Intent Authoring and Compiler Layer
+├── Intent extraction
+├── Clarification engine
+├── Constraint resolver
+├── Confidence and provenance
+└── Structured model operations
+        │
+        ▼
+Canonical Infrastructure Model
+        │
+        ├── IIS parser and serializer
+        ├── Schema validator
+        ├── Semantic validator
+        ├── Relationship engine
+        ├── Dependency engine
+        ├── Policy engine
+        ├── Security engine
+        ├── Compliance engine
+        ├── Cost engine
+        └── Architecture engine
+        │
+        ▼
+Provider Mapping Framework
+        │
+        ▼
+Deterministic Planner
+        │
+        ▼
+Approval and Change Control
+        │
+        ▼
+Deployment Engine
+        │
+        ▼
+Cloud and Platform APIs
+        │
+        ▼
+State, Verification and Drift Engine
+```
+
+---
+
+# 8. Initial Engineering Strategy
+
+Use an implementation structure that supports rapid development without prematurely creating many independently maintained repositories.
+
+Start with an umbrella monorepo and isolate components as versioned packages.
+
+Recommended initial structure:
+
+```text
+iis/
+├── README.md
+├── ROADMAP.md
+├── GOVERNANCE.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── LICENSE
+├── CHANGELOG.md
+├── package.json
+├── pnpm-workspace.yaml
+├── turbo.json
+│
+├── spec/
+│   ├── chapters/
+│   ├── schema/
+│   ├── examples/
+│   ├── conformance/
+│   ├── mappings/
+│   └── ieps/
+│
+├── packages/
+│   ├── model/
+│   ├── parser/
+│   ├── serializer/
+│   ├── validator/
+│   ├── relationships/
+│   ├── dependency-engine/
+│   ├── policy-engine/
+│   ├── planner/
+│   ├── provider-sdk/
+│   ├── state/
+│   ├── architecture/
+│   ├── cost/
+│   ├── security/
+│   ├── compliance/
+│   ├── intent-compiler/
+│   ├── mcp/
+│   ├── sdk/
+│   ├── cli/
+│   └── language-server/
+│
+├── providers/
+│   ├── mock/
+│   ├── aws/
+│   ├── azure/
+│   ├── gcp/
+│   └── kubernetes/
+│
+├── extensions/
+│   ├── aws/
+│   ├── azure/
+│   ├── gcp/
+│   └── kubernetes/
+│
+├── apps/
+│   ├── vscode-extension/
+│   ├── visual-designer/
+│   └── documentation/
+│
+├── tests/
+│   ├── conformance/
+│   ├── integration/
+│   ├── determinism/
+│   ├── security/
+│   └── end-to-end/
+│
+└── tools/
+    ├── schema-generation/
+    ├── release/
+    └── migration/
+```
+
+Components can be moved into separate repositories after their APIs and release cycles stabilize.
+
+Use one primary implementation language initially to reduce complexity. TypeScript is suitable for:
+
+* JSON Schema tooling
+* LSP implementation
+* CLI
+* IDE integrations
+* Web UI
+* Shared type definitions
+* Provider SDK prototypes
+
+Use strict typing and the current supported runtime LTS at implementation time.
+
+Do not create a second type system that can drift from the normative JSON Schema. Generate or verify runtime types against the schema.
+
+A lower-level language may later be introduced for performance-sensitive deployment or state components only after profiling demonstrates a need.
+
+---
+
+# 9. Cross-Cutting Engineering Requirements
+
+Apply these requirements in every phase.
+
+## 9.1 Development workflow
+
+* Never commit directly to the protected main branch.
+* Create a branch for every feature or phase increment.
+* Submit changes through pull requests.
+* Require tests and review before merge.
+* Keep each pull request small enough to review.
+* Use conventional commits.
+* Generate changelog entries.
+* Link changes to a roadmap item or IEP.
+
+## 9.2 Quality
+
+Every public package must have:
+
+* Public API documentation
+* Unit tests
+* Integration tests
+* Error code documentation
+* Versioning policy
+* Compatibility policy
+* Security considerations
+* Performance considerations
+* Working examples
+
+## 9.3 Testing
+
+Create:
+
+* Schema tests
+* Parser round-trip tests
+* Canonicalization tests
+* Semantic validation tests
+* Relationship tests
+* Cycle-detection tests
+* Determinism tests
+* Provider contract tests
+* Golden plan tests
+* State migration tests
+* Drift tests
+* Security tests
+* Failure-injection tests
+* End-to-end tests
+
+## 9.4 Security
+
+* Never persist plaintext credentials.
+* Use short-lived identity and OIDC where possible.
+* Redact sensitive provider responses.
+* Sign releases and provider packages.
+* Maintain a threat model.
+* Generate a software bill of materials.
+* Pin and verify dependencies.
+* Support provider-plugin allowlists.
+* Sandbox untrusted extensions.
+* Maintain audit records for mutation operations.
+
+## 9.5 Observability
+
+Instrument:
+
+* Parsing
+* Validation phases
+* Compilation
+* Mapping
+* Planning
+* State locking
+* Execution
+* Provider calls
+* Reconciliation
+* MCP requests
+* AI model requests
+
+Telemetry must not expose infrastructure secrets or sensitive document content.
+
+## 9.6 Documentation
+
+For each phase, update:
+
+* Architecture documentation
+* CLI or API references
+* Examples
+* Troubleshooting guide
+* ADRs
+* Roadmap status
+* Migration notes
+* Security notes
+
+---
+
+# 10. Roadmap Execution Protocol
+
+For every roadmap phase:
+
+1. Read all dependent specification chapters.
+2. Produce a phase design document.
+3. Identify unresolved normative questions.
+4. Create IEPs for any specification changes.
+5. Create ADRs for implementation choices.
+6. Break the phase into milestones.
+7. Implement one milestone at a time.
+8. Add automated tests with every milestone.
+9. Update documentation and examples.
+10. Run the entire conformance suite.
+11. Produce a phase completion report.
+12. Do not mark the phase complete until exit criteria pass.
+
+Maintain a machine-readable roadmap file:
+
+```yaml
+phases:
+  - id: "0"
+    status: completed
+    milestones: []
+    evidence: []
+  - id: "0.5"
+    status: in-progress
+    milestones: []
+    evidence: []
+```
+
+---
+
+# Phase 0 — Foundation and Repository Baseline
+
+## Objective
+
+Establish an implementation-ready project foundation around the existing IIS v1 draft.
+
+## Tasks
+
+* Audit the existing specification repository.
+* Create the umbrella repository structure.
+* Configure workspace and build tooling.
+* Configure formatting, linting, testing, and type checking.
+* Configure pull request checks.
+* Add code ownership.
+* Add issue and PR templates.
+* Add security reporting guidance.
+* Add release automation.
+* Add documentation publishing.
+* Add dependency update automation.
+* Add signed release support.
+* Add license headers where required.
+* Document the normative and informative file boundaries.
+* Add an architecture decision record template.
+* Add the phase execution protocol.
+* Add a compatibility matrix.
+
+## Deliverables
+
+* Buildable monorepo
+* Passing baseline CI
+* Project governance files
+* Security policy
+* Contribution guide
+* Release guide
+* Initial ADR directory
+* Initial roadmap tracker
+* Spec gap report
+
+## Exit criteria
+
+* A clean checkout can install, build, lint, and test.
+* Existing schemas and examples are validated automatically.
+* The conformance suite runs in CI.
+* Protected main-branch workflow is documented.
+* No implementation package contains provider-specific core types.
+
+---
+
+# Phase 0.5 — IIS Enhancement Proposal Process
+
+## Objective
+
+Create the formal process through which IIS evolves.
+
+## IEP structure
+
+Each IEP must contain:
+
+```text
+Title
+Number
+Status
+Authors
+Created date
+Target version
+Summary
+Motivation
+Problem statement
+Goals
+Non-goals
+Terminology
+Detailed design
+Schema impact
+Runtime-model impact
+Validation impact
+Provider impact
+Security impact
+Cost impact
+Compatibility
+Migration
+Alternatives considered
+Rejected alternatives
+Implementation plan
+Conformance requirements
+Open questions
+Decision
+References
+```
+
+## IEP lifecycle
+
+```text
+Idea
+→ Draft
+→ Review
+→ Provisional
+→ Accepted
+→ Implementing
+→ Implemented
+→ Released
+→ Superseded or Deprecated
+```
+
+## Initial IEPs
+
+Create or formalize:
+
+* IEP-0001: Resource model
+* IEP-0002: Relationship semantics
+* IEP-0003: Provider mapping contract
+* IEP-0004: Policy language
+* IEP-0005: Cost model
+* IEP-0006: Security model
+* IEP-0007: Extension framework
+* IEP-0008: Canonical Infrastructure Model
+* IEP-0009: Intent compiler operations
+* IEP-0010: State and reconciliation model
+* IEP-0011: Deterministic planning contract
+* IEP-0012: Provider conformance
+* IEP-0013: AI and MCP trust boundaries
+
+## Deliverables
+
+* IEP template
+* IEP index
+* Status definitions
+* Review rules
+* Decision authority
+* Compatibility policy
+* Initial IEP documents
+
+## Exit criteria
+
+* No normative specification change can be merged without the required IEP.
+* IEP status is enforced through repository checks or review policy.
+* Every existing unresolved specification question is linked to an IEP or explicitly deferred.
+
+---
+
+# Phase 1 — IIS v1 Stabilization
+
+## Objective
+
+Make IIS v1 sufficiently stable for reference implementation.
+
+## Tasks
+
+* Validate all schema references.
+* Verify examples against the schema.
+* Verify invalid conformance cases fail for the expected reason.
+* Detect prose/schema mismatches.
+* Confirm resource-kind discriminator behavior.
+* Confirm identifier grammar.
+* Confirm extension namespace behavior.
+* Confirm profile merge semantics.
+* Confirm policy operators.
+* Confirm relationship normalization.
+* Confirm dependency derivation.
+* Confirm versioning and deprecation rules.
+* Define canonical serialization rules.
+* Define unknown-field behavior.
+* Define error location and error-code requirements.
+* Define default application rules.
+* Define null, empty, absent, and inherited semantics.
+* Define maximum document and graph limits for implementations.
+* Add additional examples for edge cases.
+* Expand conformance coverage.
+
+## Minimum examples
+
+Maintain complete examples for:
+
+* Basic web application
+* Container platform
+* Serverless application
+* Enterprise PCI workload
+* Multi-region workload
+* Private internal service
+* Event-driven system
+* Data-processing workload
+* Hybrid environment
+* Existing-resource import intent
+
+## Deliverables
+
+* IIS v1 draft release
+* Stable JSON Schema
+* Stable provider-mapping schema
+* Conformance suite
+* Canonicalization rules
+* Error-code registry
+* Schema compatibility report
+
+## Exit criteria
+
+* No known contradiction exists between normative prose and schemas.
+* All official examples pass.
+* All invalid conformance examples fail predictably.
+* Breaking changes require an accepted IEP.
+* The core kind registry is frozen for the implementation milestone.
+
+---
+
+# Phase 2 — Canonical Model and Reference SDK
+
+## Objective
+
+Build the deterministic foundation consumed by every other component.
+
+## Core packages
+
+### Parser
+
+Support:
+
+* YAML
+* JSON
+* Source locations
+* Comments where technically feasible
+* Duplicate-key rejection
+* Alias and anchor safety limits
+* Clear parse errors
+* Multiple document detection
+* File and stream input
+
+### Canonical Infrastructure Model
+
+Define strongly typed representations for:
+
+* Document metadata
+* Resources
+* Kinds
+* Specifications
+* Relationships
+* Policies
+* Profiles
+* Extensions
+* Constraints
+* Outputs
+* Provenance
+* Diagnostics
+
+### Canonicalization
+
+Implement deterministic:
+
+* Key ordering
+* Default application
+* Relationship normalization
+* Identifier normalization
+* Profile application
+* Policy resolution
+* Extension preservation
+* Stable hashing
+* Serialization
+
+### Schema validator
+
+Use the normative IIS JSON Schema.
+
+### Semantic validator
+
+Implement validation phases defined in the specification, including:
+
+* Document validation
+* Kind validation
+* Reference validation
+* Relationship validation
+* Graph validation
+* Policy validation
+* Extension validation
+* Cross-resource validation
+
+### Relationship engine
+
+Implement:
+
+* Typed graph construction
+* Incoming and outgoing relationship indexes
+* Target resolution
+* Relationship constraints
+* Duplicate-edge handling
+* Cycle classification
+* Path and impact queries
+
+### Dependency engine
+
+Derive execution dependencies without using document order.
+
+### SDK facade
+
+Provide a stable public API such as:
+
+```typescript
+const result = await iis.load("infrastructure.iis.yaml");
+const validation = await result.validate();
+const model = result.canonicalModel;
+const graph = result.relationshipGraph;
+```
+
+## Deliverables
+
+* Versioned SDK packages
+* Public API reference
+* Round-trip serializer
+* Determinism test suite
+* Graph API
+* Validation API
+* Plugin registration interface
+* Mock provider support
+
+## Exit criteria
+
+* Every official example parses and validates.
+* Parse → canonicalize → serialize → parse produces an equivalent model.
+* Identical inputs generate identical canonical hashes.
+* Graph results do not depend on input key ordering.
+* No provider SDK is required to parse core IIS.
+* Public APIs have compatibility tests.
+
+---
+
+# Phase 3 — Intent Authoring Engine and Intent Compiler
+
+## Objective
+
+Allow users to create and modify IIS without learning its syntax.
+
+This phase introduces AI-assisted authoring but does not introduce deployment.
+
+## Core rule
+
+The LLM must never directly write arbitrary YAML into the source-of-truth file.
+
+The expected pipeline is:
+
+```text
+Natural language
+→ Intent extraction
+→ Structured compiler operations
+→ Validation
+→ Canonical model mutation
+→ Deterministic serialization
+→ IIS document
+```
+
+## 3.1 Compiler operation model
+
+Define typed operations such as:
+
+```text
+CreateResource
+UpdateResource
+RemoveResource
+CreateRelationship
+UpdateRelationship
+RemoveRelationship
+ApplyProfile
+RemoveProfile
+AddPolicy
+ChangeConstraint
+SetMetadata
+SetExtensionValue
+```
+
+Each operation contains:
+
+* Operation identifier
+* Target
+* Requested change
+* Source input span
+* Confidence
+* Assumptions
+* Required clarifications
+* Provenance
+* Validation result
+* Preview diff
+
+The compiler applies only validated operations.
+
+## 3.2 Intent extraction
+
+Extract:
+
+* Environment
+* Workload type
+* Applications
+* Data services
+* Messaging
+* Networking intent
+* Exposure
+* Identity
+* Secrets
+* Availability
+* Scaling
+* Regions or geography
+* Backup
+* RPO and RTO
+* Security requirements
+* Compliance frameworks
+* Budget
+* Operational requirements
+* Provider preference
+* Existing-resource constraints
+
+## 3.3 Clarification engine
+
+Ask questions only when:
+
+* A required field cannot be deterministically defaulted
+* Multiple interpretations materially change architecture
+* Cost or availability choices conflict
+* A destructive update is requested
+* A compliance requirement requires missing scope information
+* Provider selection is required
+* An existing-resource reference is unresolved
+* The request conflicts with policy
+
+Questions must be:
+
+* Minimal
+* Contextual
+* Grouped logically
+* Accompanied by recommended defaults
+* Accompanied by impact explanations
+* Answerable through UI controls as well as text
+
+Example:
+
+> You requested high availability and a monthly limit of $300. A multi-zone relational database may exceed that budget. Choose one: raise the budget, use standard availability, or use a lower-cost database class.
+
+## 3.4 Confidence and provenance
+
+Every generated field must indicate whether it came from:
+
+* Explicit user input
+* Confirmed clarification
+* Organization profile
+* Policy
+* IIS default
+* Provider mapping default
+* AI recommendation accepted by the user
+
+Do not silently treat low-confidence AI output as intent.
+
+## 3.5 Existing-document updates
+
+Support commands such as:
+
+* Add a cache for the API
+* Make the database private
+* Reduce expected cost
+* Add disaster recovery
+* Remove public access
+* Move to maximum availability
+* Add PCI DSS controls
+* Explain what changes this request will make
+
+Generate a semantic diff before saving.
+
+## 3.6 Model-provider abstraction
+
+Do not couple the compiler to a single LLM vendor.
+
+Provide:
+
+* Model adapter interface
+* Structured-output schema
+* Retry and repair rules
+* Token and cost limits
+* Redaction hooks
+* Local-model option
+* Data residency configuration
+* Prompt versioning
+* Evaluation harness
+
+## 3.7 Intent compiler evaluation
+
+Create a benchmark dataset covering:
+
+* Clear requirements
+* Ambiguous requirements
+* Conflicting constraints
+* Missing information
+* Unsupported capabilities
+* Provider-specific requests
+* Incremental edits
+* Destructive requests
+* Security-sensitive requests
+* Cost-sensitive requests
+* Compliance requests
+
+Measure:
+
+* Correct resource extraction
+* Correct relationship extraction
+* Clarification precision
+* Unsupported-feature detection
+* False assumptions
+* IIS validity
+* Semantic equivalence
+* Deterministic serialization after confirmation
+
+## Deliverables
+
+* Intent compiler SDK
+* Compiler operation schema
+* Clarification engine
+* Provenance model
+* AI adapter interface
+* Prompt registry
+* Evaluation suite
+* Natural-language authoring prototype
+
+## Exit criteria
+
+* Natural-language requests can generate valid IIS for all official examples.
+* No unvalidated LLM-generated YAML is written to disk.
+* Low-confidence fields require confirmation.
+* The same confirmed structured operations produce the same IIS regardless of the model originally used.
+* The compiler cannot call deployment APIs.
+* Every generated field has provenance.
+
+---
+
+# Phase 4 — Infrastructure Language Server
+
+## Objective
+
+Provide a shared language service for every editor and IDE.
+
+## Features
+
+* Syntax diagnostics
+* Schema diagnostics
+* Semantic diagnostics
+* Completion
+* Hover documentation
+* Go to resource definition
+* Find references
+* Rename resource
+* Relationship navigation
+* Policy diagnostics
+* Profile inspection
+* Extension validation
+* Document formatting
+* Quick fixes
+* Code actions
+* Resource outline
+* Symbol search
+* Canonical preview
+* Architecture preview
+* Cost annotations
+* Security findings
+* Compliance findings
+* Plan preview
+* Natural-language compiler command endpoint
+
+## Deliverables
+
+* LSP server
+* Protocol extension specification
+* Editor-neutral integration tests
+* Performance benchmarks
+* Caching model
+
+## Exit criteria
+
+* A user can author or review IIS in a generic LSP client.
+* Renames safely update references.
+* Diagnostics match the CLI and SDK.
+* Large documents remain responsive within documented limits.
+* No cloud credentials are required for baseline editing features.
+
+---
+
+# Phase 5 — Reference CLI
+
+## Objective
+
+Expose the SDK and analysis capabilities through automation-friendly commands.
+
+## Commands
+
+```text
+iis init
+iis create
+iis edit
+iis validate
+iis format
+iis normalize
+iis explain
+iis diff
+iis graph
+iis diagram
+iis policy
+iis cost
+iis security
+iis compliance
+iis plan
+iis doctor
+iis import
+iis export
+iis provider
+iis extension
+iis state
+iis drift
+iis deploy
+iis destroy
+iis rollback
+```
+
+Deployment-related commands remain disabled or experimental until their phases are complete.
+
+## Important workflows
+
+### Natural-language creation
+
+```text
+iis create
+```
+
+Accept a natural-language requirement, run the compiler, ask clarifications, display a semantic preview, and create `infrastructure.iis.yaml`.
+
+### Non-interactive automation
+
+Support:
+
+* JSON input
+* JSON output
+* Exit codes
+* No-color mode
+* CI mode
+* Stable error codes
+* Input from stdin
+* Output to stdout
+* Plan artifact generation
+
+## Deliverables
+
+* Cross-platform CLI
+* Shell completions
+* JSON output contracts
+* CLI documentation
+* CI usage examples
+
+## Exit criteria
+
+* CLI analysis requires no UI.
+* All SDK diagnostics are reproducible through the CLI.
+* Output formats are versioned.
+* Natural-language creation produces validated IIS.
+* The CLI never deploys before explicit approval.
+
+---
+
+# Phase 6 — Provider Mapping and Plugin Framework
+
+## Objective
+
+Translate provider-independent intent into deterministic provider-resource models.
+
+## Provider package responsibilities
+
+Each provider package contributes:
+
+* Supported target types
+* Supported core kinds
+* Mapping rules
+* Provider-specific extension schema
+* Parameter metadata
+* Validation hooks
+* Discovery hooks
+* Cost hooks
+* Security hooks
+* Execution handlers
+* Read handlers
+* Drift handlers
+* Import handlers
+* Documentation references
+* Architecture icons
+* Conformance cases
+
+## Mapping rules
+
+Mappings must be:
+
+* Versioned
+* Pure where possible
+* Deterministic
+* Fail-closed
+* Explainable
+* Independently testable
+* Free of LLM calls
+* Independent of MCP availability
+
+## Mapping output
+
+Generate a provider-resource model containing:
+
+* Provider resource type
+* Logical identifier
+* Desired attributes
+* Derived attributes
+* Dependencies
+* Read operations
+* Create operations
+* Update behavior
+* Delete behavior
+* Replacement conditions
+* Sensitive fields
+* Output bindings
+* Mapping provenance
+
+## First implementations
+
+Implement in this order:
+
+1. Mock provider
+2. AWS reference provider
+3. Kubernetes mapping
+4. Azure mapping
+5. GCP mapping
+
+The mock provider must support the full planning and execution lifecycle without external infrastructure.
+
+## Advanced provider settings
+
+Advanced UI and CLI settings map into namespaced extensions.
+
+Example:
+
+```yaml
+extensions:
+  aws:
+    resources:
+      orders-db:
+        backupWindow: "03:00-04:00"
+```
+
+Provider extensions must not weaken core intent without producing a validation error.
+
+## Deliverables
+
+* Provider SDK
+* Plugin manifest format
+* Plugin loader
+* Signature verification
+* Mock provider
+* Provider conformance suite
+* Initial AWS mappings
+
+## Exit criteria
+
+* The same IIS model can be mapped to at least two targets.
+* Unsupported intent fails explicitly.
+* Every provider parameter is traceable.
+* Provider packages cannot modify the original IIS model.
+* Plugin compatibility and signature checks are enforced.
+
+---
+
+# Phase 7 — Deterministic Planner
+
+## Objective
+
+Generate stable, inspectable, provider-specific execution plans.
+
+## Planner responsibilities
+
+* Read desired provider-resource model
+* Read current state
+* Read provider discovery snapshot
+* Compute creates, updates, replacements, imports, and deletes
+* Build execution graph
+* Determine safe parallelism
+* Identify destructive actions
+* Identify unknown values
+* Generate rollback strategy
+* Generate verification steps
+* Generate state transition proposal
+* Calculate risk score
+* Produce a stable plan hash
+
+## Plan stages
+
+```text
+Load desired state
+→ Load actual state
+→ Refresh provider observations
+→ Detect drift
+→ Compute semantic difference
+→ Determine lifecycle actions
+→ Build dependency graph
+→ Apply safety constraints
+→ Calculate risk
+→ Generate rollback and verification
+→ Produce immutable plan
+```
+
+## Plan output
+
+Provide both:
+
+* Human-readable plan
+* Versioned machine-readable plan
+
+A plan must show:
+
+* Why each resource exists
+* Why each field has its value
+* Dependencies
+* Replacement requirements
+* Destructive operations
+* Cost delta
+* Security delta
+* Compliance delta
+* Unknown values
+* Required approvals
+* Rollback limitations
+
+## Deliverables
+
+* Planner API
+* Stable plan schema
+* Golden-plan test suite
+* Graph scheduler
+* Risk-scoring framework
+* Plan signing
+* Plan expiration support
+
+## Exit criteria
+
+* Identical inputs produce byte-equivalent normalized plans.
+* Plans are independent of input YAML ordering.
+* Destructive changes are clearly marked.
+* Unsupported rollback is explicitly reported.
+* Plan execution cannot proceed after relevant inputs change.
+
+---
+
+# Phase 8 — Architecture and Visualization Engine
+
+## Objective
+
+Generate architecture views from the canonical model and plan.
+
+## Views
+
+* Intent architecture
+* Provider-realized architecture
+* Application topology
+* Dependency graph
+* Network connectivity
+* Data-flow view
+* Security boundaries
+* Identity and trust relationships
+* High-availability topology
+* Disaster-recovery topology
+* Planned change overlay
+* Drift overlay
+
+## Outputs
+
+* JSON graph
+* Mermaid
+* Graphviz
+* SVG
+* PNG
+* Interactive graph model
+
+## Requirements
+
+* Stable node identifiers
+* Stable edge identifiers
+* Layout hints separated from semantic data
+* Filtering by environment, owner, kind, provider, and risk
+* Before-and-after diff visualization
+* Clickable provenance
+* No manually maintained architecture data
+
+## Deliverables
+
+* Architecture engine
+* Diagram exporters
+* Interactive graph component
+* CLI and LSP integration
+
+## Exit criteria
+
+* Every official example produces valid diagrams.
+* Diagram semantics match planner dependencies.
+* A plan can be visualized as an architecture change.
+* Layout changes do not affect plan hashes.
+
+---
+
+# Phase 9 — Policy Engine
+
+## Objective
+
+Implement deterministic organizational governance.
+
+## Policy scopes
+
+* Organization
+* Business unit
+* Team
+* Project
+* Environment
+* Profile
+* Resource kind
+* Individual resource
+
+## Policy capabilities
+
+* Require
+* Deny
+* Allow
+* Constrain
+* Set default
+* Limit
+* Match
+* Compare
+* Reference
+* Exempt with approval
+
+## Built-in policy packs
+
+* Production baseline
+* Development baseline
+* Private-only infrastructure
+* Encryption baseline
+* Backup baseline
+* Tagging baseline
+* Approved geography
+* Budget limits
+* High-availability baseline
+* Logging and monitoring baseline
+
+## Exceptions
+
+Policy exceptions require:
+
+* Scope
+* Reason
+* Approver
+* Expiry
+* Ticket or evidence
+* Audit trail
+
+## Deliverables
+
+* Policy evaluator
+* Policy pack format
+* Policy registry
+* Exception workflow model
+* Policy conformance tests
+
+## Exit criteria
+
+* Policies run before provider mapping and before deployment.
+* Policy evaluation is deterministic.
+* Exceptions are visible in plans.
+* A provider extension cannot bypass a core policy.
+
+---
+
+# Phase 10 — Cost Engine
+
+## Objective
+
+Provide cost estimation and budget governance.
+
+## Capabilities
+
+* Hourly estimate
+* Monthly estimate
+* One-time estimate
+* Cost range
+* Cost confidence
+* Cost by resource
+* Cost by environment
+* Cost by team
+* Cost delta
+* Budget validation
+* Usage assumptions
+* Data-transfer estimates
+* Commitment recommendations
+* Spot or preemptible recommendations
+* Cost-versus-availability trade-offs
+* Carbon annotations where reliable data exists
+
+## Data sources
+
+Use:
+
+* Provider pricing APIs or catalogs
+* Versioned cached pricing snapshots
+* Explicit usage assumptions
+* MCP only for advisory explanations, not authoritative plan values
+
+Every estimate must show:
+
+* Currency
+* Region
+* Pricing timestamp
+* Assumptions
+* Included and excluded charges
+* Confidence
+* Source
+
+## Deliverables
+
+* Cost model API
+* Provider cost adapters
+* Cost report
+* Budget policies
+* Cost-diff integration
+
+## Exit criteria
+
+* Supported resources expose cost metadata.
+* Missing price data is visible.
+* Estimates are reproducible from stored pricing snapshots.
+* Budget violations can block planning or deployment according to policy.
+
+---
+
+# Phase 11 — Security and Compliance Engines
+
+## Objective
+
+Analyze the declared and realized infrastructure before deployment.
+
+## Security checks
+
+* Public exposure
+* Network paths
+* Encryption at rest
+* Encryption in transit
+* Secret handling
+* Identity boundaries
+* Least privilege
+* Workload identity
+* Key ownership
+* Logging
+* Monitoring
+* Backup protection
+* Administrative access
+* Single points of failure
+* Provider extension risks
+* Supply-chain risks
+* Plugin trust
+
+## Compliance frameworks
+
+Support extensible bundles for:
+
+* SOC 2
+* PCI DSS
+* HIPAA
+* ISO 27001
+* NIST
+* CIS
+
+Do not claim certification solely from a configuration check.
+
+Produce:
+
+* Control mapping
+* Pass, fail, warning, or not applicable
+* Required evidence
+* Technical evidence generated by IIS
+* External evidence still needed
+* Remediation guidance
+
+## Deliverables
+
+* Security rule engine
+* Compliance bundle format
+* Security report
+* Compliance report
+* Evidence model
+* Risk scoring
+
+## Exit criteria
+
+* Every official example produces a security report.
+* Compliance output distinguishes configuration coverage from formal certification.
+* Findings contain resource references and remediation.
+* Critical findings can block deployment through policy.
+
+---
+
+# Phase 12 — MCP and Authoritative Knowledge Framework
+
+## Objective
+
+Use authoritative knowledge sources to improve authoring and validation without introducing nondeterminism into execution.
+
+## Supported knowledge categories
+
+* AWS documentation
+* AWS architecture guidance
+* AWS knowledge articles
+* AWS pricing guidance
+* AWS Well-Architected guidance
+* Azure documentation
+* GCP documentation
+* Kubernetes documentation
+* Internal Confluence
+* Service catalog
+* CMDB
+* Architecture standards
+* Security standards
+* Internal approved-pattern libraries
+
+## MCP trust boundary
+
+MCP may:
+
+* Retrieve documentation
+* Explain parameters
+* Verify current feature compatibility
+* Suggest configurations
+* Provide references
+* Improve clarification questions
+* Enrich UI help
+* Support authoring recommendations
+
+MCP must not:
+
+* Apply plans
+* Modify provider state
+* Generate final execution operations
+* Override the specification
+* Override policy
+* Become a deployment-time dependency
+* Introduce uncited values into deterministic plans
+
+## Knowledge response handling
+
+Store:
+
+* Source
+* Retrieval timestamp
+* Version or publication date
+* Query
+* Relevant excerpt or structured fact
+* Confidence
+* Expiry
+* Whether the user accepted a recommendation
+
+Any accepted recommendation must become explicit structured intent or an explicit provider extension before planning.
+
+## Deliverables
+
+* MCP client framework
+* Source registry
+* Trust classification
+* Caching
+* Citation model
+* Staleness handling
+* Authoring-engine integration
+* Validation recommendation integration
+
+## Exit criteria
+
+* MCP outages do not affect execution of an already finalized plan.
+* Recommendations are source-attributed.
+* MCP content cannot bypass normal validation.
+* Accepted recommendations become explicit model changes.
+
+---
+
+# Phase 13 — IDE Integrations
+
+## Objective
+
+Make IIS usable inside existing engineering environments.
+
+## Initial integrations
+
+1. VS Code
+2. Cursor through VS Code compatibility and MCP tools
+3. Claude Code through CLI and MCP
+4. Windsurf
+5. JetBrains
+
+## IDE features
+
+* Create IIS from natural language
+* Guided clarification UI
+* Resource explorer
+* Basic and advanced property inspector
+* Schema validation
+* Semantic diagnostics
+* Quick fixes
+* Architecture preview
+* Dependency explorer
+* Cost preview
+* Security preview
+* Compliance preview
+* Plan preview
+* Change diff
+* State status
+* Drift status
+* Provider documentation
+* Deploy action with approval
+* Rollback action
+* Import existing resource
+* Open relevant IIS section
+* Explain selected resource
+
+## MCP server for IDE assistants
+
+Expose controlled tools such as:
+
+```text
+iis_create_model
+iis_get_model
+iis_propose_change
+iis_validate
+iis_get_questions
+iis_apply_confirmed_answers
+iis_get_architecture
+iis_get_cost
+iis_get_security
+iis_get_compliance
+iis_create_plan
+iis_get_plan
+```
+
+Deployment tools must require explicit confirmation and must be separated from authoring tools.
+
+## Deliverables
+
+* VS Code extension
+* IIS MCP server
+* Cursor integration guide
+* Claude Code integration guide
+* JetBrains design and prototype
+* IDE end-to-end tests
+
+## Exit criteria
+
+* A user can generate and review IIS without writing YAML.
+* IDE actions use the same SDK and planner as the CLI.
+* Assistant tools cannot directly call provider APIs.
+* Advanced users can inspect every generated value and its provenance.
+
+---
+
+# Phase 14 — Deployment, State, Verification and Drift
+
+## Objective
+
+Safely execute approved plans through provider APIs.
+
+## Deployment engine
+
+Implement:
+
+* Authentication
+* Credential discovery
+* OIDC and short-lived identity
+* State locking
+* Plan verification
+* Approval verification
+* Operation scheduling
+* Retries
+* Timeouts
+* Idempotency
+* Rate limiting
+* Failure handling
+* Partial-state recovery
+* Cancellation
+* Audit logging
+* State commits
+* Post-deployment verification
+
+## State backend
+
+Support initially:
+
+* Local encrypted state for development
+* Remote object storage with locking
+* Pluggable backend interface
+
+Later support:
+
+* Enterprise database backend
+* Multi-tenant state
+* State replication
+* Disaster recovery
+
+## Provider execution
+
+Execution handlers must implement:
+
+* Read
+* Create
+* Update
+* Replace
+* Delete
+* Import
+* Verify
+
+## Verification
+
+After execution, verify:
+
+* Resource existence
+* Key configuration
+* Relationship connectivity where safely testable
+* Health status
+* Outputs
+* Security constraints
+* Policy compliance
+* State consistency
+
+## Drift
+
+Detect:
+
+* Desired versus recorded state
+* Recorded versus observed state
+* Desired versus observed state
+
+Classify drift as:
+
+* Benign
+* Intent-preserving
+* Intent-violating
+* Security-critical
+* Unknown
+
+Provide actions:
+
+* Accept into desired intent
+* Reconcile actual state
+* Ignore temporarily
+* Escalate
+* Re-plan
+
+## Rollback
+
+Do not claim universal rollback.
+
+Classify every operation:
+
+* Fully reversible
+* Reversible with data risk
+* Replacement-based recovery
+* Manual recovery required
+* Irreversible
+
+## Deliverables
+
+* Execution engine
+* State backend API
+* Local and remote state implementations
+* Drift engine
+* Verification engine
+* Rollback framework
+* AWS execution prototype
+* Failure-injection suite
+
+## Exit criteria
+
+* Mock-provider deployments support the full lifecycle.
+* AWS pilot deployments are idempotent.
+* Concurrent state mutation is prevented.
+* State is recoverable after controlled failures.
+* Destructive actions require explicit approval.
+* AI and MCP are absent from execution.
+
+---
+
+# Phase 15 — Visual Infrastructure Designer
+
+## Objective
+
+Provide a standalone visual experience for users who do not work primarily in an IDE.
+
+## Core experience
+
+### Project creation
+
+Allow the user to:
+
+* Describe the required infrastructure in natural language
+* Select a template
+* Import an existing IIS document
+* Import existing provider resources
+
+### Basic resource mode
+
+Expose outcome-based controls.
+
+### Advanced resource mode
+
+Expose all supported required and optional provider parameters.
+
+### Live views
+
+* Intent architecture
+* Provider architecture
+* Dependencies
+* Networking
+* Data flow
+* Security
+* Cost
+* Compliance
+* Validation
+* Plan changes
+* State and drift
+
+### Property inspector
+
+For every value, show:
+
+* Current value
+* Source
+* Default source
+* Provider impact
+* Cost impact
+* Security impact
+* Documentation
+* Whether it is required
+* Whether it is policy-controlled
+* Whether changing it causes replacement
+
+### Save behavior
+
+The UI modifies the Canonical Infrastructure Model and serializes it to `infrastructure.iis.yaml`.
+
+Do not create a proprietary project format.
+
+## Deliverables
+
+* Web-based visual designer
+* Local-first development mode
+* Basic and advanced editors
+* Diagram canvas
+* Resource inspector
+* Plan approval experience
+* Git diff support
+
+## Exit criteria
+
+* A non-expert can create the official example workloads without editing YAML.
+* An advanced user can configure all supported provider parameters.
+* UI changes produce valid and deterministic IIS.
+* The UI never becomes a second source of truth.
+
+---
+
+# Phase 16 — Enterprise Control Plane
+
+## Objective
+
+Add collaboration, governance, and scale.
+
+## Capabilities
+
+* Organizations
+* Teams
+* Projects
+* Environments
+* RBAC
+* Separation of duties
+* Approval policies
+* Change windows
+* Git integrations
+* Pull-request checks
+* Audit log
+* Notification integrations
+* ITSM integration
+* Secret-manager integration
+* Provider credential brokerage
+* Policy distribution
+* Profile distribution
+* Private provider registries
+* Private extension registries
+* Multi-tenant state
+* Usage quotas
+* Cost allocation
+* SSO
+* SCIM
+* Data residency
+* Retention policies
+
+## Pull-request integration
+
+Every infrastructure PR should show:
+
+* Intent summary
+* Architecture change
+* Resource change
+* Cost delta
+* Security delta
+* Compliance delta
+* Destructive operations
+* Required approvals
+* Plan hash
+
+## Deliverables
+
+* Enterprise service architecture
+* Multi-tenant API
+* RBAC model
+* Approval engine
+* Git application
+* Audit pipeline
+* State service
+* Organization policy service
+
+## Exit criteria
+
+* Multiple teams can safely manage isolated projects.
+* Separation of duties is enforceable.
+* Every deployment is tied to identity and approval evidence.
+* Organization policies are centrally enforced.
+
+---
+
+# Phase 17 — Advanced AI Assistance
+
+## Objective
+
+Improve productivity without expanding AI authority over execution.
+
+Phase 3 provides foundational natural-language compilation. This phase adds more advanced assistance.
+
+## Capabilities
+
+* Architecture explanation
+* Requirement decomposition
+* IIS review
+* Migration planning
+* Cost optimization explanation
+* Security remediation explanation
+* Compliance-gap explanation
+* Change summarization
+* Incident-context explanation
+* Documentation generation
+* Runbook generation
+* Test generation
+* Organization-aware recommendations
+* Natural-language queries over state and architecture
+
+## Organization context
+
+AI may use approved sources such as:
+
+* Internal standards
+* Service catalog
+* Past approved architectures
+* Provider documentation
+* Security requirements
+* Cost policies
+
+The platform must clearly distinguish:
+
+* Required policy
+* Approved standard
+* Recommendation
+* Historical pattern
+* AI suggestion
+
+## Safety controls
+
+* Structured outputs
+* Tool allowlists
+* Human confirmation
+* Prompt-injection defenses
+* Content provenance
+* Sensitive-data redaction
+* Tenant isolation
+* Evaluation datasets
+* Model fallback behavior
+* Model-version recording
+
+## Deliverables
+
+* AI review engine
+* Organization-context adapters
+* Evaluation dashboard
+* Guardrails
+* Prompt and model registry
+* Explainability reports
+
+## Exit criteria
+
+* AI suggestions never alter infrastructure without model validation and explicit acceptance.
+* Recommendations cite their sources.
+* The platform continues to operate without AI.
+* Model changes cannot alter an existing approved plan.
+
+---
+
+# Phase 18 — Ecosystem, Migration and Open Standardization
+
+## Objective
+
+Make IIS adoptable beyond the reference implementation.
+
+## Migration tools
+
+Build importers or migration assistants for:
+
+* Terraform
+* CloudFormation
+* Pulumi
+* Crossplane
+* Kubernetes
+* Existing AWS resources
+* Existing Azure resources
+* Existing GCP resources
+
+Migration must distinguish:
+
+* Recoverable intent
+* Provider-specific configuration
+* Unsupported behavior
+* Imperative logic
+* State-only information
+* Manual decisions required
+
+## CI/CD integrations
+
+Provide:
+
+* GitHub Actions
+* GitLab CI
+* Bitbucket Pipelines
+* Jenkins
+* Argo CD integration where applicable
+* Backstage plugin
+* Generic webhook and API integration
+
+## Ecosystem
+
+Create:
+
+* Provider registry
+* Extension registry
+* Policy-pack registry
+* Profile registry
+* Conformance badges
+* Compatibility matrix
+* Provider certification
+* Implementation certification
+* Community working groups
+
+## Standardization
+
+* Publish stable specification releases
+* Establish a technical steering committee
+* Accept external IEPs
+* Publish meeting and decision records
+* Define trademark and compatibility usage
+* Support independent implementations
+* Plan IIS v2 only through accepted IEPs
+* Maintain long-term support policy
+
+## Exit criteria
+
+* At least two independent implementations pass core conformance.
+* Multiple provider packages pass provider conformance.
+* The ecosystem is not dependent on one UI, one LLM, or one cloud.
+* The specification and conformance suite remain implementation-independent.
+
+---
+
+# 11. Milestone Prioritization
+
+Use the following priority order.
+
+## P0: Required for technical validity
+
+* Specification stabilization
+* Canonical model
+* Parser
+* Validator
+* Relationship engine
+* Dependency engine
+* Deterministic serialization
+* Conformance
+* IEP governance
+
+## P1: Required for user value
+
+* Intent compiler
+* CLI
+* LSP
+* Architecture visualization
+* Provider mapping
+* Planner
+* Cost, security, and policy analysis
+
+## P2: Required for actual provisioning
+
+* State
+* Deployment
+* Verification
+* Drift
+* Rollback
+* AWS provider execution
+
+## P3: Required for adoption
+
+* IDE extensions
+* Visual designer
+* Git workflows
+* Enterprise governance
+* Migration tooling
+
+## P4: Ecosystem scale
+
+* Additional providers
+* Independent implementations
+* Certification
+* Open governance
+* Standardization
+
+---
+
+# 12. First Production Slice
+
+Do not attempt to support every kind and provider during the first production deployment.
+
+Build a controlled vertical slice.
+
+## Target
+
+AWS-only pilot supporting:
+
+* Network
+* Service using containers
+* Gateway or load-balancing intent
+* Relational database
+* Object storage
+* Secret
+* Identity
+* DNS and certificate
+* Observability
+
+## User workflow
+
+1. User describes a web application in natural language.
+2. Compiler creates a structured draft.
+3. User answers clarification questions.
+4. Platform generates IIS.
+5. Validator checks IIS.
+6. Architecture engine generates diagrams.
+7. Cost, security, compliance, and policy engines run.
+8. AWS provider maps the model.
+9. Planner creates an execution plan.
+10. User reviews and approves.
+11. Deployment engine applies through AWS APIs.
+12. Verification checks the result.
+13. State is committed.
+14. The platform detects future drift.
+15. A later natural-language request updates the same IIS document.
+
+## Pilot constraints
+
+* One AWS account
+* One region
+* Development and test environments
+* No destructive production automation
+* Remote encrypted state
+* OIDC authentication
+* Explicit approval
+* Complete audit trail
+* Mock-provider parity tests
+
+---
+
+# 13. Definition of Done for Every Feature
+
+A feature is not complete until:
+
+* Its behavior is documented.
+* Its public API is typed.
+* It has unit tests.
+* It has integration tests.
+* It has at least one valid example.
+* It has at least one invalid or failure example.
+* It has security analysis.
+* It has deterministic behavior tests where applicable.
+* It has error codes.
+* It has CLI or SDK exposure where relevant.
+* It passes the conformance suite.
+* It does not introduce provider concepts into the core.
+* It does not place AI in the execution path.
+* It is merged through a reviewed pull request.
+* Roadmap status and evidence are updated.
+
+---
+
+# 14. Prohibited Implementation Shortcuts
+
+Do not:
+
+* Generate Terraform as the main implementation.
+* Use an LLM to execute AWS CLI commands.
+* Treat generated YAML as trusted before validation.
+* Make the visual UI the source of truth.
+* Persist cloud credentials in IIS or state.
+* Hide provider parameters from advanced users.
+* Apply hidden defaults.
+* Allow provider extensions to weaken core requirements silently.
+* Use MCP output directly as execution input.
+* Couple the core to AWS-specific concepts.
+* Claim exact cost when only an estimate is available.
+* Claim compliance certification from configuration checks.
+* Promise universal rollback.
+* Use document order as deployment order.
+* Store architecture diagrams separately as authoritative data.
+* Start enterprise UI development before the model, SDK, and planner are stable.
+* proceed to a dependent phase while prerequisite exit criteria are failing.
+
+---
+
+# 15. Required Architecture Decision Records
+
+Create ADRs covering at minimum:
+
+* Persistent source of truth versus runtime canonical model
+* JSON Schema as normative machine-readable contract
+* Canonical serialization rules
+* Monorepo-first development
+* Primary implementation language
+* Provider plugin trust model
+* State backend design
+* Plan format and signing
+* AI trust boundary
+* MCP trust boundary
+* Natural-language compiler operation model
+* Profile and policy evaluation order
+* Provider extension precedence
+* Determinism inputs
+* Rollback semantics
+* Drift classification
+* Advanced provider parameter representation
+* IDE integration through LSP and MCP
+* Basic versus advanced UI behavior
+* Secret handling
+* Telemetry and privacy
+
+---
+
+# 16. Final Success Criteria
+
+The IIS ecosystem is successful when all of the following are true:
+
+1. A user can describe infrastructure in natural language without learning IIS syntax.
+2. The platform asks only necessary clarification questions.
+3. The confirmed requirement generates a valid, portable `infrastructure.iis.yaml`.
+4. The IIS document is the Git-friendly desired-state source of truth.
+5. The Canonical Infrastructure Model provides a deterministic runtime representation.
+6. Provider-independent intent is cleanly separated from provider configuration.
+7. The same IIS document can map to multiple providers where capabilities are equivalent.
+8. Identical inputs produce identical canonical models and plans.
+9. AI, LLMs, and MCP are absent from the execution path.
+10. Every provider value is explainable and traceable.
+11. Architecture, dependencies, cost, security, and compliance are derived automatically.
+12. Advanced users can configure the full supported provider API surface.
+13. Users can work through CLI, IDE, natural language, or visual UI.
+14. Deployment uses short-lived credentials and deterministic provider handlers.
+15. State, history, drift, verification, and rollback limitations are accurately maintained.
+16. Enterprise policies cannot be bypassed by AI or provider extensions.
+17. Independent providers and implementations can pass conformance tests.
+18. IIS can evolve through an open and controlled IEP process.
+19. No application, IDE, cloud, AI model, or vendor owns the standard.
+20. The ecosystem can become an implementation-independent standard for expressing infrastructure intent.
+
+---
+
+# 17. Immediate Execution Instructions
+
+Begin with Phase 0.
+
+For the first implementation cycle:
+
+1. Inspect the existing IIS v1 repository.
+2. Produce `docs/reports/v1-gap-analysis.md`.
+3. Produce `ROADMAP.yaml` with all phases and milestones.
+4. Create the proposed monorepo package layout.
+5. Configure build, lint, type-check, test, schema validation, and conformance CI.
+6. Create the IEP and ADR templates.
+7. Create initial IEPs 0008–0013 if they do not already exist.
+8. Implement the minimum parser and canonical-model package.
+9. Validate every existing example.
+10. Create a pull request containing only the foundation and no provider deployment code.
+11. Include test evidence and unresolved questions in the pull request.
+12. Do not begin the Intent Compiler until the Phase 2 model-mutation and serialization contracts are stable.
+
+At the end of each cycle, return:
+
+```text
+Phase:
+Milestone:
+Implemented:
+Files changed:
+Tests added:
+Conformance status:
+Architecture decisions:
+Specification gaps:
+Security findings:
+Known limitations:
+Next milestone:
+```
+
+Continue through the roadmap sequentially, using exit criteria rather than arbitrary dates to determine when a phase is complete.

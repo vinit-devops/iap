@@ -1,0 +1,192 @@
+# Hybrid environment: one intent document spanning a cloud site and an on-premises datacenter.
+# Demonstrates: extension namespaces (aws, onprem) registered at document level, profiles as
+# environments, and same-kind cross-site replicatesTo.
+# Extension Non-Interference Rule: deleting every extensions block below yields a valid
+# document with identical core semantics — provider nouns appear ONLY inside extensions.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: hybrid-inventory
+  description: Inventory platform served from the cloud with a datacenter replica
+  owner: team-supply
+  labels:
+    domain: logistics
+
+extensions:
+  aws:
+    version: 1.2.0
+  onprem:
+    version: 1.0.0
+
+profiles:
+  cloud:
+    description: Normal operation; the cloud site is authoritative
+    overrides:
+      resources:
+        inventory-api:
+          spec:
+            availability: high
+            scaling: { min: 3, max: 12 }
+  onprem:
+    description: Datacenter carries the workload during failover or residency-pinned runs
+    overrides:
+      resources:
+        inventory-api:
+          spec:
+            size: s
+            scaling: { min: 1, max: 3 }
+        dc-db:
+          spec:
+            availability: high
+        dc-reporting:
+          spec:
+            scaling: { min: 2, max: 6 }
+
+resources:
+  edge:
+    kind: Gateway
+    description: Organization-internal entry point
+    spec:
+      exposure: internal
+      domains: [inventory.internal.example.com]
+      tls:
+        minimumVersion: "1.3"
+    relationships:
+      - type: routesTo
+        target: inventory-api
+        protocol: https
+        path: /
+
+  inventory-api:
+    kind: Service
+    description: Inventory API; runs at the cloud site
+    labels:
+      tier: application
+      site: cloud
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/inventory-api:8.0.3
+      size: m
+      exposure: internal
+      availability: high
+      scaling:
+        min: 2
+        max: 10
+        targetUtilization: 70
+    relationships:
+      - type: connectsTo
+        target: cloud-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: authenticatedBy
+        target: inventory-identity
+    extensions:
+      aws:
+        computePlatform: fargate
+        region: us-east-1
+
+  cloud-db:
+    kind: Database
+    description: Authoritative inventory store at the cloud site
+    labels:
+      tier: data
+      site: cloud
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: high
+      capacity:
+        storage: 200Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 15m
+        recoveryTimeObjective: 2h
+    relationships:
+      - type: replicatesTo
+        target: dc-db
+        description: Continuous replication to the datacenter site
+    extensions:
+      aws:
+        engineFlavor: aurora-postgresql
+        multiAz: true
+
+  dc-db:
+    kind: Database
+    description: Datacenter replica; failover target and residency copy
+    labels:
+      tier: data
+      site: datacenter
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: standard
+      capacity:
+        storage: 200Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 4h
+    extensions:
+      onprem:
+        datacenter: fra-01
+        hypervisor: vmware-vsphere
+        storageTier: ssd
+
+  dc-reporting:
+    kind: Service
+    description: Reporting workload pinned to the datacenter; reads the local replica
+    labels:
+      tier: application
+      site: datacenter
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/inventory-reporting:8.0.3
+      size: s
+      exposure: private
+      scaling:
+        min: 1
+        max: 4
+    relationships:
+      - type: connectsTo
+        target: dc-db
+        port: 5432
+        protocol: tcp
+        access: read
+      - type: authenticatedBy
+        target: inventory-identity
+    extensions:
+      onprem:
+        datacenter: fra-01
+        hypervisor: vmware-vsphere
+
+  inventory-identity:
+    kind: Identity
+    description: Workload identity spanning both sites
+    spec:
+      type: workload
+
+  inventory-app:
+    kind: Application
+    spec:
+      components:
+        - edge
+        - inventory-api
+        - cloud-db
+        - dc-db
+        - dc-reporting
+      version: "8.0.3"
+
+outputs:
+  api-endpoint:
+    resource: edge
+    attribute: endpoint
+    description: Internal URL of the inventory API
+  cloud-db-secret:
+    resource: cloud-db
+    attribute: connectionSecret
+    description: Handle to the authoritative store connection secret

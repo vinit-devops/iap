@@ -1,0 +1,37 @@
+{
+  "name": "@iap/provider-mock",
+  "version": "0.1.0",
+  "description": "Mock provider package for IaP (IEP-0012 reference harness): in-memory substrate exercising the full planning and execution lifecycle with injectable failures — normative-by-example for the provider conformance program",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "manifest.json",
+    "mappings",
+    "schema",
+    "conformance"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/cost": "workspace:*",
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "@iap/provider-sdk": "workspace:*",
+    "ajv": "^8.17.1",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

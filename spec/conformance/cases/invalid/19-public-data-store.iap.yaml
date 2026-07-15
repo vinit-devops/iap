@@ -1,0 +1,32 @@
+# Conformance case: invalid/19-public-data-store
+# expected: IAP601
+# reason: Passes schema validation (public is a legal ObjectStore exposure),
+#         but the store "user-uploads" is the target of a storesDataIn edge
+#         from Service "api", so it demonstrably holds application data.
+#         Chapter 8 raises IAP601 (public exposure on a data kind) at error
+#         severity in exactly this configuration (it is only a warning for
+#         stores with no storesDataIn edge, e.g. static-asset buckets).
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: public-data-store-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+    relationships:
+      - type: storesDataIn
+        target: user-uploads
+        access: read-write
+
+  user-uploads:
+    kind: ObjectStore
+    spec:
+      exposure: public

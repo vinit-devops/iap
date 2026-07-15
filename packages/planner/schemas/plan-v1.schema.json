@@ -1,0 +1,537 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/plan-v1.schema.json",
+  "title": "IaP Execution Plan v1",
+  "description": "Schema for the deterministic plan artifact (apiVersion plan.iap.dev/v1) per IEP-0011 and Chapter 14. planId is the SHA-256 of the canonical serialization of `content` (UTF-8 JSON, keys sorted by Unicode code point, waves ordered by dependency rank, entries within a wave sorted by resource identifier — CP-2); the envelope carries timestamps and the signature and is never hashed into planId (Chapter 14 §14.5: no timestamps inside a plan). Plan bytes are a closed contract: unlike document-side schemas there is no x-* passthrough anywhere — any additional content would silently change planId and break approval binding.",
+  "type": "object",
+  "required": ["apiVersion", "planId", "content"],
+  "properties": {
+    "apiVersion": {
+      "description": "Plan artifact format identifier; always plan.iap.dev/v1.",
+      "const": "plan.iap.dev/v1"
+    },
+    "planId": {
+      "description": "SHA-256 over the canonical serialization of the `content` member (and nothing else), spelled sha256:<hex>. Approvals bind to this identifier (Chapter 14 §14.5).",
+      "$ref": "#/$defs/sha256Digest"
+    },
+    "envelope": {
+      "description": "Signature, expiry, and audit metadata AROUND the hashed plan content — excluded from planId by construction; integrity comes from the signature (IEP-0011). Optional: an unsigned planner core emits no envelope; signing and expiry derivation are the enveloping planner's concern.",
+      "type": "object",
+      "required": ["createdAt", "expiresAt", "signature"],
+      "properties": {
+        "createdAt": {
+          "description": "RFC 3339 UTC time the plan was produced. Lives only here — plan content contains no timestamps (PL-5).",
+          "$ref": "#/$defs/rfc3339"
+        },
+        "expiresAt": {
+          "description": "RFC 3339 UTC time after which an engine MUST refuse the plan; derived from the earliest validity horizon of the discovery/pricing snapshots, capped by configuration (IEP-0011).",
+          "$ref": "#/$defs/rfc3339"
+        },
+        "signature": {
+          "description": "Detached ed25519 signature over the canonical serialization of { createdAt, expiresAt, planId } (compact UTF-8 JSON, keys sorted by Unicode code point). Because planId is the SHA-256 of the canonical content serialization, the signature binds the envelope timestamps to the exact content bytes, making both content and expiry tamper-evident; engines verify it against a trusted planner key before execution (PL-2).",
+          "type": "object",
+          "required": ["keyId", "alg", "value"],
+          "properties": {
+            "keyId": {
+              "description": "Identifier resolved against the verifier's trust store; unknown key ids refuse the plan.",
+              "type": "string",
+              "minLength": 1
+            },
+            "alg": {
+              "description": "Signature algorithm; only ed25519 is defined for v1.",
+              "const": "ed25519"
+            },
+            "value": {
+              "description": "Base64-encoded ed25519 signature over the canonical { createdAt, expiresAt, planId } signing form.",
+              "type": "string",
+              "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "description": "The hashed plan content: everything an engine executes and an approval binds to. Canonical serialization of exactly this member yields planId.",
+      "type": "object",
+      "required": [
+        "inputs",
+        "waves",
+        "destructiveActions",
+        "unknownValues",
+        "risk",
+        "deltas",
+        "rollback",
+        "verification",
+        "approvalsRequired"
+      ],
+      "properties": {
+        "inputs": {
+          "description": "The closed nine-element determinism input vector of IEP-0011, each element identified/hashed, plus inputsHash over their canonical serialization. Anything else influencing a plan is a conformance failure (CP-1, PL-5).",
+          "type": "object",
+          "required": [
+            "documentHash",
+            "target",
+            "profileHashes",
+            "policyBundles",
+            "extensionVersions",
+            "mappingVersions",
+            "discoverySnapshot",
+            "pricingSnapshot",
+            "stateRevision",
+            "stateIntegrity",
+            "plannerVersion",
+            "inputsHash"
+          ],
+          "properties": {
+            "documentHash": {
+              "description": "Identity 1a: SHA-256 of the canonical IaP document (C1–C6, active profile merged), spelled sha256:<hex>.",
+              "$ref": "#/$defs/sha256Digest"
+            },
+            "target": {
+              "description": "Identity 1b: the explicit deployment target the plan was computed for.",
+              "type": "object",
+              "required": ["provider", "profile"],
+              "properties": {
+                "provider": {
+                  "description": "Provider namespace the plan targets (the mapping artifact's provider field).",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "profile": {
+                  "description": "Active profile the canonical form is relative to; null for the base document.",
+                  "type": ["string", "null"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "profileHashes": {
+              "description": "Identity 2: profile name to SHA-256 hash (sha256:<hex>) of each merged profile definition.",
+              "type": "object",
+              "propertyNames": { "minLength": 1 },
+              "additionalProperties": { "$ref": "#/$defs/sha256Digest" }
+            },
+            "policyBundles": {
+              "description": "Identity 3: policy bundle name to version or hash identifying the bundle in force.",
+              "type": "object",
+              "propertyNames": { "minLength": 1 },
+              "additionalProperties": { "type": "string", "minLength": 1 }
+            },
+            "extensionVersions": {
+              "description": "Identity 4: extension package namespace to version.",
+              "type": "object",
+              "propertyNames": { "minLength": 1 },
+              "additionalProperties": { "type": "string", "minLength": 1 }
+            },
+            "mappingVersions": {
+              "description": "Identity 5: provider mapping namespace to mapping artifact version (semver).",
+              "type": "object",
+              "propertyNames": { "minLength": 1 },
+              "additionalProperties": { "$ref": "#/$defs/semver" }
+            },
+            "discoverySnapshot": {
+              "description": "Identity 6: provider discovery snapshot id (pre-fetched, versioned observations — Chapter 12 §12.2 forbids ambient lookups); null when no snapshot participates.",
+              "type": ["string", "null"]
+            },
+            "pricingSnapshot": {
+              "description": "Identity 7: pricing snapshot id cost deltas are computed from (Chapter 20 §20.2.2); null when none is supplied, in which case deltas.cost is explicitly unavailable.",
+              "type": ["string", "null"]
+            },
+            "stateRevision": {
+              "description": "Identity 8a: monotonic revision of the infrastructure-model state document the plan was computed against (IEP-0010); 0 for the empty snapshot.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "stateIntegrity": {
+              "description": "Identity 8b: integrity hash of the state snapshot's objects, spelled sha256:<hex>.",
+              "$ref": "#/$defs/sha256Digest"
+            },
+            "plannerVersion": {
+              "description": "Identity 9: semver of the planning implementation (includes the risk rule-table version per phase-7 design decision 8).",
+              "$ref": "#/$defs/semver"
+            },
+            "inputsHash": {
+              "description": "SHA-256 over the canonical serialization of the nine identities above (all inputs properties except inputsHash itself), spelled sha256:<hex>. Engines recompute all identities and refuse the plan on any mismatch (PL-2).",
+              "$ref": "#/$defs/sha256Digest"
+            }
+          },
+          "additionalProperties": false
+        },
+        "waves": {
+          "description": "The execution schedule: wave n contains every scheduled node whose longest dependency path within the execution graph has length n (Chapter 14 §14.4). Forward waves (create/update-in-place/replace/import, Kahn layering over dependsOn) come first; delete waves follow in reverse dependency order (§14.3). Within a wave, entries are sorted lexicographically by resource identifier (CP-2).",
+          "type": "array",
+          "items": {
+            "description": "One wave: scheduled actions with no ordering edges between them, executable concurrently.",
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/actionEntry" }
+          }
+        },
+        "destructiveActions": {
+          "description": "Every replace and delete in the plan, listed with its reversibility class — always present, even when empty; absence of a destructive action from this list is a conformance failure (PL-3). Sorted by resource identifier.",
+          "type": "array",
+          "items": {
+            "description": "One destructive action reference.",
+            "type": "object",
+            "required": ["resource", "action", "reversibility"],
+            "properties": {
+              "resource": {
+                "description": "Logical id of the affected provider resource.",
+                "$ref": "#/$defs/logicalId"
+              },
+              "action": {
+                "description": "The destructive action class.",
+                "enum": ["replace", "delete"]
+              },
+              "reversibility": {
+                "description": "Reversibility class of the action (Chapter 14 §14.6; roadmap rollback classes).",
+                "$ref": "#/$defs/reversibilityClass"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "unknownValues": {
+          "description": "Attributes resolvable only at apply time: output-bound attributes generated by the substrate, and attributes declared sensitive by the provider plan — marked here instead of leaking values (CE-6, PL-5). Sorted by (resource, attribute, reason).",
+          "type": "array",
+          "items": {
+            "description": "One late-bound or redacted attribute marker.",
+            "type": "object",
+            "required": ["resource", "attribute", "reason"],
+            "properties": {
+              "resource": {
+                "description": "Logical id of the provider resource carrying the attribute.",
+                "$ref": "#/$defs/logicalId"
+              },
+              "attribute": {
+                "description": "Provider attribute path on that resource.",
+                "$ref": "#/$defs/fieldPath"
+              },
+              "reason": {
+                "description": "Why the value is unknown in the plan: output-binding (generated at apply time, bound to an abstract output attribute) or sensitive (value deliberately never enters plan content).",
+                "enum": ["output-binding", "sensitive"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "risk": {
+          "description": "Deterministic risk annotation: a pure function of the plan content (everything except this member), computed by the versioned rule table identified through plannerVersion (IEP-0011).",
+          "type": "object",
+          "required": ["score", "class", "factors"],
+          "properties": {
+            "score": {
+              "description": "Ordinal risk score: an integer sum of factor weights; never floating point.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "class": {
+              "description": "Deterministic classification of the score.",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "factors": {
+              "description": "The individual weighted factors the score sums, sorted by id.",
+              "type": "array",
+              "items": {
+                "description": "One risk factor.",
+                "type": "object",
+                "required": ["id", "weight", "resources"],
+                "properties": {
+                  "id": {
+                    "description": "Stable rule identifier from the versioned risk rule table.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "weight": {
+                    "description": "Integer weight this factor contributes to the score.",
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "resources": {
+                    "description": "Logical ids of the resources the factor applies to, sorted.",
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/logicalId" }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "deltas": {
+          "description": "Honest cost/security/compliance deltas (phase-7 design decision 5): explicit unavailable/deferred markers instead of fabricated numbers.",
+          "type": "object",
+          "required": ["cost", "security", "compliance"],
+          "properties": {
+            "cost": {
+              "description": "Cost delta status. unavailable when no pricing snapshot id was supplied (never a silent zero — IEP-0011 cost impact); deferred when a snapshot is pinned but pricing computation has not landed (Phase 10).",
+              "type": "object",
+              "required": ["status", "reason"],
+              "properties": {
+                "status": {
+                  "description": "Whether a cost delta could be computed.",
+                  "enum": ["unavailable", "deferred"]
+                },
+                "reason": {
+                  "description": "Machine-readable reason token for the status.",
+                  "enum": ["no-pricing-snapshot", "pricing-deferred-phase-10"]
+                },
+                "pricingSnapshot": {
+                  "description": "The pinned pricing snapshot id, present when status is deferred.",
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            "security": {
+              "description": "Security-relevant changes derived from the plan itself: scheduled fields whose canonical source path lies under spec.exposure or spec.encryption. Sorted by (resource, field).",
+              "type": "array",
+              "items": {
+                "description": "One security-relevant field change.",
+                "type": "object",
+                "required": ["resource", "field", "source"],
+                "properties": {
+                  "resource": {
+                    "description": "Logical id of the affected provider resource.",
+                    "$ref": "#/$defs/logicalId"
+                  },
+                  "field": {
+                    "description": "Provider attribute path that changes.",
+                    "$ref": "#/$defs/fieldPath"
+                  },
+                  "source": {
+                    "description": "Canonical document field path (spec.exposure.* or spec.encryption.*) the attribute derives from.",
+                    "$ref": "#/$defs/fieldPath"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "compliance": {
+              "description": "Compliance delta: empty with an explicit deferred marker until the Phase 11 compliance engine lands (design decision 5).",
+              "type": "object",
+              "required": ["deferred", "findings"],
+              "properties": {
+                "deferred": {
+                  "description": "Marker naming the phase that supplies compliance deltas.",
+                  "const": "phase-11"
+                },
+                "findings": {
+                  "description": "Compliance delta findings; always empty while deferred.",
+                  "type": "array",
+                  "items": {
+                    "description": "One compliance delta finding (shape reserved for Phase 11).",
+                    "type": "object",
+                    "required": ["framework", "resource", "detail"],
+                    "properties": {
+                      "framework": {
+                        "description": "Compliance framework identifier.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "resource": {
+                        "description": "Logical id of the affected provider resource.",
+                        "$ref": "#/$defs/logicalId"
+                      },
+                      "detail": {
+                        "description": "Human-readable delta description.",
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "rollback": {
+          "description": "Rollback contract: rollback is a plan like any other (Chapter 14 §14.6) — the strategy is re-planning to a prior succeeded revision; limitations name actions that cannot be rolled back without data loss or manual recovery.",
+          "type": "object",
+          "required": ["strategy", "limitations"],
+          "properties": {
+            "strategy": {
+              "description": "The only defined rollback strategy: select a prior succeeded revision and re-plan to its documentHash (§14.6, no second code path).",
+              "const": "re-plan-to-revision"
+            },
+            "limitations": {
+              "description": "Explicit per-resource rollback limitations (e.g. delete of a stateful resource without a restore source). Sorted by resource.",
+              "type": "array",
+              "items": {
+                "description": "One rollback limitation.",
+                "type": "object",
+                "required": ["resource", "reason"],
+                "properties": {
+                  "resource": {
+                    "description": "Logical id of the resource the limitation applies to.",
+                    "$ref": "#/$defs/logicalId"
+                  },
+                  "reason": {
+                    "description": "Why rollback is limited for this resource.",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "verification": {
+          "description": "Post-apply verification steps: one entry per scheduled resource, checking the action's outcome. Sorted by resource.",
+          "type": "array",
+          "items": {
+            "description": "One verification step.",
+            "type": "object",
+            "required": ["resource", "check"],
+            "properties": {
+              "resource": {
+                "description": "Logical id of the resource to verify.",
+                "$ref": "#/$defs/logicalId"
+              },
+              "check": {
+                "description": "The verification to perform, keyed by action class: created (create), attributes-applied (update-in-place), successor-ready (replace), adopted (import), removed (delete).",
+                "enum": ["created", "attributes-applied", "successor-ready", "adopted", "removed"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "approvalsRequired": {
+          "description": "Approval gates that must be satisfied before execution (Chapter 19 §19.6); populated by risk scoring. Always present; sorted by (resource, gate).",
+          "type": "array",
+          "items": {
+            "description": "One required approval gate.",
+            "type": "object",
+            "required": ["resource", "gate"],
+            "properties": {
+              "resource": {
+                "description": "Logical id of the resource the gate protects.",
+                "$ref": "#/$defs/logicalId"
+              },
+              "gate": {
+                "description": "Gate identifier (e.g. stateful-replace).",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "sha256Digest": {
+      "description": "SHA-256 digest spelled sha256:<64 lowercase hex digits>.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "semver": {
+      "description": "Semantic version: MAJOR.MINOR.PATCH with optional prerelease.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+    },
+    "rfc3339": {
+      "description": "RFC 3339 timestamp (UTC or numeric offset). Permitted only inside the envelope, never in content (PL-5).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "logicalId": {
+      "description": "Deterministic provider-plan resource identity: <resourceId>.<targetType> (IEP-0012 provider plan shape).",
+      "type": "string",
+      "minLength": 1
+    },
+    "fieldPath": {
+      "description": "Attribute or canonical document field path (dot-separated).",
+      "type": "string",
+      "minLength": 1
+    },
+    "reversibilityClass": {
+      "description": "Closed reversibility vocabulary (Chapter 14 §14.6; roadmap Phase 14 rollback classes).",
+      "enum": [
+        "fully-reversible",
+        "reversible-with-data-risk",
+        "replacement-based-recovery",
+        "manual-recovery-required",
+        "irreversible"
+      ]
+    },
+    "identityElement": {
+      "description": "Name of a determinism-input identity element (the keys of content.inputs, excluding inputsHash).",
+      "enum": [
+        "documentHash",
+        "target",
+        "profileHashes",
+        "policyBundles",
+        "extensionVersions",
+        "mappingVersions",
+        "discoverySnapshot",
+        "pricingSnapshot",
+        "stateRevision",
+        "stateIntegrity",
+        "plannerVersion"
+      ]
+    },
+    "actionEntry": {
+      "description": "One scheduled lifecycle action for one provider resource.",
+      "type": "object",
+      "required": ["resource", "action", "fields", "provenance", "destructive", "reversibility"],
+      "properties": {
+        "resource": {
+          "description": "Logical id of the provider resource the action applies to.",
+          "$ref": "#/$defs/logicalId"
+        },
+        "action": {
+          "description": "Lifecycle action class per Chapter 14 §14.2 plus import (IEP-0010 adoption; an unmanaged existing object is never blindly updated).",
+          "enum": ["create", "update-in-place", "replace", "delete", "import"]
+        },
+        "fields": {
+          "description": "Attribute paths the action touches, sorted: every desired attribute for create; changed/added/removed attributes for update-in-place and replace (plus the pseudo-field `type` on a provider-type change); drifted attributes for import; empty for delete (the action is total). Names only — never values (PL-5).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/fieldPath" }
+        },
+        "provenance": {
+          "description": "Why the action exists: the determinism-input identity that caused it and, per touched field, the mapping-level source recorded in the provider plan's per-attribute provenance.",
+          "type": "object",
+          "required": ["changedBy", "fieldSources"],
+          "properties": {
+            "changedBy": {
+              "description": "The input identity responsible for the change: documentHash for create/update-in-place/replace/delete (intent changed), stateRevision for import (state contains an unmanaged object).",
+              "$ref": "#/$defs/identityElement"
+            },
+            "fieldSources": {
+              "description": "Touched field path to its source: `constant` (mapping constant), `from:<canonical path>` (verbatim carry-over), `map:<canonical path>` (mapped lookup), or `state` (the path exists only in the state snapshot).",
+              "type": "object",
+              "propertyNames": { "minLength": 1 },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^(constant|state|(from|map):.+)$"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "destructive": {
+          "description": "True exactly for replace and delete actions; every destructive entry also appears in destructiveActions (PL-3).",
+          "type": "boolean"
+        },
+        "reversibility": {
+          "description": "Reversibility class of the action (Chapter 14 §14.6).",
+          "$ref": "#/$defs/reversibilityClass"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

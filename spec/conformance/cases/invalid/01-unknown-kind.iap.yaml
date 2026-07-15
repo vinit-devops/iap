@@ -1,0 +1,16 @@
+# Conformance case: invalid/01-unknown-kind
+# expected: schema-invalid
+# reason: "VirtualMachine" is not a member of the closed v1 kind enum. Compute
+#         intent is expressed through Service, Job, or Function; machine-shaped
+#         nouns are a provider concern. Fails phase 1 (schema validation).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: unknown-kind-case
+
+resources:
+  legacy-host:
+    kind: VirtualMachine
+    spec:
+      image: base-linux

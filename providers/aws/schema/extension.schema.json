@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/providers/aws/extension.schema.json",
+  "title": "AWS provider extension refinement (extensions.aws)",
+  "description": "Validates the content of a document's extensions.aws block. Refinements are advisory provider settings only: they never carry intent, and per chapter 11 they can never weaken a core intent floor without a validation error.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Extension package version registered at document level.",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "resources": {
+      "description": "Per-resource AWS refinements, keyed by resource identifier.",
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$": {
+          "type": "object",
+          "properties": {
+            "backupWindow": {
+              "description": "Daily backup window for Database resources (UTC, hh:mm-hh:mm).",
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}-\\d{2}:\\d{2}$"
+            },
+            "instanceClassHint": {
+              "description": "Concrete instance-class override hint for Database or Cache resources (e.g. db.r7g.large, cache.m7g.large). A hint may exceed the size the mapping derives, never reduce a declared capability.",
+              "type": "string",
+              "pattern": "^(db|cache)\\.[a-z0-9]+\\.[a-z0-9]+$"
+            },
+            "tags": {
+              "description": "Additional AWS resource tags applied to every provider resource realized from this document resource.",
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[A-Za-z0-9._:/+=@-]{1,128}$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 256
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

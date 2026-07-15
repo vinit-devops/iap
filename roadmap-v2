@@ -1,0 +1,1397 @@
+# Master Execution Prompt: IaP Rename, Release Readiness, Real AWS Validation, and Developer Preview
+
+## Role
+
+Act as the **Lead Engineering Orchestrator** for this project.
+
+I am a single hands-on engineer using Claude Code and AI-assisted development. I cannot recruit or manage a human engineering team. You are explicitly authorized to create and coordinate Claude Code subagents, agent teams, background agents, isolated review sessions, and Git worktrees.
+
+The project was previously named:
+
+> IIS — Infrastructure Intent Specification
+
+The project is now being renamed to:
+
+> **IaP — Infrastructure as Prompt**
+
+The new naming must be applied safely before any other roadmap action.
+
+The rename must not:
+
+* Break existing behavior
+* Change infrastructure semantics
+* Change provider mappings unintentionally
+* Alter deterministic planning behavior
+* Corrupt state compatibility
+* Replace unrelated words merely because they contain the letters `iis`
+* Replace external references to Microsoft IIS
+* Modify third-party code, generated artifacts, or dependencies incorrectly
+* Mix feature development with the rename
+* Remove backward compatibility before a migration path exists
+
+After the rename, the objective remains:
+
+> Prove one complete Infrastructure as Prompt workflow against real AWS, package it for users, validate its determinism and security, and release it as a controlled Developer Preview.
+
+I remain the final approver for:
+
+* Breaking specification changes
+* Architectural decisions
+* AWS deployments
+* Destructive operations
+* Pull-request merges
+* Public releases
+* Removal of legacy compatibility
+* Security-sensitive changes
+
+---
+
+# 1. Naming Decision
+
+Use the following canonical terminology.
+
+## Category and product concept
+
+```text
+Infrastructure as Prompt
+IaP
+```
+
+Use **IaP** in human-facing prose.
+
+Use **IAP** only where programming-language conventions require an uppercase acronym.
+
+Examples:
+
+```text
+IaP Specification
+IaP document
+IaP Intent Compiler
+IaP Canonical Infrastructure Model
+IaP Provider SDK
+IaP Developer Preview
+```
+
+## New canonical names
+
+| Existing name                       | New canonical name                                                  |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| IIS                                 | IaP                                                                 |
+| Infrastructure Intent Specification | Infrastructure as Prompt Specification                              |
+| `iis.dev/v1`                        | `iap.dev/v1`                                                        |
+| `infrastructure.iis.yaml`           | `infrastructure.iap.yaml`                                           |
+| `*.iis.yaml`                        | `*.iap.yaml`                                                        |
+| `*.iis-map.yaml`                    | `*.iap-map.yaml`                                                    |
+| `iis-v1.schema.json`                | `iap-v1.schema.json`                                                |
+| `iis-mapping-v1.schema.json`        | `iap-mapping-v1.schema.json`                                        |
+| `@iis/*`                            | `@iap/*`                                                            |
+| `iis` CLI command                   | `iap` CLI command                                                   |
+| `IIS_*` environment variables       | `IAP_*` environment variables                                       |
+| `iis_*` MCP tools                   | `iap_*` MCP tools                                                   |
+| `IISDocument`                       | `IaPDocument` or `IAPDocument`, according to established code style |
+| `IISDiagnostic`                     | `IaPDiagnostic` or `IAPDiagnostic`                                  |
+| `iis-language-server`               | `iap-language-server`                                               |
+| `iis-provider-*`                    | `iap-provider-*`                                                    |
+
+Do not mechanically apply this table without first verifying each occurrence.
+
+---
+
+# 2. Critical Rename Safety Rules
+
+## 2.1 Never perform a blind global replacement
+
+Do not execute operations equivalent to:
+
+```text
+Replace every "iis" with "iap"
+Replace every "IIS" with "IaP"
+```
+
+This is prohibited.
+
+The letters `iis` may occur inside unrelated words, identifiers, file contents, binary artifacts, dependency names, URLs, or external product names.
+
+Examples that must not be changed merely because they contain similar letters include:
+
+```text
+this
+missing
+permissions
+commission
+submission
+dismiss
+Microsoft IIS
+third-party package identifiers
+external URLs
+generated lockfile integrity values
+hashes
+binary content
+```
+
+Only rename an occurrence after confirming that it refers specifically to this project, its specification, its packages, its commands, or its generated artifacts.
+
+## 2.2 Classify every occurrence
+
+Before editing, classify every occurrence of `IIS`, `iis`, or related naming into one of these categories:
+
+### Category A — Project-specific and must be renamed
+
+Examples:
+
+* `@iis/sdk`
+* `iis.dev/v1`
+* `infrastructure.iis.yaml`
+* `IISDocument`
+* “IIS specification”
+* `iis validate`
+* `iis_create_model`
+
+### Category B — Legacy compatibility and must temporarily remain
+
+Examples:
+
+* Legacy CLI wrapper
+* Legacy API-version parser
+* Migration fixtures
+* Compatibility schemas
+* Deprecation documentation
+* Old file-extension discovery
+* Legacy MCP aliases
+
+### Category C — External or unrelated and must not be changed
+
+Examples:
+
+* Microsoft Internet Information Services
+* Third-party package names
+* External URLs
+* Quoted historical sources
+* Standards or products that happen to use IIS
+
+### Category D — Incidental substring and must not be changed
+
+Examples:
+
+* Words containing the character sequence `iis`
+* Hashes
+* Integrity values
+* Generated source maps
+* Encoded content
+
+### Category E — Generated or vendored content
+
+Do not edit directly.
+
+Regenerate it from canonical sources where necessary.
+
+## 2.3 Maintain an explicit allowlist
+
+Create:
+
+```text
+docs/migrations/iis-to-iap-allowlist.yaml
+```
+
+Every intentional remaining occurrence of the old name must include:
+
+* File
+* Line or pattern
+* Category
+* Reason
+* Removal version, when applicable
+
+The repository must have an automated check that fails when an unclassified project-specific old-name occurrence is introduced.
+
+## 2.4 Rename semantics, not arbitrary text
+
+Prefer:
+
+* TypeScript AST-aware symbol renaming
+* Package manifest parsing
+* JSON/YAML parsing
+* Schema-aware migration
+* Exact path mapping
+* Exact command mapping
+* Exact namespace mapping
+
+Avoid broad regular-expression replacement across the repository.
+
+## 2.5 Keep the rename separate from feature development
+
+The rename pull requests must not:
+
+* Add new provider capabilities
+* Change planner semantics
+* Change resource schemas except for naming/version migration
+* Refactor unrelated code
+* Change security policy behavior
+* Change cost calculations
+* Modify deployment behavior
+* Add new roadmap features
+
+If a defect is discovered during the rename, document it separately unless it directly blocks the rename.
+
+---
+
+# 3. AI Agent Team Operating Model
+
+Create a Lead Orchestrator and specialist agents.
+
+## Lead Orchestrator
+
+Responsible for:
+
+* Task decomposition
+* Agent assignment
+* File-ownership control
+* Integration
+* Verification
+* Migration tracking
+* Pull-request preparation
+* Final reporting
+
+## Rename Inventory Agent
+
+Read-only responsibilities:
+
+* Find all old-name occurrences
+* Classify every occurrence
+* Produce the rename inventory
+* Identify generated and vendored files
+* Detect naming embedded in schemas, hashes, fixtures, documentation, packages, commands, APIs, and tests
+
+## Specification Migration Reviewer
+
+Read-only responsibilities:
+
+* Review changes to `apiVersion`
+* Review schema identifiers
+* Review filenames and examples
+* Review backward compatibility
+* Determine whether an IEP is required
+* Verify that semantics remain unchanged
+
+## Implementation Engineer
+
+Responsibilities:
+
+* Implement approved rename changes
+* Work in an isolated worktree
+* Modify only assigned files
+* Add compatibility shims
+* Add migration tests
+
+## Test and Compatibility Engineer
+
+Responsibilities:
+
+* Build pre-rename and post-rename compatibility tests
+* Add negative tests against unrelated substring replacements
+* Verify legacy document loading
+* Verify new canonical serialization
+* Verify semantic planning equivalence
+
+## Security Reviewer
+
+Responsibilities:
+
+* Ensure package aliases and migration tools do not introduce command injection
+* Review CLI migration behavior
+* Review filename handling
+* Review plugin loading after namespace migration
+* Review state compatibility
+* Review unexpected path traversal or overwrite risks
+
+## Documentation Reviewer
+
+Responsibilities:
+
+* Check that terminology is consistent
+* Ensure old-name historical references remain correct where necessary
+* Validate migration instructions as a new user
+* Ensure Microsoft IIS references are not incorrectly altered
+
+## Release Engineer
+
+Responsibilities:
+
+* Verify package publication names
+* Verify CLI binaries
+* Verify extension identifiers
+* Verify container names
+* Verify release artifacts
+* Confirm clean installation after the rename
+
+---
+
+# 4. Agent Coordination Rules
+
+1. Use isolated Git worktrees for modifying agents.
+2. Do not allow two agents to modify the same files concurrently.
+3. Review agents must not fix the code they review.
+4. The implementation agent must not be the sole reviewer.
+5. Do not merge automatically.
+6. Do not publish packages automatically.
+7. Do not deploy to AWS during the rename.
+8. Do not remove legacy compatibility without my approval.
+9. Record every agent finding.
+10. Preserve unresolved findings.
+11. Run the complete verification suite after integration.
+12. Use one milestone at a time.
+13. Never fabricate migration evidence.
+14. Do not call AI-agent review an external audit.
+15. Return architectural ambiguities to me before making irreversible decisions.
+
+---
+
+# 5. Updated Phase 19 Roadmap
+
+Add the following phase before the existing release-readiness milestones:
+
+```yaml
+id: "19"
+title: IaP Migration, Release Readiness, and Real AWS Validation
+priority: P0
+status: in-progress
+dependsOn:
+  - "18"
+```
+
+Milestones:
+
+```yaml
+milestones:
+  - id: M19.0
+    title: Safe IIS-to-IaP naming and compatibility migration
+    status: in-progress
+
+  - id: M19.1
+    title: Independent implementation audit
+    status: pending
+
+  - id: M19.2
+    title: Developer Preview scope freeze
+    status: pending
+
+  - id: M19.3
+    title: Real AWS golden-path validation
+    status: pending
+
+  - id: M19.4
+    title: Product packaging
+    status: pending
+
+  - id: M19.5
+    title: Public planning playground
+    status: pending
+
+  - id: M19.6
+    title: Security hardening
+    status: pending
+
+  - id: M19.7
+    title: Product evidence and benchmark validation
+    status: pending
+
+  - id: M19.8
+    title: Developer Preview release
+    status: pending
+```
+
+No milestone after M19.0 may begin until the rename exit criteria pass.
+
+---
+
+# 6. Milestone M19.0 — Safe IIS-to-IaP Migration
+
+## Objective
+
+Rename the project from IIS to IaP without breaking functionality, corrupting persisted artifacts, or replacing unrelated text.
+
+Divide M19.0 into the following sequential sub-milestones.
+
+---
+
+## M19.0.1 — Rename Inventory
+
+### Branch
+
+Create:
+
+```text
+phase-19/iap-rename-inventory
+```
+
+### Tasks
+
+1. Inspect the complete repository.
+2. Search exact and project-specific patterns, including:
+
+   * `IIS`
+   * standalone `iis`
+   * `@iis/`
+   * `iis.dev`
+   * `.iis.yaml`
+   * `.iis.yml`
+   * `.iis-map.yaml`
+   * `iis-`
+   * `IIS_`
+   * `iis_`
+3. Exclude from automatic edits:
+
+   * `node_modules`
+   * build output
+   * coverage
+   * binary files
+   * generated files
+   * vendored code
+   * Git objects
+4. Classify every result into Categories A–E.
+5. Identify old naming in:
+
+   * Package manifests
+   * Workspace configuration
+   * TypeScript imports
+   * Public types
+   * JSON Schemas
+   * Schema `$id` values
+   * API versions
+   * Examples
+   * Conformance fixtures
+   * CLI commands
+   * LSP language IDs
+   * MCP tool names
+   * Environment variables
+   * Provider manifests
+   * Plugin signatures
+   * State metadata
+   * Plan metadata
+   * Telemetry attributes
+   * Documentation
+   * GitHub workflows
+   * Container names
+   * Release scripts
+   * VS Code extension manifests
+   * URLs and domains
+6. Create an exact rename map.
+7. Create an explicit non-rename list.
+8. Determine which generated artifacts must be regenerated.
+
+### Deliverables
+
+Create:
+
+```text
+docs/reports/iis-to-iap-inventory.md
+docs/migrations/iis-to-iap-map.yaml
+docs/migrations/iis-to-iap-allowlist.yaml
+```
+
+### Exit criteria
+
+* Every old-name occurrence is classified.
+* No source file is modified except the inventory and tracker files.
+* The rename map distinguishes semantic references from incidental substrings.
+* External Microsoft IIS references are explicitly protected.
+* The inventory receives a separate review-agent pass.
+
+Do not start actual renaming in this sub-milestone.
+
+---
+
+## M19.0.2 — Compatibility and Migration Design
+
+### Branch
+
+Create:
+
+```text
+phase-19/iap-compatibility-design
+```
+
+### Tasks
+
+Create or update the relevant IEP and ADRs.
+
+Define:
+
+* New canonical naming
+* Legacy compatibility duration
+* API-version migration
+* Filename migration
+* Package migration
+* CLI alias behavior
+* MCP alias behavior
+* LSP file-pattern compatibility
+* State compatibility
+* Plan compatibility
+* Provider-plugin compatibility
+* Extension namespace compatibility
+* Deprecation warning behavior
+* Removal criteria
+
+### Required compatibility behavior
+
+Unless technically impossible and documented:
+
+#### API version
+
+The parser should accept:
+
+```yaml
+apiVersion: iis.dev/v1
+```
+
+as a deprecated legacy input.
+
+The canonical new format is:
+
+```yaml
+apiVersion: iap.dev/v1
+```
+
+The serializer must output the new version by default.
+
+#### Filename
+
+The tools should discover:
+
+```text
+infrastructure.iap.yaml
+```
+
+as the canonical filename.
+
+For the compatibility period, they may also discover:
+
+```text
+infrastructure.iis.yaml
+```
+
+If both files exist, fail with a clear ambiguity error rather than selecting one silently.
+
+#### CLI
+
+The canonical command becomes:
+
+```text
+iap
+```
+
+A temporary `iis` compatibility command may:
+
+* Forward to `iap`
+* Emit a deprecation warning
+* Preserve exit codes
+* Never change command semantics
+
+#### Packages
+
+Canonical packages become:
+
+```text
+@iap/*
+```
+
+If packages have already been published or consumed externally, provide temporary `@iis/*` compatibility packages that re-export the canonical packages.
+
+Do not maintain two separate implementations.
+
+#### MCP tools
+
+Canonical tools become:
+
+```text
+iap_author
+iap_validate
+iap_get_architecture
+iap_get_cost
+iap_get_security
+iap_get_compliance
+iap_create_plan
+```
+
+Temporary legacy aliases may remain but must be marked deprecated and call the same implementation.
+
+#### Environment variables
+
+Canonical variables use:
+
+```text
+IAP_*
+```
+
+During the compatibility period, read legacy `IIS_*` values only when the new equivalent is absent.
+
+Emit a warning without printing sensitive values.
+
+#### State and plans
+
+Existing state and plan artifacts must remain readable.
+
+Do not change provider resource identity merely because the product name changed.
+
+Do not recreate cloud resources due solely to the rename.
+
+### Deliverables
+
+Create:
+
+```text
+docs/adr/ADR-IAP-NAMING-MIGRATION.md
+docs/migrations/iis-to-iap.md
+spec/ieps/IEP-IAP-NAMING-MIGRATION.md
+```
+
+Use the next available ADR and IEP numbers.
+
+### Exit criteria
+
+* Migration behavior is documented.
+* State compatibility is explicitly addressed.
+* Provider resource identity remains stable.
+* Legacy removal is versioned, not immediate.
+* The design receives specification and security review.
+
+---
+
+## M19.0.3 — Core Code and Package Rename
+
+### Tasks
+
+Rename approved project-specific code:
+
+* Package scopes
+* Package names
+* Workspace references
+* TypeScript imports
+* Export names
+* Public type names
+* Internal constants
+* Error prefixes where applicable
+* Telemetry namespaces
+* Build scripts
+* Test imports
+* Documentation package references
+
+Use AST-aware tools or language-server rename operations for public symbols wherever possible.
+
+Do not modify unrelated identifiers containing the same letters.
+
+### Requirements
+
+* Canonical implementation must live under the new names.
+* Legacy packages, if retained, must be lightweight wrappers.
+* Avoid duplicated source trees.
+* Avoid circular compatibility dependencies.
+* Preserve public behavior.
+* Preserve stable error semantics where possible.
+* Document unavoidable breaking changes.
+
+### Tests
+
+Add tests confirming:
+
+* New package imports work.
+* Legacy package imports work during compatibility.
+* New and legacy imports expose equivalent APIs.
+* No unrelated source identifier changed.
+* Build output contains canonical package metadata.
+
+---
+
+## M19.0.4 — Specification, Schema, and Artifact Migration
+
+### Tasks
+
+Rename:
+
+* Specification title
+* API version
+* Schema filenames
+* Schema `$id`
+* Mapping schema
+* Example filenames
+* Conformance filenames
+* Provider-mapping artifacts
+* Default infrastructure filename
+* Documentation links
+* Error messages referring to the project
+
+Keep legacy fixtures in a clearly marked compatibility directory.
+
+Recommended structure:
+
+```text
+spec/
+├── schema/
+│   ├── iap-v1.schema.json
+│   ├── iap-mapping-v1.schema.json
+│   └── compatibility/
+│       ├── iis-v1.schema.json
+│       └── iis-mapping-v1.schema.json
+```
+
+Legacy compatibility schemas should be generated from or reference canonical schema definitions where possible so they cannot drift.
+
+### Tests
+
+Verify:
+
+* New IaP examples validate.
+* Legacy IIS examples still load during compatibility.
+* Legacy input canonicalizes to the new internal representation.
+* Serialization produces the new IaP format.
+* Invalid legacy documents still fail correctly.
+* Provider mapping semantics remain unchanged.
+
+---
+
+## M19.0.5 — CLI, LSP, MCP, IDE, and Designer Migration
+
+### CLI
+
+* Primary binary: `iap`
+* Primary help text: Infrastructure as Prompt
+* Default file: `infrastructure.iap.yaml`
+* Legacy alias: `iis`, if compatibility design requires it
+
+### Language Server
+
+Update:
+
+* Language identifier
+* File associations
+* Schema associations
+* Commands
+* Preview protocol
+* Diagnostics
+* Extension metadata
+
+Support legacy file patterns during the compatibility period.
+
+### MCP
+
+Update canonical tool names and server metadata.
+
+Legacy tools must be aliases only, not separate implementations.
+
+### VS Code and IDE integrations
+
+Update:
+
+* Extension name
+* Extension identifier
+* Command IDs
+* Settings namespace
+* File patterns
+* Documentation
+* Screenshots where applicable
+
+Preserve old configuration migration where possible.
+
+### Visual Designer
+
+Update:
+
+* Product terminology
+* Export filename
+* Download behavior
+* Import compatibility
+* Display labels
+
+Do not change the Canonical Infrastructure Model merely due to UI naming.
+
+---
+
+## M19.0.6 — Documentation and Repository Migration
+
+Update project-specific references across:
+
+* README
+* Roadmap
+* Governance
+* Contribution guide
+* Security policy
+* Specification chapters
+* IEPs
+* ADRs
+* Examples
+* Tutorials
+* Architecture diagrams
+* GitHub workflows
+* Issue templates
+* Pull-request templates
+* Release scripts
+* Package publishing instructions
+* Container references
+
+Historical documents may retain the old name when necessary for accuracy, but they must include migration context.
+
+Do not alter references to external Microsoft IIS material.
+
+---
+
+## M19.0.7 — Migration Tool
+
+Create a safe migration command:
+
+```text
+iap migrate-name
+```
+
+or an equivalent clearly named command.
+
+It should:
+
+* Detect legacy IaP-project artifacts
+* Preview changes before writing
+* Rename known filenames
+* Update exact API-version values
+* Update exact package references
+* Update exact CLI references where safe
+* Preserve formatting where possible
+* Create backups or require Git-clean status
+* Refuse ambiguous replacements
+* Produce a migration report
+* Support `--check`
+* Support `--dry-run`
+* Support machine-readable JSON output
+
+It must not replace arbitrary substrings.
+
+Example:
+
+```text
+iap migrate-name --check
+iap migrate-name --dry-run
+iap migrate-name --write
+```
+
+---
+
+## M19.0.8 — Rename Verification
+
+Run from a clean checkout:
+
+* Install
+* Build
+* Lint
+* Type-check
+* Unit tests
+* Integration tests
+* Conformance tests
+* Determinism tests
+* Provider tests
+* CLI tests
+* LSP tests
+* MCP tests
+* Migration tests
+* Packaging smoke tests
+
+### Semantic equivalence test
+
+For representative legacy and new documents:
+
+1. Parse the legacy input.
+2. Normalize it.
+3. Parse the new input.
+4. Normalize it.
+5. Compare resource intent.
+6. Compare relationships.
+7. Compare provider mappings.
+8. Compare provider resource identity.
+9. Compare execution actions.
+10. Confirm that the rename alone does not create, replace, or destroy infrastructure.
+
+Hashes may change because canonical metadata and API-version strings change, but the infrastructure actions must remain semantically equivalent.
+
+### Repository scan
+
+Fail verification if an unclassified project-specific old-name occurrence remains.
+
+Do not fail for allowlisted legacy or external occurrences.
+
+### Exit criteria for M19.0
+
+* Canonical project name is IaP.
+* Canonical API version is `iap.dev/v1`.
+* Canonical filename is `infrastructure.iap.yaml`.
+* Canonical package scope is `@iap/*`.
+* Canonical CLI command is `iap`.
+* Canonical MCP tools use the `iap_` prefix.
+* Existing legacy documents remain readable during the compatibility period.
+* Existing state remains usable.
+* Rename alone produces no provider resource replacement.
+* No unrelated word or identifier was modified.
+* Every remaining old-name occurrence is allowlisted.
+* Full verification passes.
+* Migration documentation is complete.
+* An isolated reviewer confirms rename safety.
+
+Only after these criteria pass may M19.1 begin.
+
+---
+
+# 7. Milestone M19.1 — Independent Implementation Audit
+
+After the IaP migration:
+
+1. Run a clean-checkout installation.
+2. Run every verification command.
+3. Inspect the code rather than roadmap completion labels.
+4. Search for:
+
+   * TODO
+   * FIXME
+   * Stub
+   * Placeholder
+   * Deferred
+   * Follow-on
+   * Mock-only behavior
+   * Empty handlers
+   * Hard-coded results
+5. Classify every major capability:
+
+```text
+A — Implemented and independently verified
+B — Implemented but only locally or with mocks
+C — Partially implemented
+D — Scaffold or thin-client design only
+E — Documentation only
+F — Deferred
+G — Missing
+```
+
+Create:
+
+```text
+RELEASE_READINESS.yaml
+docs/reports/implementation-audit.md
+docs/reports/production-gap-analysis.md
+```
+
+Do not implement unrelated fixes in the audit pull request.
+
+---
+
+# 8. Milestone M19.2 — Developer Preview Scope Freeze
+
+Define the first release as:
+
+```text
+IaP Developer Preview v0.1
+```
+
+Supported workflow:
+
+* Natural-language requirement
+* Clarification
+* Valid IaP generation
+* Canonical model
+* Validation
+* Architecture diagram
+* Cost report
+* Security report
+* Compliance report
+* AWS provider mapping
+* Deterministic plan
+* Explicit approval
+* Non-production AWS deployment
+* State persistence
+* Verification
+* Drift detection
+* Controlled update
+* Controlled destroy
+
+Defer:
+
+* Azure execution
+* GCP execution
+* Multi-cloud orchestration
+* Enterprise-grade multi-tenancy
+* Marketplace
+* Universal migration support
+* Unattended production deployment
+* Autonomous destructive remediation
+
+Freeze supported AWS resources and publish a support matrix.
+
+---
+
+# 9. Milestone M19.3 — Real AWS Golden Path
+
+Validate one narrow AWS workload:
+
+* Network
+* Containerized service
+* Gateway or load balancer
+* PostgreSQL database
+* Object storage
+* Secret reference
+* Workload identity
+* DNS and certificate
+* Logging and monitoring
+
+Required tests:
+
+1. Create
+2. No-op
+3. Safe update
+4. Replacement update
+5. Drift
+6. Controlled failure
+7. Recovery
+8. Destroy
+9. Cleanup verification
+
+Use:
+
+* Dedicated sandbox account
+* One region
+* OIDC or short-lived credentials
+* Restricted IAM
+* Cost budgets
+* Mandatory tags
+* No production data
+
+Do not claim completion without live evidence.
+
+---
+
+# 10. Milestone M19.4 — Product Packaging
+
+Produce:
+
+* Installable `iap` CLI
+* Packaged VS Code extension
+* Installable IaP MCP server
+* Local Visual Designer
+* Container images where needed
+* Signed checksums
+* Installation documentation
+* Clean-machine smoke tests
+* Demo repository
+
+Target workflow:
+
+```text
+npm install -g <iap-package>
+iap --version
+iap create
+iap validate
+iap plan
+```
+
+---
+
+# 11. Milestone M19.5 — Public Planning Playground
+
+Create a safe playground that supports:
+
+* Natural-language request
+* Clarification
+* IaP generation
+* Validation
+* Architecture
+* Dependencies
+* Cost
+* Security
+* Compliance
+* AWS plan preview
+* Provenance
+* IaP download
+* Shareable read-only result
+
+The playground must not:
+
+* Receive AWS credentials
+* Deploy resources
+* Store plaintext secrets
+* Claim exact costs
+* Claim formal compliance certification
+
+Keep the architecture simple enough for one engineer to operate.
+
+---
+
+# 12. Milestone M19.6 — Security Hardening
+
+Create:
+
+* Threat model
+* Security-readiness report
+* SBOM
+* Dependency scanning
+* Secret scanning
+* Static analysis
+* Container scanning
+* Package signing
+* Provider-plugin signature verification
+* Responsible disclosure policy
+* Known-risk register
+
+Review:
+
+* Intent Compiler
+* Prompt injection
+* MCP content injection
+* Provider plugins
+* State
+* Plans
+* Deployment credentials
+* OIDC
+* Logs
+* Playground
+* Visual Designer
+* Supply chain
+
+Do not describe agent-based review as an external penetration test.
+
+---
+
+# 13. Milestone M19.7 — Product Evidence
+
+Create at least 20 benchmark requests covering:
+
+* Web applications
+* Internal APIs
+* Event-driven systems
+* Serverless workloads
+* Databases
+* Caches
+* Private services
+* High availability
+* Budget constraints
+* Security requirements
+* Compliance requirements
+* Incremental updates
+* Removal
+* Drift reconciliation
+* Unsupported requests
+* Conflicting requirements
+
+Measure:
+
+* Valid IaP generation
+* Clarification precision
+* Unsupported-request detection
+* False assumptions
+* Manual corrections
+* Plan determinism
+* Deployment success
+* No-op correctness
+* Drift accuracy
+* Recovery success
+* Time to first valid plan
+* Time to deployment
+
+Use personal sandbox applications, open-source examples, and voluntary early-access feedback. Do not invent customer results.
+
+---
+
+# 14. Milestone M19.8 — Developer Preview
+
+Publish only when mandatory release gates pass.
+
+Release:
+
+* IaP Specification
+* Schemas
+* CLI
+* Intent Compiler
+* Architecture engine
+* Cost engine
+* Security and compliance reports
+* AWS planning
+* Controlled sandbox deployment
+* VS Code extension
+* MCP server
+* Local Visual Designer
+* Examples
+* Documentation
+* Known limitations
+
+Clearly state:
+
+* Not intended for unattended production deployment
+* Limited AWS coverage
+* Costs are estimates
+* Compliance reports are not certifications
+* Rollback is not universally guaranteed
+* Generated plans require review
+* Destructive actions require explicit approval
+
+---
+
+# 15. Mandatory Release Gates
+
+Do not label the product Developer Preview ready until:
+
+* IaP rename migration passes
+* No unclassified old project naming remains
+* Clean installation passes
+* Build passes
+* Type checking passes
+* Tests pass
+* Conformance passes
+* Determinism passes
+* No critical security finding remains
+* No plaintext-secret leakage exists
+* CLI installs externally
+* Natural language produces valid IaP
+* AWS plan is deterministic
+* Real AWS create succeeds
+* Real AWS no-op succeeds
+* Real AWS update succeeds
+* State locking works
+* Drift is detected
+* Failure recovery is tested
+* Destroy requires confirmation
+* Cleanup is verified
+* Known limitations are public
+
+---
+
+# 16. Immediate First Execution Cycle
+
+Start with **M19.0.1 only**.
+
+Do not rename code yet.
+
+Perform:
+
+1. Create branch:
+
+```text
+phase-19/iap-rename-inventory
+```
+
+2. Spawn:
+
+   * Rename Inventory Agent
+   * Specification Migration Reviewer
+   * Test and Compatibility Engineer
+
+3. Search and classify all project naming.
+
+4. Create:
+
+```text
+docs/reports/iis-to-iap-inventory.md
+docs/migrations/iis-to-iap-map.yaml
+docs/migrations/iis-to-iap-allowlist.yaml
+```
+
+5. Identify:
+
+   * Project-specific occurrences
+   * Legacy compatibility occurrences
+   * External occurrences
+   * Incidental substrings
+   * Generated files
+
+6. Produce the exact migration sequence.
+
+7. Run a separate reviewer pass.
+
+8. Prepare a pull-request summary.
+
+9. Do not edit source code, packages, schemas, commands, or examples in this first pull request.
+
+10. Return the results to me before beginning M19.0.2.
+
+---
+
+# 17. Required Milestone Report Format
+
+After every milestone, return:
+
+```text
+Phase: 19
+Milestone:
+Status:
+
+Objective:
+
+Agents used:
+- role
+- task
+- result
+
+Implemented:
+- ...
+
+Files added:
+- ...
+
+Files modified:
+- ...
+
+Tests run:
+- command
+- result
+
+Rename safety:
+- project-specific occurrences changed
+- legacy occurrences preserved
+- unrelated occurrences protected
+- remaining allowlisted occurrences
+
+Compatibility:
+- legacy documents
+- legacy CLI
+- legacy packages
+- legacy state
+- legacy plans
+- legacy MCP tools
+
+Evidence:
+- ...
+
+Independent review:
+- reviewer
+- findings
+- fixes
+
+Security findings:
+- ...
+
+Known limitations:
+- ...
+
+Blocked items:
+- ...
+
+Pull request:
+- branch
+- proposed title
+- proposed description
+
+Next milestone:
+- ...
+
+Do not claim completion without evidence.
+```
+
+---
+
+# 18. Final Expected Outcome
+
+At the end of Phase 19:
+
+> A user describes an AWS workload in natural language. IaP asks only necessary clarification questions, creates a validated `infrastructure.iap.yaml`, derives architecture, cost, security, compliance, and dependencies, generates a deterministic AWS plan, requires explicit approval, deploys into a sandbox, verifies the result, maintains state, detects drift, applies controlled updates, and destroys resources safely.
+
+The product must also be:
+
+* Named consistently as IaP
+* Backward compatible with legacy IIS artifacts during the migration window
+* Free from accidental substring replacements
+* Installable
+* Testable
+* Deterministic
+* Narrowly scoped
+* Honest about limitations
+* Safe enough for a controlled Developer Preview
+* Maintainable by one engineer using coordinated Claude agents

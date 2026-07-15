@@ -1,0 +1,27 @@
+# TEST FIXTURE (test material only): conformance case exercising satisfied,
+# unsupported, and rejected verdicts against the tiny provider package.
+apiVersion: conformance.iap.dev/v1
+case: database-core
+document: corpus/orders.iap.yaml
+assertions:
+  - id: storage-encrypted
+    select: { resource: orders-db, kind: Database }
+    capability: encryption.atRest
+    expect: satisfied
+  - id: private-exposure
+    select: { resource: orders-db }
+    capability: exposure.private
+    expect: satisfied
+  - id: multi-zone
+    select: { resource: orders-db }
+    capability: availability.zonesMinimum
+    params: { min: 2 }
+    expect: satisfied
+  - id: backup-unattested
+    select: { resource: orders-db }
+    capability: resilience.backup
+    expect: unsupported
+  - id: exactly-once-fails-closed
+    document: corpus/queue-exactly-once.iap.yaml
+    capability: delivery.exactlyOnce
+    expect: rejected

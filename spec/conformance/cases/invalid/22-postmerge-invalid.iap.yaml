@@ -1,0 +1,33 @@
+# Conformance case: invalid/22-postmerge-invalid
+# expected: IAP101
+# profile: production
+# reason: Pre-merge schema-valid, post-merge invalid — requires a merge-aware
+#         validator. The document as written passes schema validation, but
+#         profile "production" sets resources.orders-db.spec.class to null,
+#         and RFC 7386 JSON Merge Patch deletes null-valued keys, so the
+#         profile-merged document is missing the required Database field
+#         spec.class. Post-merge schema validation of the canonical document
+#         (chapter 6: the merged result MUST itself be a valid IaP document)
+#         fails with IAP101 (schema constraint violation). Plain JSON Schema
+#         validation of the authored document MUST report it as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: postmerge-invalid-case
+
+resources:
+  orders-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+
+profiles:
+  production:
+    description: Deletes the required spec.class field via a null override.
+    overrides:
+      resources:
+        orders-db:
+          spec:
+            class: null

@@ -1,0 +1,12 @@
+# Fail-closed case (IEP-0012 PC-2): the Function kind is not covered by this
+# package's mappings, so mapping the document fails closed with an
+# unsupported-kind diagnostic — the shared evaluator reports a mapping
+# failure as the "rejected" verdict (a plan is complete or absent, so an
+# uncovered kind can never surface as a mapped-but-unattested capability).
+apiVersion: conformance.iap.dev/v1
+case: function-unsupported-kind
+document: corpus/function-image-resizer.iap.yaml
+assertions:
+  - id: uncovered-kind-fails-closed
+    capability: encryption.atRest
+    expect: rejected

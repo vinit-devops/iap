@@ -1,0 +1,41 @@
+# Conformance case: invalid/16-zero-match-selector
+# expected: IAP402
+# reason: Passes schema validation (the rule edge is well-formed and its
+#         target exists), but the source selector labels {tier: frontend}
+#         match zero resources in the canonical document — the only Service
+#         is labeled tier: backend. A rule edge that selects nothing is dead
+#         intent; fails phase 4 with IAP402 (unresolvable selector). Requires
+#         a full IaP validator — plain JSON Schema validation MUST report this
+#         document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: zero-match-selector-case
+
+resources:
+  api:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+
+  orders-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+
+relationships:
+  - type: connectsTo
+    source:
+      selector:
+        labels:
+          tier: frontend
+    target: orders-db
+    port: 5432
+    protocol: tcp
+    access: read

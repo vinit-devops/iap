@@ -1,0 +1,183 @@
+# Event-driven platform targeted at a Kubernetes mapping.
+# Demonstrates: multi-service application, queue/topic messaging, functions and jobs,
+# workload identity, selector rule edges, and removable kubernetes extensions.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: order-events-platform
+  description: Order processing platform with event-driven workers
+  owner: team-orders
+  labels:
+    domain: commerce
+
+extensions:
+  kubernetes:
+    version: 1.0.0
+
+resources:
+  api:
+    kind: Service
+    description: Order intake API
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/orders-api:3.2.0
+      size: m
+      exposure: internal
+      availability: high
+      ports:
+        - name: grpc
+          port: 9090
+          protocol: grpc
+      scaling:
+        min: 2
+        max: 10
+        targetUtilization: 65
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: publishesTo
+        target: order-events
+      - type: authenticatedBy
+        target: platform-identity
+    extensions:
+      kubernetes:
+        serviceAccountName: orders-api
+        topologySpreadHint: zone
+
+  worker:
+    kind: Service
+    description: Asynchronous order fulfilment worker
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/orders-worker:3.2.0
+      size: s
+      exposure: private
+      scaling:
+        min: 1
+        max: 20
+        targetUtilization: 80
+    relationships:
+      - type: consumesFrom
+        target: fulfilment-queue
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: authenticatedBy
+        target: platform-identity
+
+  notifier:
+    kind: Function
+    description: Sends customer notifications on order events
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/notifier:1.0.7
+      size: s
+      timeout: 30s
+      concurrency:
+        max: 50
+    relationships:
+      - type: consumesFrom
+        target: order-events
+
+  nightly-report:
+    kind: Job
+    description: Nightly order reconciliation report
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/report:2.0.0
+      schedule: "0 2 * * *"
+      timeout: 1h
+      retries: 2
+      concurrency: forbid
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read
+
+  order-events:
+    kind: Topic
+    description: Order lifecycle events
+    labels:
+      tier: messaging
+    spec:
+      delivery: at-least-once
+      ordering: ordered
+      messageRetention: 7d
+
+  fulfilment-queue:
+    kind: Queue
+    description: Fulfilment work items
+    labels:
+      tier: messaging
+    spec:
+      delivery: at-least-once
+      ordering: fifo
+      messageRetention: 4d
+      deadLetter:
+        enabled: true
+        maxReceives: 5
+
+  orders-db:
+    kind: Database
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      availability: high
+      capacity:
+        storage: 50Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 2h
+
+  platform-identity:
+    kind: Identity
+    spec:
+      type: workload
+
+  ops-dashboard:
+    kind: Dashboard
+    description: Reserved observability kind; realized by the platform's monitoring stack
+    spec:
+      audience: platform-operations
+
+  orders-app:
+    kind: Application
+    spec:
+      components: [api, worker, notifier, nightly-report, order-events, fulfilment-queue, orders-db]
+      version: "3.2.0"
+
+relationships:
+  # Every backend workload is monitored by the operations dashboard.
+  - type: monitoredBy
+    source:
+      selector:
+        labels:
+          tier: backend
+    target: ops-dashboard
+
+outputs:
+  api-endpoint:
+    resource: api
+    attribute: endpoint

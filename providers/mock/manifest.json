@@ -1,0 +1,57 @@
+{
+  "apiVersion": "plugin.iap.dev/v1",
+  "name": "iap-provider-mock",
+  "namespace": "mock",
+  "version": "1.1.0",
+  "specCompat": ">=1.0.0 <2.0.0",
+  "sdkCompat": ">=0.1.0 <1.0.0",
+  "certificationLevel": "execution",
+  "artifacts": {
+    "mappings": [
+      "mappings/core.iap-map.yaml"
+    ],
+    "extensionSchema": "schema/extension.schema.json",
+    "conformanceCases": "conformance/"
+  },
+  "capabilities": {
+    "kinds": [
+      "Application",
+      "Service",
+      "Job",
+      "Function",
+      "Gateway",
+      "Database",
+      "Cache",
+      "ObjectStore",
+      "Volume",
+      "Queue",
+      "Topic",
+      "Identity",
+      "Secret",
+      "Stream",
+      "Dashboard",
+      "Alert"
+    ],
+    "handlers": [
+      "execute",
+      "read",
+      "import"
+    ]
+  },
+  "integrity": {
+    "digests": {
+      "conformance/cases/unsupported-kind.case.yaml": "sha256:c5813bfc2f456aeaae9baad0e25e6ad3a6b9982e96a0693713744d38053bba5e",
+      "conformance/cases/webshop-core.case.yaml": "sha256:4b863b49def388a1d589c732f842e61d2efc77e03b1fdd30bd0f5d2fb78182be",
+      "conformance/corpus/database-maximum.iap.yaml": "sha256:78df77aaf471fe70c9545d2c5f760401b2c9115516120a87d99d5585242bba51",
+      "conformance/corpus/webshop.iap.yaml": "sha256:c048687cafab3f21a0fed20d4876f2fb591ad9ecf47a6eff70cece310d4cfcc3",
+      "conformance/corpus/workflow-orchestrator.iap.yaml": "sha256:a36c91490c60322d77c9fc1d639b7e22e50ba196f50bfe247179e523520e749d",
+      "mappings/core.iap-map.yaml": "sha256:4c22d697396fd1fa1a21f08024f698cada63632839aef6e64994c46d78a95a98",
+      "schema/extension.schema.json": "sha256:2aa54cb031156253a15fb421bf216c88df3cb73a6ff469c2363443a0784aced0"
+    }
+  },
+  "signature": {
+    "keyId": "mock-test-2026",
+    "alg": "ed25519",
+    "value": "oO4wz8IT6LmzWMSXovCLP0Xu337a8uLjtXquwEXrHrJCE6Pqnx+cS1gxmacy7N5CCYhEFfQZtF1zzJcQVDHdDg=="
+  }
+}

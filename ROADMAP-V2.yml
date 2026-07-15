@@ -1,0 +1,349 @@
+# Machine-readable roadmap tracker for Phase 19 (roadmap-v2 at repo root).
+# Companion to ROADMAP.yaml (Phases 0-18, complete). Maintained by the executing
+# agent: one milestone at a time, status + evidence updated as work completes.
+# Milestone completion is gated by exit criteria, never dates.
+# statuses: pending | in-progress | completed | blocked
+#
+# HUMAN-APPROVAL GATES (executing agent must stop and request approval):
+#   - Breaking specification changes
+#   - AWS deployments (M19.3)
+#   - Destructive operations
+#   - Public releases (M19.8)
+#   - Merge of the hard-rename PR (phase-19/hard-rename-iis-to-iap)
+version: 2
+updated: '2026-07-12'
+source: roadmap-v2 # the master execution prompt at repo root
+supersedes: null # extends ROADMAP.yaml; does not replace it
+executionSequence: # approver-directed 2026-07-12 (v0.1 Developer Preview)
+  order: [M19.0, M19.1, M19.2, M19.4, M19.6, M19.5, M19.7, M19.8]
+  deferred:
+    M19.3: 'Real AWS execution deferred to the v0.2 Private Deployment Preview (build, live-AWS gated, profile REDACTED_AdministratorAccess only)'
+  m19_4_gate: 'M19.5 may not begin until an external CLEAN environment can install IaP, generate a valid IaP doc from NL, run validation + analysis, and produce a deterministic AWS plan preview — using packaged artifacts only, not monorepo source paths.'
+renaming:
+  from: 'IIS — Infrastructure Intent Specification'
+  to: 'IaP — Infrastructure as Prompt'
+  canonical:
+    productName: IaP
+    apiVersion: iap.dev/v1
+    defaultFilename: infrastructure.iap.yaml
+    packageScope: '@iap/*'
+    cliCommand: iap
+    mcpToolPrefix: iap_
+    envVarPrefix: IAP_
+    typeCasing: IaP # e.g. IisDocument -> IaPDocument, IisError -> IaPError
+  mode: HARD RENAME — no backward compatibility (pre-release; nothing published/consumed)
+  compatibility: none # no CLI/package/MCP aliases, no legacy apiVersion, no .iis.yaml discovery, no env fallback, no deprecation window
+  humanDecisions: # authoritative directive from approver (hard-rename execution prompt, 2026-07-12)
+    errorCodes: 'HARD rename IIS<nnn> -> IAP<nnn>, NO alias — legacy codes unrecognized/unemitted'
+    apiVersion: 'legacy iis.dev/v1 is REJECTED (IAP101), not accepted or normalized'
+    cli: 'only `iap` bin — no `iis` alias'
+    packages: '@iis/* removed outright — no wrapper packages'
+    mcp: 'only iap_* tools — legacy iis_* names return unknown-tool errors'
+    envVars: 'only IAP_* — no IIS_* fallback'
+    filenames: 'only .iap.yaml / .iap-map.yaml — legacy names not discovered'
+    typeCasing: 'IaP brand casing: IisDocument -> IaPDocument'
+    iepProcess: "keep 'IEP' acronym + IEP-#### ids; redefine expansion to 'IaP Enhancement Proposal' (prose only)"
+
+phases:
+  - id: '19'
+    title: IaP Migration, Release Readiness, and Real AWS Validation
+    priority: P0
+    status: in-progress
+    dependsOn: ['18']
+    milestones:
+      - id: M19.0
+        title: Hard IIS→IaP rename (no backward compatibility)
+        status: completed
+        branch: phase-19/hard-rename-iis-to-iap # logical (repo not under git; see note)
+        gate: No milestone after M19.0 may begin until rename exit criteria pass AND the approver approves the rename PR.
+        awaitingApproval: true # M19.1+ blocked pending human approval of the hard-rename PR
+        note: >-
+          Rename executed and fully verified. Pivoted mid-milestone from a
+          compatibility migration to a HARD, pre-release breaking cut per the
+          approver's hard-rename execution prompt — the compat code (legacy
+          apiVersion accept, iis CLI alias, iis_* MCP aliases) that had been
+          added was reverted, and legacy is now REJECTED with negative tests.
+        subMilestones:
+          - id: M19.0.1
+            title: Rename inventory (read-only classification, no code edits)
+            branch: phase-19/iap-rename-inventory
+            status: completed
+            note: >-
+              Read-only sweep by Rename Inventory Agent. 427 files, 3299 matching
+              lines. byCategory {A:3216, B:0(prospective), C:6, D:0-guard, E:77}.
+              26 @iis/* packages, 5 live iis_ MCP tools, 4 IIS_ env vars, 2
+              iis-named schema files (12 iis.dev $ids), 33 IIS<nnn> error codes,
+              47 *.iis.yaml + 6 *.iis-map.yaml files. No source modified.
+            openDecisions: # escalated to human approver before M19.0.2
+              - Error codes IIS<nnn> -> IAP<nnn> (33 codes, 129 files, spec contract) — potential breaking change
+              - Type casing convention IaPDocument vs IAPDocument (source uses Iis*, not IIS*)
+              - Whether the IEP process ("IIS Enhancement Proposal") is rebranded
+            evidence:
+              - docs/reports/iis-to-iap-hard-rename-inventory.md
+              - docs/migrations/iis-to-iap-hard-rename-map.yaml
+              - docs/migrations/iis-to-iap-protected-occurrences.yaml
+          - id: M19.0.2
+            title: Rename design (ADR + IEP), rewritten for the hard cut
+            status: completed
+            note: >-
+              ADR-0003 (Accepted) + IEP-0014 (Review) + hard-rename record, all
+              rewritten to describe the no-compatibility cut (legacy REJECTED).
+              Includes the full 33-code IIS###->IAP### table.
+            evidence:
+              - docs/adr/ADR-0003-iap-naming-migration.md
+              - spec/ieps/IEP-0014-iap-naming-migration.md
+              - docs/migrations/iis-to-iap.md
+              - docs/adr/README.md
+              - spec/ieps/README.md
+          - id: M19.0.3
+            title: Core code and package rename (@iis/* -> @iap/*)
+            status: completed
+            note: Ordered exact-rule engine tools/rename-iis-to-iap.mjs (no blind global replace); 26 packages + root.
+            evidence: [tools/rename-iis-to-iap.mjs, tools/rename-rules.mjs]
+          - id: M19.0.4
+            title: Specification, schema, and artifact migration (+ 33 diagnostic codes)
+            status: completed
+            note: apiVersion iap.dev/v1, schema $id host + 2 file renames, 33 codes IIS###->IAP###, examples/conformance renamed.
+            evidence: [docs/migrations/iis-to-iap-hard-rename-map.yaml]
+          - id: M19.0.5
+            title: CLI, LSP, MCP migration — canonical-only (no aliases)
+            status: completed
+            note: iap bin only; iap_* tools only (iis_* rejected); .iap.yaml only; iis.dev/v1 rejected (IAP101).
+            evidence:
+              - packages/cli/test/hard-rename.test.ts
+              - packages/mcp-server/test/server.test.ts
+              - packages/parser/test/parser.test.ts
+          - id: M19.0.6
+            title: Documentation and repository migration
+            status: completed
+            note: README/spec/ADR/IEP/milestones/reports renamed; external Microsoft IIS refs protected.
+            evidence: [docs/reports/iis-to-iap-hard-rename-inventory.md]
+          - id: M19.0.7
+            title: Migration tool (iap migrate-name)
+            status: not-applicable
+            note: Dropped for the hard cut — nothing published, no external projects to migrate (PR is naming-only).
+            evidence: []
+          - id: M19.0.8
+            title: Rename verification (semantic equivalence + repo scan + negative tests)
+            status: completed
+            note: >-
+              Full suite green (build, typecheck, lint, format, unit 1213,
+              conformance 65, providers 45, determinism 29, eval). check:names
+              gate passes. Semantic equivalence proven (reversed-naming golden
+              plans byte-identical to pre-rename). +35 negative/safety tests.
+            evidence:
+              - tools/check-legacy-names.mjs
+              - tests/rename-safety.test.ts
+              - docs/migrations/iis-to-iap-protected-occurrences.yaml
+        exitCriteria:
+          - Canonical project name is IaP; full name Infrastructure as Prompt [PASS]
+          - Canonical API version is iap.dev/v1 [PASS]
+          - Canonical filename is infrastructure.iap.yaml; legacy .iis.yaml not discovered [PASS]
+          - Canonical package scope is @iap/*; no @iis/* wrappers [PASS]
+          - Canonical CLI command is iap; no iis alias [PASS]
+          - Canonical MCP tools use iap_; legacy iis_* rejected [PASS]
+          - All 33 error codes use IAP###; no IIS### emitted or recognized [PASS]
+          - Legacy iis.dev/v1 documents are REJECTED (IAP101) — no compatibility [PASS]
+          - Rename alone produces no provider resource replacement (semantic equivalence) [PASS]
+          - No unrelated word or external Microsoft IIS reference was modified [PASS]
+          - Every remaining old-name occurrence is in protected-occurrences.yaml; check:names passes [PASS]
+          - Full verification passes [PASS]
+
+      - id: M19.1
+        title: Independent implementation audit
+        status: completed
+        dependsOn: [M19.0]
+        note: >-
+          Read-only, evidence-based audit by 5 parallel capability auditors +
+          synthesis. 46 capabilities classified A-G {A:24, B:6, C:8, F:7, G:6}.
+          No unrelated fixes made. Full verify green throughout (1213 unit / 65
+          conformance / 45 provider / 29 determinism).
+        keyFindings:
+          - 'CF-1: NO real cloud execution anywhere (no @aws-sdk, no network/credentials) — deploy/state/drift are in-memory mock only. M19.3 is a BUILD, not a validation.'
+          - 'CF-2: NO in-tree LLM — NL authoring + AI review are deterministic rule engines + an out-of-tree LLM adapter contract.'
+          - 'CF-3: integration disconnects behind a "complete" label — planner not wired to cost/compliance (hardcoded deferred); @iap/deploy orphaned + CLI deploy-family stubbed; MCP server has no wire transport.'
+        deliverables:
+          - RELEASE_READINESS.yaml
+          - docs/reports/implementation-audit.md
+          - docs/reports/production-gap-analysis.md
+        evidence:
+          - RELEASE_READINESS.yaml
+          - docs/reports/implementation-audit.md
+          - docs/reports/production-gap-analysis.md
+
+      - id: M19.2
+        title: Developer Preview scope freeze (IaP Developer Preview v0.1)
+        status: completed
+        approved: 'plan-preview v0.1 signed off by approver 2026-07-12; real AWS deploy -> v0.2 after M19.3'
+        dependsOn: [M19.1]
+        note: >-
+          v0.1 frozen as a PLAN-PREVIEW product (author -> validate -> architecture/
+          cost/security/compliance -> AWS mapping -> deterministic signed plan),
+          grounded in the M19.1 audit. Real AWS deploy/state/drift/update/destroy
+          explicitly deferred to M19.3 (a build). AWS surface frozen: 8 core kinds.
+        deliverables:
+          - docs/reports/developer-preview-scope.md
+          - docs/reports/aws-support-matrix.md
+        evidence:
+          - docs/reports/developer-preview-scope.md
+          - docs/reports/aws-support-matrix.md
+
+      - id: M19.3
+        title: Real AWS golden-path validation
+        status: completed # LIVE run executed on real AWS (acct REDACTED, eu-west-1) + fully torn down, approver-authorized 2026-07-12
+        dependsOn: [M19.2]
+        gate: SATISFIED — approver authorized the live run; executed and cleaned up. Live writes were --confirm-gated.
+        liveEvidence:
+          report: docs/reports/m19.3-live-run-evidence.md
+          account: 'REDACTED'
+          region: eu-west-1
+          runId: '1784026032'
+          resultsByTest:
+            create: 'PASS — live ARNs (iam:role, s3:bucket, sqs:queue), tagged iap:managed'
+            no-op: 'PASS — re-run all no-op (idempotent)'
+            safe-update: 'PASS — queue retention 7d->4d update-in-place'
+            replacement-update: 'DEFERRED — replace classification supported; S3/SQS/IAM are name-keyed, needs RDS/ECS for a clean same-identity replace'
+            drift: 'PASS — out-of-band mutate detected (inSync:false), read-only'
+            controlled-failure: 'PASS — first create partial-failed fail-closed (exit 3, errors[]), no silent success'
+            recovery: 'PASS — re-deploy converged after executor fix'
+            destroy: 'PASS — all 3 DELETED, managed-only'
+            cleanup-verify: 'PASS — NotFound + drift-absent + tagging-API sweep [] — ZERO orphans'
+          bugsCaughtLive:
+            - 'SQS FifoQueue=false rejected (omit unless true) — fixed + regression-tested'
+            - 'SQS MessageRetentionPeriod: IaP duration 7d -> seconds 604800 — fixed + regression-tested'
+            - 'CLI --profile collided with IaP merge-profile -> AWS creds now use --aws-profile'
+          scope: 'Narrow: S3/SQS/IAM only. ECS/RDS/ALB/DNS/logging = follow-on executor expansion.'
+        buildEvidence:
+          - packages/deploy-aws/ (AwsExecutor S3/SQS/IAM, 24 tests incl. live-bug regressions, dry-run gate, mandatory tags, managed-only destroy)
+          - packages/state/src/file.ts (FileStateBackend — durable, integrity, locking, honest AES-256-GCM; RISK-001 fixed)
+          - packages/cli/src/commands/{deploy,destroy,drift,state}.ts (real commands, --confirm live gate, --aws-profile)
+          - 'Full verify green (1267 tests)'
+        awsProfile: REDACTED_AdministratorAccess # ONLY this profile may be used
+        constraints:
+          - Dedicated sandbox account, one region
+          - Short-lived/assumed credentials, restricted IAM
+          - Cost budgets, mandatory tags, no production data
+        tests:
+          - create
+          - no-op
+          - safe update
+          - replacement update
+          - drift
+          - controlled failure
+          - recovery
+          - destroy
+          - cleanup verification
+        evidence: []
+
+      - id: M19.4
+        title: Product packaging (CLI, MCP server, VS Code .vsix, Designer, demo)
+        status: completed
+        dependsOn: [M19.2]
+        note: Scoped to v0.1 plan-preview. Built the missing runtime surfaces (MCP stdio transport, Designer shell, .vsix) rather than only documenting gaps. verify green (1226 tests); all 4 smokes pass; gate MET.
+        artifacts:
+          - id: 1-cli
+            title: Externally installable iap CLI (zero-dep esbuild bundle + staged assets)
+            status: completed
+            evidence: [tools/packaging/build-cli.mjs, tools/packaging/smoke-cli.mjs]
+          - id: 2-mcp
+            title: MCP server functional stdio JSON-RPC transport + bin (iap-mcp-server)
+            status: completed
+            evidence:
+              [
+                packages/mcp-server/src/transport.ts,
+                packages/mcp-server/src/bin.ts,
+                packages/mcp-server/test/transport.test.ts,
+              ]
+          - id: 3-vsix
+            title: Packaged VS Code .vsix (registers iap language, launches LSP)
+            status: completed
+            note: Hand-assembled OPC zip (no vsce); vscode-languageclient guarded for offline. smoke:vsix passes.
+            evidence: [extensions/vscode/]
+          - id: 4-designer
+            title: Runnable local Visual Designer shell (HTTP + UI over DesignerSession)
+            status: completed
+            note: node:http shell; all edits go through the compiler gate server-side. smoke:designer 15/15.
+            evidence: [apps/designer/]
+          - id: 5-smoke
+            title: Clean-machine + tarball smoke tests
+            status: completed
+            evidence: [tools/packaging/smoke-cli.mjs, tools/packaging/demo-e2e.mjs]
+          - id: 6-demo
+            title: Demonstration repo using packaged artifacts only
+            status: completed
+            evidence: [examples/iap-demo/]
+        gate:
+          requirement: External clean env can install IaP, author from NL, validate + analyze, and produce a deterministic AWS plan preview.
+          status: MET
+          evidence: 'pnpm run smoke:demo → PASS; planId sha256:ff21f7f96fc4c309c56f9fe5a8042ecb23660c0ea9b91e1313e193a9a145807e (deterministic across two runs)'
+        evidence:
+          - examples/iap-demo/README.md
+          - tools/packaging/demo-e2e.mjs
+
+      - id: M19.5
+        title: Public planning playground (no credentials, plan-only)
+        status: completed
+        note: apps/playground (@iap/playground) plan-only web shell; smoke 23/23, deterministic planId, credentials rejected 400, no @aws-sdk/deploy path. Guardrails per roadmap §11.
+        dependsOn: [M19.2]
+        evidence: [apps/playground/, package.json (smoke:playground)]
+
+      - id: M19.6
+        title: Security hardening (threat model, SBOM, scanning, signing)
+        status: completed
+        dependsOn: [M19.2]
+        note: >-
+          Internal engineering review (NOT a pen test). Dependency scan 0 vulns/215;
+          secret scan clean (reviewed baseline); CycloneDX SBOM (32 components);
+          provider ed25519 signing + fail-closed loader verified; MCP read-only
+          boundary. scan:secrets added to verify. Top residual risk RISK-002
+          (deployment-credential/OIDC surface, deferred to v0.2).
+        tooling:
+          - tools/security/gen-sbom.mjs (pnpm run sbom)
+          - tools/security/scan-secrets.mjs (pnpm run scan:secrets — in verify)
+        deferred:
+          - Real execution credentials / OIDC / IAM (v0.2 / M19.3)
+          - Durable encrypted state backend (v0.2)
+          - Container scanning (N/A v0.1 — no containers)
+          - Package-publishing provenance/signing (M19.8)
+        evidence:
+          - docs/security/threat-model.md
+          - docs/reports/security-readiness.md
+          - docs/security/known-risks.yaml
+          - docs/security/sbom.cdx.json
+          - SECURITY.md
+          - packages/provider-sdk/src/signing.ts
+
+      - id: M19.7
+        title: Product evidence and benchmark validation (>=20 benchmark requests)
+        status: completed
+        dependsOn: [M19.3, M19.4]
+        note: >-
+          26 benchmark cases (16/16 §13 categories). Honest measured metrics —
+          valid-IaP 100% (well-formed), unsupported/conflict detection 57% (3
+          candid misses), plan determinism 100%, 0 invented resources; deployment
+          metrics cite the single real M19.3 run. Rules-engine numbers, not LLM.
+        evidence:
+          - tests/benchmarks/cases.mjs
+          - tests/benchmarks/run.mjs
+          - docs/reports/product-evidence.md
+
+      - id: M19.8
+        title: Developer Preview release
+        status: prepared # release-readiness assembled; ALL §15 mandatory gates PASS. Awaiting publication approval (+ git/registry access).
+        dependsOn: [M19.1, M19.3, M19.4, M19.5, M19.6, M19.7]
+        gate: HUMAN APPROVAL REQUIRED — public release. Nothing published; no git/registry action taken.
+        note: >-
+          Release notes + known limitations + the §15 mandatory-gate checklist assembled;
+          every gate PASS with evidence (deployment gates satisfied by the M19.3 live run —
+          a v0.2 capability present but not marketed in v0.1). Proposed version 0.1.0.
+        evidence:
+          - docs/reports/developer-preview-v0.1-release.md
+
+    releaseGates:
+      - IaP rename migration passes; no unclassified old project naming remains
+      - Clean installation, build, type-check, tests, conformance, determinism pass
+      - No critical security finding; no plaintext-secret leakage
+      - CLI installs externally; natural language produces valid IaP
+      - AWS plan deterministic; real AWS create/no-op/update succeed
+      - State locking works; drift detected; failure recovery tested
+      - Destroy requires confirmation; cleanup verified; known limitations public

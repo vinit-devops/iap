@@ -1,0 +1,44 @@
+{
+  "name": "@iap/cli",
+  "version": "0.1.0",
+  "description": "Reference command-line interface for the Infrastructure as Prompt: validate, plan, graph, diagram, policy, normalize, fmt, explain, diff, doctor, init (spec ch. 22)",
+  "type": "module",
+  "bin": {
+    "iap": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    }
+  },
+  "files": [
+    "dist",
+    "registry"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/architecture": "workspace:*",
+    "@iap/compliance": "workspace:*",
+    "@iap/cost": "workspace:*",
+    "@iap/deploy-aws": "workspace:*",
+    "@iap/intent-compiler": "workspace:*",
+    "@iap/security": "workspace:*",
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "@iap/planner": "workspace:*",
+    "@iap/provider-sdk": "workspace:*",
+    "@iap/sdk": "workspace:*",
+    "@iap/state": "workspace:*",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

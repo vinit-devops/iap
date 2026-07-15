@@ -1,0 +1,6 @@
+# Code ownership for the IaP monorepo.
+# Inert until the repository is pushed to a git host.
+# TODO: update handles when an organization/team structure exists
+# (e.g. spec/ -> @<org>/spec-editors, packages/ -> @<org>/sdk-maintainers).
+
+* @vinitkumar

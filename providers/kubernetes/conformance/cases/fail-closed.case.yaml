@@ -1,0 +1,14 @@
+# Kubernetes package conformance: fail-closed rejections (ch. 12 §12.3,
+# PC-2). Values outside the supports matrix reject loudly with a diagnostic
+# naming the offending field — never a silent downgrade.
+apiVersion: conformance.iap.dev/v1
+case: fail-closed
+document: corpus/orders-mysql.iap.yaml
+assertions:
+  - id: mysql-engine-fails-closed
+    capability: encryption.atRest
+    expect: rejected
+  - id: exactly-once-fails-closed
+    document: corpus/queue-exactly-once.iap.yaml
+    capability: delivery.exactlyOnce
+    expect: rejected

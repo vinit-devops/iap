@@ -1,0 +1,202 @@
+# IaP known-risk register (Phase 19, M19.6)
+#
+# Machine-readable companion to docs/security/threat-model.md and
+# docs/reports/security-readiness.md. Grounded in the code as written and the
+# M19.1 implementation audit. This is an internal engineering review by
+# coordinated Claude Code agents, NOT an external penetration test or
+# certification.
+#
+# Field contract per entry:
+#   id          RISK-00x
+#   area        component / trust boundary
+#   severity    low | medium | high
+#   status      open | mitigated | accepted | deferred
+#   description what the risk is
+#   mitigation  what reduces it today (or the design intent if deferred)
+#   evidence    file the claim is grounded in
+#   disposition the honest current stance
+
+meta:
+  scope: 'IaP v0.1 — Developer Preview, plan-preview only (no cloud execution, no in-tree LLM, no hosted service)'
+  method: 'Internal engineering review by coordinated Claude Code agents reading source + tests; NOT a penetration test or third-party audit.'
+  date: '2026-07-12'
+
+risks:
+  - id: RISK-001
+    area: state
+    severity: medium
+    status: open
+    description: >-
+      LocalStateBackend advertises capabilities.encryptionAtRest = true, but state is held in
+      a plaintext in-memory Map. The capability flag is misleading — there is no encryption at
+      rest. In v0.1 nothing persists across process exit, so exposure is limited to process
+      memory, but a consumer must not read the flag as a security guarantee.
+    mitigation: >-
+      State is in-memory only in v0.1 (no durable or remote backend), CAS writes under a
+      fail-closed lease lock, integrity-hashed object store, append-only history. A durable,
+      genuinely encrypted backend is a v0.2 requirement; the flag must be corrected (or the
+      backend must actually encrypt) before durable state ships.
+    evidence: 'packages/state/src/local.ts:47,52'
+    disposition: >-
+      Open and documented. Not a v0.1 data-exposure vector (nothing persists), but the flag is
+      dishonest and must be fixed before any durable/remote backend.
+
+  - id: RISK-002
+    area: deployment-credentials / OIDC
+    severity: high
+    status: deferred
+    description: >-
+      There is no handling of execution credentials, OIDC, or IAM scoping because there is no
+      cloud execution in v0.1. When real deployment lands (v0.2), this becomes the highest-value
+      attack surface in the product.
+    mitigation: >-
+      v0.1 has no network, no cloud SDK, and no credential code anywhere (nothing to steal).
+      Design intent for v0.2 (SECURITY.md, roadmap §9.4, roadmap-v2 §9): short-lived
+      credentials / OIDC, restricted IAM, dedicated sandbox account, cost budgets, mandatory
+      tags. Standing invariant 1 forbids plaintext credentials in any document/state/plan/telemetry.
+    evidence: 'docs/reports/implementation-audit.md (two intentional boundaries); SECURITY.md'
+    disposition: >-
+      Deferred to v0.2 / M19.3. Must be designed and reviewed before any live deployment. The
+      central next-milestone security concern.
+
+  - id: RISK-003
+    area: supply-chain / secret-scanning
+    severity: low
+    status: accepted
+    description: >-
+      The secret scanner carries a reviewed in-tree baseline: ed25519 TEST keys used by the
+      provider-signing tests, plus five fixture/false-positive matches (AWS's published example
+      key, a deliberate fake ghp_ token used to verify the AI-review flags secrets, and
+      namespaced resource identifiers resembling token:/secret: assignments).
+    mitigation: >-
+      Baseline is token-scoped and enumerated; the scanner fails (exit 1) on any finding NOT in
+      the baseline. Test keys are named *-test-* / test-only and are non-production. Re-review
+      is required if any baselined value changes.
+    evidence: 'tools/security/scan-secrets.mjs (ALLOW_TEST_KEYS, ALLOW_HITS)'
+    disposition: >-
+      Accepted. These are intentional test material and confirmed non-secrets; no real
+      credential is committed.
+
+  - id: RISK-004
+    area: prompt-injection / intent-compiler
+    severity: medium
+    status: mitigated
+    description: >-
+      Prompt injection can steer a model to emit unsafe intent, leak the request, or exceed
+      cost/token budgets. This is ONLY a risk when an operator supplies a BYO out-of-tree
+      ModelAdapter — in-tree authoring is a deterministic rules engine and is not exposed.
+    mitigation: >-
+      The runAdapter middleware is the only sanctioned way to drive an adapter and enforces:
+      redaction of the request before any adapter sees it; a data-residency allowlist that
+      refuses non-conforming adapters; integer token/cost limits (fail closed); and bounded
+      structured-output repair (re-validation, never auto-accept, then refuse). All adapter
+      output is still validated and passed through the transactional gate.
+    evidence: 'packages/intent-compiler/src/adapter.ts'
+    disposition: >-
+      Mitigated at the boundary for the in-tree path. Residual: IaP cannot constrain a
+      third-party model's internals, and an operator who disables the middleware defeats these
+      controls.
+
+  - id: RISK-005
+    area: policy-engine
+    severity: low
+    status: accepted
+    description: >-
+      Policy `matches` evaluates patterns with the JavaScript RegExp engine as a documented
+      RE2-subset approximation — it does not guarantee linear-time matching. Backreferences and
+      lookbehind (which RE2 rejects) are refused; some other non-RE2 constructs (e.g. lookahead)
+      are currently accepted.
+    mitigation: >-
+      Behavior is documented in the engine; RE2-invalid constructs that RE2 rejects are refused.
+      A linear-time RE2 engine may replace the implementation without changing the contract for
+      RE2-valid patterns.
+    evidence: 'packages/policy/src/index.ts:24-30,254-258'
+    disposition: >-
+      Accepted for v0.1. Non-linear-time regex is a potential ReDoS consideration if policy
+      patterns are ever author-controlled from untrusted input; the playground (RISK-006) must
+      account for this.
+
+  - id: RISK-006
+    area: playground
+    severity: medium
+    status: deferred
+    description: >-
+      The public planning playground (M19.5) is not yet built. As a future hosted,
+      internet-facing surface it will introduce multi-tenant, DoS, and input-abuse threats that
+      do not exist in the local CLI today.
+    mitigation: >-
+      Constraints are pre-registered (roadmap-v2 §11): must NOT receive AWS credentials, deploy
+      resources, store plaintext secrets, claim exact costs, or claim formal compliance
+      certification. It is plan-preview only, with a shareable read-only result.
+    evidence: 'roadmap-v2 §11 (Milestone M19.5)'
+    disposition: >-
+      Deferred and pre-registered. Must be threat-modeled again when built, including ReDoS
+      (RISK-005) and untrusted-input handling.
+
+  - id: RISK-007
+    area: provider-plugins / supply-chain
+    severity: low
+    status: mitigated
+    description: >-
+      A malicious or tampered provider package could inject mappings, or an unsigned/wrong-key
+      package could be loaded.
+    mitigation: >-
+      ed25519 manifest signing + sha256 artifact digests behind a 7-stage fail-closed loader
+      (manifest → allowlist → signature → per-artifact integrity → compat → schema → coverage);
+      any failure refuses the whole package (no degraded load). Fail-closed on unknown key ids,
+      non-ed25519 algorithms, unparseable keys, tampered artifacts, and path escapes. Verified
+      four ways in the M19.1 audit.
+    evidence: 'packages/provider-sdk/src/loader.ts; packages/provider-sdk/src/signing.ts'
+    disposition: >-
+      Mitigated. Residual: trust reduces to operator management of the trust store and
+      allowlist; key distribution/rotation and publisher-side release provenance are deferred
+      to M19.8 (see RISK-009).
+
+  - id: RISK-008
+    area: logs
+    severity: low
+    status: accepted
+    description: >-
+      There is no central structured-logging / audit-record subsystem in v0.1; log hygiene
+      depends on components not printing user input verbatim.
+    mitigation: >-
+      Standing invariant 1 forbids secret values in telemetry. The MCP transport keeps protocol
+      bytes on stdout and diagnostics on stderr; documents and plans carry attribute names,
+      never secret values; the adapter middleware redacts requests before any adapter/log path.
+    evidence: 'packages/mcp-server/src/transport.ts:12-13; packages/planner/src/plan.ts:44-50'
+    disposition: >-
+      Accepted for v0.1 (no execution, no persisted state). A dedicated audit-record and
+      log-redaction layer is a v0.2 concern (roadmap §9.4).
+
+  - id: RISK-009
+    area: supply-chain / packaging
+    severity: medium
+    status: deferred
+    description: >-
+      Package-publishing signing and build provenance (npm provenance / signed release
+      artifacts) are not yet in place, and signed checksums for released artifacts are not yet
+      produced.
+    mitigation: >-
+      v0.1 ships nothing publicly. In-repo controls today: pinned pnpm-lock.yaml, zero-dependency
+      bundled CLI, ed25519-signed provider packages, deterministic CycloneDX SBOM, clean secret
+      scan, and 0-vulnerability pnpm audit.
+    evidence: 'docs/security/sbom.cdx.json; tools/security/gen-sbom.mjs; tools/packaging/build-cli.mjs'
+    disposition: >-
+      Deferred to M19.8 (Developer Preview release), where signed checksums and publishing
+      provenance are release gates.
+
+  - id: RISK-010
+    area: cost-engine
+    severity: low
+    status: accepted
+    description: >-
+      The bundled reference cost model uses illustrative formulas, not real vendor economics.
+      Cost figures must never be presented as exact or as a billing commitment.
+    mitigation: >-
+      The model is explicitly documented as illustrative; provider-distributed cost models are
+      the intended source of real pricing. The playground constraints (RISK-006) forbid claiming
+      exact costs.
+    evidence: 'packages/cost/src/model.ts:144'
+    disposition: >-
+      Accepted. Not a security vulnerability per se, but a correctness/misrepresentation risk
+      that release messaging (M19.8: "costs are estimates") must state plainly.

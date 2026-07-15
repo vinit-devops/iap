@@ -1,0 +1,168 @@
+# IaP v1 error-code registry (machine-readable).
+# Authority: spec/chapters/08-validation.md — where this registry and the chapter
+# disagree, the chapter governs and this file must be corrected.
+# The spec-validation harness cross-checks this registry against chapter 8 on every run.
+# severity: error | warning | contextual (severity depends on context; see definition)
+# stage: validation | plan-time
+version: 1.0.0
+codes:
+  - code: IAP101
+    phase: 1
+    severity: error
+    stage: validation
+    title: Schema constraint violation
+  - code: IAP102
+    phase: 1
+    severity: error
+    stage: validation
+    title: Unknown kind
+  - code: IAP103
+    phase: 1
+    severity: error
+    stage: validation
+    title: Invalid value (enum, pattern, or range)
+  - code: IAP104
+    phase: 1
+    severity: error
+    stage: validation
+    title: Conflicting or inert field combination
+  - code: IAP105
+    phase: 1
+    severity: error
+    stage: validation
+    title: Banned provider term in a free-string core position
+  - code: IAP201
+    phase: 2
+    severity: error
+    stage: validation
+    title: Dangling relationship target
+  - code: IAP202
+    phase: 2
+    severity: error
+    stage: validation
+    title: Dangling Application component
+  - code: IAP203
+    phase: 2
+    severity: error
+    stage: validation
+    title: Dangling output resource reference
+  - code: IAP204
+    phase: 2
+    severity: error
+    stage: validation
+    title: Dangling certificate reference
+  - code: IAP205
+    phase: 2
+    severity: error
+    stage: validation
+    title: Profile reference error (unknown extends, extends cycle, unknown profile)
+  - code: IAP301
+    phase: 3
+    severity: error
+    stage: validation
+    title: Invalid verb/target-kind combination
+  - code: IAP302
+    phase: 3
+    severity: error
+    stage: validation
+    title: Invalid edge attribute for verb
+  - code: IAP303
+    phase: 3
+    severity: warning
+    stage: validation
+    title: Advisory relationship finding
+  - code: IAP401
+    phase: 4
+    severity: error
+    stage: validation
+    title: Ordering cycle
+  - code: IAP402
+    phase: 4
+    severity: error
+    stage: validation
+    title: Unresolvable rule-edge selector (zero matches)
+  - code: IAP403
+    phase: 4
+    severity: error
+    stage: validation
+    title: Self-referential ordering edge
+  - code: IAP501
+    phase: 5
+    severity: error
+    stage: validation
+    title: Policy deny violation
+  - code: IAP502
+    phase: 5
+    severity: error
+    stage: validation
+    title: Policy require violation
+  - code: IAP503
+    phase: 5
+    severity: warning
+    stage: validation
+    title: Policy warn finding
+  - code: IAP504
+    phase: 5
+    severity: warning
+    stage: validation
+    title: Operand type mismatch in ordered comparison
+  - code: IAP505
+    phase: 5
+    severity: error
+    stage: plan-time
+    title: Budget exceeded
+  - code: IAP601
+    phase: 6
+    severity: contextual
+    stage: validation
+    title: Public exposure on a data kind (error when a storesDataIn target, warning otherwise)
+  - code: IAP602
+    phase: 6
+    severity: error
+    stage: validation
+    title: Plaintext secret material in a document
+  - code: IAP603
+    phase: 6
+    severity: error
+    stage: validation
+    title: Encryption downgrade under an active compliance framework
+  - code: IAP604
+    phase: 6
+    severity: error
+    stage: plan-time
+    title: Network isolation unenforceable by selected mapping
+  - code: IAP701
+    phase: 7
+    severity: error
+    stage: validation
+    title: Compliance framework control violation
+  - code: IAP702
+    phase: 7
+    severity: error
+    stage: validation
+    title: Framework structural requirement unmet
+  - code: IAP801
+    phase: 8
+    severity: warning
+    stage: validation
+    title: Reserved kind in use
+  - code: IAP802
+    phase: 8
+    severity: warning
+    stage: validation
+    title: Unknown extension namespace
+  - code: IAP803
+    phase: 8
+    severity: error
+    stage: validation
+    title: Extension non-interference violation
+  - code: IAP804
+    phase: 8
+    severity: warning
+    stage: validation
+    title: Unknown field from a newer specification minor
+  - code: IAP805
+    phase: 8
+    severity: warning
+    stage: validation
+    title: Deprecated element in use

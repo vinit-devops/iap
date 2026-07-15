@@ -1,0 +1,177 @@
+# Data-processing pipeline: nightly batch ETL plus a queued/streaming enrichment path.
+# Demonstrates: scheduled Job, read-only storesDataIn, timeseries Database class,
+# Queue-fed worker, a reserved Stream kind (IAP801 warning expected), Volume scratch space.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: telemetry-pipeline
+  description: Batch and streaming telemetry processing into a timeseries store
+  owner: team-data
+  labels:
+    domain: analytics
+
+resources:
+  nightly-etl:
+    kind: Job
+    description: Nightly batch transform of the raw landing zone
+    labels:
+      tier: compute
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/telemetry-etl:4.7.2
+      schedule: "15 3 * * *"
+      size: l
+      timeout: 2h
+      retries: 3
+      concurrency: forbid
+      observability:
+        logs: required
+        metrics: required
+    relationships:
+      - type: storesDataIn
+        target: raw-landing
+        access: read
+        description: Batch input; the job never writes back to the landing zone
+      - type: storesDataIn
+        target: etl-scratch
+        access: read-write
+        description: Intermediate spill space for large sorts
+      - type: connectsTo
+        target: metrics-db
+        access: write
+      - type: publishesTo
+        target: enrich-queue
+      - type: authenticatedBy
+        target: pipeline-identity
+
+  enricher:
+    kind: Service
+    description: Enrichment worker fed by the queue and the live event stream
+    labels:
+      tier: compute
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/telemetry-enricher:4.7.2
+      size: m
+      exposure: private
+      scaling:
+        min: 1
+        max: 12
+        targetUtilization: 75
+      observability:
+        logs: required
+        metrics: required
+    relationships:
+      - type: consumesFrom
+        target: enrich-queue
+      - type: consumesFrom
+        target: clickstream
+      - type: connectsTo
+        target: metrics-db
+        access: write
+      - type: authenticatedBy
+        target: pipeline-identity
+
+  raw-landing:
+    kind: ObjectStore
+    description: Raw telemetry landing zone; upstream systems deposit files here
+    labels:
+      tier: data
+    spec:
+      versioning: enabled
+      exposure: private
+      lifecycle:
+        - after: 90d
+          action: archive
+        - after: 365d
+          action: delete
+      resilience:
+        backup: preferred
+
+  etl-scratch:
+    kind: Volume
+    description: Ephemeral scratch space for the nightly job; never backed up
+    labels:
+      tier: data
+    spec:
+      capacity:
+        storage: 100Gi
+      accessMode: single-writer
+      performance: high
+      resilience:
+        backup: none
+
+  metrics-db:
+    # timeseries class: none of the v1 engine enum values is a timeseries dialect,
+    # so engine is omitted — the mapping chooses any timeseries-class store.
+    kind: Database
+    description: Aggregated telemetry, queried by dashboards downstream
+    labels:
+      tier: data
+    spec:
+      class: timeseries
+      availability: high
+      capacity:
+        storage: 500Gi
+        throughput: 20000iops
+      resilience:
+        backup: required
+        recoveryPointObjective: 1d
+        recoveryTimeObjective: 8h
+      observability:
+        logs: required
+        metrics: required
+
+  enrich-queue:
+    kind: Queue
+    description: Enrichment work items produced by the batch job
+    labels:
+      tier: messaging
+    spec:
+      delivery: at-least-once
+      ordering: none
+      messageRetention: 4d
+      deadLetter:
+        enabled: true
+        maxReceives: 5
+
+  clickstream:
+    # Stream is a reserved v1 kind: its spec is intentionally minimal in the schema, so
+    # this loose spec is accepted — validators SHOULD emit an IAP801 reserved-kind warning.
+    kind: Stream
+    description: Live click event stream consumed alongside batch output
+    labels:
+      tier: messaging
+    spec:
+      retention: 24h
+
+  pipeline-identity:
+    kind: Identity
+    description: Workload identity for all pipeline compute
+    spec:
+      type: workload
+
+  telemetry-app:
+    kind: Application
+    spec:
+      components:
+        - nightly-etl
+        - enricher
+        - raw-landing
+        - etl-scratch
+        - metrics-db
+        - enrich-queue
+        - clickstream
+      version: "4.7.2"
+
+outputs:
+  metrics-db-secret:
+    resource: metrics-db
+    attribute: connectionSecret
+    description: Handle to the timeseries store connection secret
+  landing-zone:
+    resource: raw-landing
+    attribute: identifier
+    description: Abstract identifier of the landing zone for upstream producers

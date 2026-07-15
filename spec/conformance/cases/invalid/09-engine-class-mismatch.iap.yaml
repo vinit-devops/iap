@@ -1,0 +1,20 @@
+# Conformance case: invalid/09-engine-class-mismatch
+# expected: IAP104
+# reason: Passes schema validation (class and engine are each valid enum
+#         values), but engine postgresql is only consistent with
+#         class relational (chapter 3 §Database), not class document.
+#         Engine/class consistency is an IAP104 cross-field semantic
+#         constraint. Requires a full IaP validator — plain JSON Schema
+#         validation MUST report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: engine-class-mismatch-case
+
+resources:
+  catalog-db:
+    kind: Database
+    spec:
+      class: document
+      engine: postgresql

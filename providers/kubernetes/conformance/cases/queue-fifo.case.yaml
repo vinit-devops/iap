@@ -1,0 +1,12 @@
+# Kubernetes package conformance: FIFO queue on the operator-managed broker
+# (first-match-wins realize rule selects the quorum/single-active-consumer
+# variant) with the at-rest posture attested via the broker's encrypted
+# StorageClass demand.
+apiVersion: conformance.iap.dev/v1
+case: queue-fifo
+document: corpus/work-queue.iap.yaml
+assertions:
+  - id: queue-storage-encrypted
+    select: { resource: order-events, kind: Queue }
+    capability: encryption.atRest
+    expect: satisfied

@@ -1,0 +1,29 @@
+# Mock provider conformance corpus (test material): schema-valid document
+# whose spec.availability value is outside the mock mapping's constrained
+# supports matrix (standard | high) — the mapping MUST reject it loudly
+# (expect: rejected; ch. 12 §12.3 fail-closed coverage).
+#
+# The production profile exists because the referencing case canonicalizes
+# every document it names — including per-assertion overrides — against the
+# case's profile.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: mock-database-maximum
+
+profiles:
+  production:
+    description: Storage bump only; availability stays out-of-matrix
+    overrides:
+      resources:
+        analytics-db:
+          spec:
+            capacity: { storage: 50Gi }
+
+resources:
+  analytics-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+      availability: maximum

@@ -1,0 +1,35 @@
+{
+  "name": "@iap/deploy-aws",
+  "version": "0.1.0",
+  "description": "Real AWS execution runtime for IaP (Phase 19 / M19.3 build): applies a provider plan to live AWS via @aws-sdk. Narrow golden path — S3, SQS, IAM. Live writes are gated behind explicit confirmation.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@aws-sdk/client-iam": "^3.1085.0",
+    "@aws-sdk/client-s3": "^3.1085.0",
+    "@aws-sdk/client-sqs": "^3.1085.0",
+    "@aws-sdk/credential-providers": "^3.1081.0",
+    "@iap/model": "workspace:*",
+    "@iap/provider-sdk": "workspace:*",
+    "@iap/state": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "aws-sdk-client-mock": "^4.1.0",
+    "typescript": "^5.7.0"
+  }
+}

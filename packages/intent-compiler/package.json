@@ -1,0 +1,34 @@
+{
+  "name": "@iap/intent-compiler",
+  "version": "0.1.0",
+  "description": "Intent compiler operation model for IaP (spec ch. 19, IEP-0009): closed twelve-operation vocabulary with envelopes, strict-ajv structural gate, transactional dry-run apply through the full ch. 8 pipeline, confirmation gate for low-confidence/assumption-bearing operations, append-only replayable operation log, semantic preview diff with destructive flagging, and per-field provenance citing operation ids",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "prompts",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "node ../../tools/schema-generation/sync-schemas.mjs && tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "@iap/sdk": "workspace:*",
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0",
+    "yaml": "^2.7.0"
+  }
+}

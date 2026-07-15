@@ -1,0 +1,17 @@
+# Conformance corpus (kubernetes provider): a Database whose engine is
+# OUTSIDE this mapping's supports matrix (mysql; the package operator-manages
+# postgresql only) — must be rejected loudly, never silently downgraded.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: k8s-orders-mysql
+
+resources:
+  orders-db:
+    kind: Database
+    description: Order store requesting an engine this mapping does not realize
+    spec:
+      class: relational
+      engine: mysql
+      engineVersion: "8.0"
+      availability: high

@@ -1,0 +1,34 @@
+# Conformance case: invalid/05-ordering-cycle
+# expected: IAP401
+# reason: Passes schema validation, but frontend dependsOn backend and backend
+#         dependsOn frontend, so the derived ordering graph contains the cycle
+#         frontend -> backend -> frontend. Fails phase 4 (dependency and cycle
+#         analysis) with IAP401, reported with the full cycle path. Requires a
+#         full IaP validator — plain JSON Schema validation MUST report this
+#         document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: ordering-cycle-case
+
+resources:
+  frontend:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/frontend:1.0.0
+    relationships:
+      - type: dependsOn
+        target: backend
+
+  backend:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/backend:1.0.0
+    relationships:
+      - type: dependsOn
+        target: frontend

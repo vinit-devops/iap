@@ -1,0 +1,11 @@
+# Fail-closed case (IEP-0012 PC-2, ch. 12 §12.3): Database availability
+# "maximum" is outside the mapping's supports matrix ([standard, high]) — the
+# mapping rejects the document with an unsupported-value diagnostic naming
+# spec.availability rather than silently deploying a weaker posture.
+apiVersion: conformance.iap.dev/v1
+case: database-availability-maximum
+document: corpus/database-maximum.iap.yaml
+assertions:
+  - id: maximum-availability-fails-closed
+    capability: availability.maximum
+    expect: rejected

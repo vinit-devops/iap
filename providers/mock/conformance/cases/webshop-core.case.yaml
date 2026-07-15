@@ -1,0 +1,62 @@
+# Mock provider conformance case (IEP-0012 "normative-by-example"): the
+# reference exercise of the assertion format. Together with
+# unsupported-kind.case.yaml it covers every feature of
+# conformance-case-v1.schema.json: profile, mappingInputs, select with and
+# without a kind guard, params, per-assertion document override, and all
+# three expectable verdicts (satisfied / unsupported / rejected).
+apiVersion: conformance.iap.dev/v1
+case: webshop-core
+document: corpus/webshop.iap.yaml
+profile: production
+mappingInputs:
+  deployRegion: mock-east-1
+assertions:
+  # select with kind guard; capability attested on mock:core:Store.
+  - id: storage-encrypted
+    select: { resource: orders-db, kind: Database }
+    capability: encryption.atRest
+    expect: satisfied
+  # select without kind guard.
+  - id: db-private
+    select: { resource: orders-db }
+    capability: exposure.private
+    expect: satisfied
+  # params-carrying assertion; holds only under the production profile
+  # (availability: high -> multiZone: true), proving profile merging.
+  - id: db-multi-zone
+    select: { resource: orders-db }
+    capability: availability.zonesMinimum
+    params: { min: 2 }
+    expect: satisfied
+  # attestation reads plan.inputs — proves mappingInputs reach the plan's
+  # hashed input identity (ch. 12 §12.2 explicit mapping inputs).
+  - id: region-pinned
+    select: { resource: web, kind: Service }
+    capability: placement.regionPinned
+    params: { region: mock-east-1 }
+    expect: satisfied
+  # first realize rule matched (when spec.ordering: fifo).
+  - id: jobs-fifo
+    select: { resource: jobs, kind: Queue }
+    capability: ordering.fifo
+    expect: satisfied
+  # default realize rule matched — first-match-wins is observable.
+  - id: emails-unordered
+    select: { resource: emails }
+    capability: ordering.none
+    expect: satisfied
+  - id: token-rotation
+    select: { resource: api-token, kind: Secret }
+    capability: rotation.automatic
+    expect: satisfied
+  # no attestation registered for this capability on any produced target.
+  - id: db-backup-unattested
+    select: { resource: orders-db }
+    capability: resilience.backup
+    expect: unsupported
+  # per-assertion document override; availability: maximum is outside the
+  # constrained supports matrix — loud rejection (ch. 12 §12.3).
+  - id: availability-maximum-fails-closed
+    document: corpus/database-maximum.iap.yaml
+    capability: availability.maximum
+    expect: rejected

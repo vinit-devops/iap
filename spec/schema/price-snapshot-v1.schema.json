@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/price-snapshot-v1.schema.json",
+  "title": "IaP Price Snapshot v1",
+  "description": "A versioned, content-addressed capture of provider list prices (spec ch. 16 §16.1, IEP-0005). Snapshots are the ONLY pricing input at computation time — never live lookups — so cost reports are byte-reproducible from a snapshot id. Produced/refreshed out of band (e.g. via MCP pricing sources), then vendored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "id", "provider", "currency", "region", "asOf", "source", "prices"],
+  "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "description": "Human-readable snapshot identity (e.g. reference-cloud-2026-07-01). Combined with the content hash to form the report's priceSnapshot reference.",
+      "minLength": 1
+    },
+    "provider": {
+      "type": "string",
+      "description": "The pricing domain these list prices belong to (e.g. reference-cloud, aws, gcp).",
+      "minLength": 1
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 currency code; one currency per snapshot.",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "region": {
+      "type": "string",
+      "description": "The region/geography these prices apply to (e.g. us-east-1, global).",
+      "minLength": 1
+    },
+    "asOf": {
+      "type": "string",
+      "description": "RFC 3339 pricing timestamp — when these list prices were captured.",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "description": "Provenance of the prices (a catalog URL, an MCP source id, or an explicit note such as 'illustrative').",
+      "minLength": 1
+    },
+    "prices": {
+      "type": "object",
+      "description": "SKU key → unit price. SKU keys are opaque to the engine; a cost model references them and the engine multiplies quantities by amounts. A SKU absent here makes any resource that needs it visibly unpriced (never guessed).",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit", "amount"],
+        "properties": {
+          "unit": {
+            "type": "string",
+            "description": "The billing unit the amount is per (e.g. instance-hour, gib-month, million-messages).",
+            "minLength": 1
+          },
+          "amount": {
+            "type": "number",
+            "description": "List price per unit in the snapshot currency.",
+            "minimum": 0
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

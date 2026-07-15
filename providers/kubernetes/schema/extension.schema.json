@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/providers/kubernetes/extension.schema.json",
+  "title": "kubernetes provider extension refinement",
+  "description": "Validates the content of `extensions.kubernetes` in an IaP document. Refinements are non-normative hints consumed by this mapping under the ch. 11 non-interference rule: they can never alter IaP semantics, only refine how the kubernetes realization places or sizes what the core intent already declares.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Extension namespace version registered at document level.",
+      "type": "string"
+    },
+    "resources": {
+      "description": "Per-resource refinement hints, keyed by document resource identifier (DNS-label grammar).",
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$": {
+          "type": "object",
+          "properties": {
+            "namespace": {
+              "description": "Kubernetes namespace the realized resources are placed in (DNS label).",
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+            },
+            "storageClassHint": {
+              "description": "Preferred StorageClass for operator-managed volumes. A hint only: the mapping's encryption demand always prevails over the hint.",
+              "type": "string",
+              "pattern": "^[a-z0-9]([a-z0-9-.]{0,251}[a-z0-9])?$"
+            },
+            "replicasHint": {
+              "description": "Preferred replica count for the realized workload. Never lowers a floor derived from availability intent.",
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

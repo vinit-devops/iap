@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/plugin-manifest-v1.schema.json",
+  "title": "IaP Provider Plugin Manifest v1",
+  "description": "Schema for provider package manifests (manifest.json, apiVersion plugin.iap.dev/v1) per IEP-0012. A provider package is a versioned, signed plugin bundling mapping artifacts plus hooks/handlers for one provider namespace. Loaders MUST verify the signature against a trust store and publisher allowlist, verify every artifact digest, check specCompat/sdkCompat, and statically verify coverage tiling; any failure refuses the whole package (PC-1, no degraded load).",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "name",
+    "namespace",
+    "version",
+    "specCompat",
+    "sdkCompat",
+    "certificationLevel",
+    "artifacts",
+    "capabilities",
+    "integrity",
+    "signature"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "Manifest format identifier; always plugin.iap.dev/v1.",
+      "const": "plugin.iap.dev/v1"
+    },
+    "name": {
+      "description": "Unique package name checked against the publisher allowlist (e.g. iap-provider-example).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "namespace": {
+      "description": "Provider namespace this package realizes; every bundled mapping's provider field MUST equal it (matches the extension namespace grammar).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "description": "Package version (semver). Breaking changes to the package's own schemas or realization behavior require a major bump.",
+      "$ref": "#/$defs/semver"
+    },
+    "specCompat": {
+      "description": "IaP specification version range this package supports (semver range expression, e.g. \">=1.0.0 <2.0.0\"). A loader MUST refuse the package when the specification version in force is outside this range.",
+      "$ref": "#/$defs/semverRange"
+    },
+    "sdkCompat": {
+      "description": "Provider-SDK version range this package supports (semver range expression). A loader MUST refuse the package when the SDK version in force is outside this range.",
+      "$ref": "#/$defs/semverRange"
+    },
+    "certificationLevel": {
+      "description": "The single certification level the package claims: core (mapping-only), execution (core + lifecycle handlers), or drift (execution + inverse projection). Partial claims are non-conformant (PC-5).",
+      "enum": ["core", "execution", "drift"]
+    },
+    "artifacts": {
+      "description": "Package-relative paths of the artifacts the package ships. Every referenced file MUST appear in integrity.digests.",
+      "type": "object",
+      "required": ["mappings", "extensionSchema", "conformanceCases"],
+      "properties": {
+        "mappings": {
+          "description": "Mapping artifacts (*.iap-map.yaml) validated by iap-mapping-v1.schema.json.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/relativePath" },
+          "uniqueItems": true
+        },
+        "extensionSchema": {
+          "description": "JSON Schema (draft 2020-12) validating this package's extensions.<namespace> refinement blocks.",
+          "$ref": "#/$defs/relativePath"
+        },
+        "conformanceCases": {
+          "description": "Directory of conformance cases (conformance-case-v1) and their corpus documents.",
+          "$ref": "#/$defs/relativePath"
+        },
+        "icons": {
+          "description": "Optional directory of architecture-diagram icons.",
+          "$ref": "#/$defs/relativePath"
+        },
+        "docs": {
+          "description": "Optional documentation/parameter-metadata reference file.",
+          "$ref": "#/$defs/relativePath"
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "description": "What the package can do: the IaP kinds it maps and the hooks/handlers it implements. Kinds listed here MUST exactly match the kinds covered by the bundled mapping artifacts.",
+      "type": "object",
+      "required": ["kinds"],
+      "properties": {
+        "kinds": {
+          "description": "IaP kinds the package's mappings realize.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Application",
+              "Service",
+              "Job",
+              "Function",
+              "Gateway",
+              "Database",
+              "Cache",
+              "ObjectStore",
+              "Volume",
+              "Queue",
+              "Topic",
+              "Identity",
+              "Secret",
+              "Network",
+              "Certificate",
+              "DnsZone",
+              "Stream",
+              "Workflow",
+              "SearchIndex",
+              "Registry",
+              "Dashboard",
+              "Alert"
+            ]
+          }
+        },
+        "hooks": {
+          "description": "Pure, sandboxed hooks the package implements; hooks never receive credentials.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["validate", "discover", "cost", "security"] }
+        },
+        "handlers": {
+          "description": "Execution-side handlers (certification level execution and above); only these receive credentials, at deploy time only.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["execute", "read", "drift", "import"] }
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    },
+    "attestations": {
+      "description": "Optional package-relative path of the attestation module: pure predicates registered per (capability, target type) that map plan attributes to abstract capability verdicts.",
+      "$ref": "#/$defs/relativePath"
+    },
+    "integrity": {
+      "description": "Content pinning for every artifact file the package ships.",
+      "type": "object",
+      "required": ["digests"],
+      "properties": {
+        "digests": {
+          "description": "Map of package-relative file path to its digest, sha256:<hex> over the exact file bytes. Loaders MUST verify every entry and refuse on any mismatch or missing entry.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$" },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    },
+    "signature": {
+      "description": "Detached signature over the canonical signing form: the manifest with this signature member removed, serialized as compact UTF-8 JSON with keys sorted by Unicode code point.",
+      "type": "object",
+      "required": ["keyId", "alg", "value"],
+      "properties": {
+        "keyId": {
+          "description": "Identifier resolved against the loader's trust store (keyId to public-key map). Unknown key ids refuse the package.",
+          "type": "string",
+          "minLength": 1
+        },
+        "alg": {
+          "description": "Signature algorithm; only ed25519 is defined for v1.",
+          "const": "ed25519"
+        },
+        "value": {
+          "description": "Base64-encoded ed25519 signature over the canonical signing form.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      },
+      "patternProperties": { "^x-": true },
+      "additionalProperties": false
+    }
+  },
+  "patternProperties": { "^x-": true },
+  "additionalProperties": false,
+
+  "$defs": {
+    "semver": {
+      "description": "Semantic version: MAJOR.MINOR.PATCH with optional prerelease.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+    },
+    "semverRange": {
+      "description": "Space-separated comparator list, all of which must hold (e.g. \">=1.0.0 <2.0.0\"). Operators: >=, >, <=, <, =; a bare version means exact equality.",
+      "type": "string",
+      "pattern": "^(>=|>|<=|<|=)?[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?( (>=|>|<=|<|=)?[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?)*$"
+    },
+    "relativePath": {
+      "description": "Package-relative POSIX path (directories may carry a trailing slash). Segments MUST NOT be . or .. and the path MUST NOT be absolute; loaders reject traversal outside the package directory.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*/?$"
+    }
+  }
+}

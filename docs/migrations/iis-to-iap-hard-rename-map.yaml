@@ -1,0 +1,119 @@
+# IIS -> IaP HARD rename map (Phase 19, M19.0).
+# Machine-readable record of the pre-release breaking rename. Nothing was ever
+# published/released/externally consumed, so there is NO compatibility layer:
+# every "from" is removed and only "to" survives. All strings below are ACTUAL
+# values that existed in the tree before the rename (verified against the
+# M19.0.1 inventory), not guesses.
+#
+# Companion docs:
+#   docs/reports/iis-to-iap-hard-rename-inventory.md  (full per-file inventory)
+#   docs/migrations/iis-to-iap-protected-occurrences.yaml  (allowed remainders)
+#   docs/adr/ADR-0003-iap-naming-migration.md         (decision)
+#   spec/ieps/IEP-0014-iap-naming-migration.md         (normative)
+version: 1
+kind: hard-rename
+compatibility: none # pre-release breaking cut — no aliases, no deprecation window
+
+summary:
+  filesAffected: 427
+  contentChangedFiles: 480 # across the ordered-rule passes
+  fileRenames: 57
+  diagnosticCodes: 33
+  byCategory: { A: 3216, B: 0, C: 6, D: 0, E: 77 } # B=0: hard rename keeps no legacy compat
+
+renames:
+  product:
+    - {
+        from: 'IIS',
+        to: 'IaP',
+        context: 'human prose (IAP only where an uppercase code acronym is required)',
+      }
+    - { from: 'Infrastructure Intent Specification', to: 'Infrastructure as Prompt' }
+  apiVersion: # legacy values are REJECTED after the rename (IAP101), not accepted
+    - { from: 'iis.dev/v1', to: 'iap.dev/v1' }
+    - { from: 'iis.dev/v2', to: 'iap.dev/v2' }
+    - { from: 'plan.iis.dev/v1', to: 'plan.iap.dev/v1' }
+    - { from: 'plan.iis.dev/v2', to: 'plan.iap.dev/v2' }
+    - { from: 'conformance.iis.dev/v1', to: 'conformance.iap.dev/v1' }
+    - { from: 'plugin.iis.dev/v1', to: 'plugin.iap.dev/v1' }
+    - { from: 'mapping.iis.dev/v1', to: 'mapping.iap.dev/v1' }
+    - { from: 'operations.iis.dev/v1', to: 'operations.iap.dev/v1' }
+    - { from: 'operations.iis.dev/v2', to: 'operations.iap.dev/v2' }
+    - { from: 'state.iis.dev/v1', to: 'state.iap.dev/v1' }
+  filenames: # legacy names are NOT discovered after the rename
+    - { from: 'infrastructure.iis.yaml', to: 'infrastructure.iap.yaml' }
+    - { fromPattern: '*.iis.yaml', toPattern: '*.iap.yaml' }
+    - { fromPattern: '*.iis.yml', toPattern: '*.iap.yml' }
+    - { fromPattern: '*.iis-map.yaml', toPattern: '*.iap-map.yaml' }
+  schemaFiles:
+    - { from: 'iis-v1.schema.json', to: 'iap-v1.schema.json' }
+    - { from: 'iis-mapping-v1.schema.json', to: 'iap-mapping-v1.schema.json' }
+  schemaIdHost:
+    - { from: 'https://iis.dev/', to: 'https://iap.dev/', note: 'all 12 $id values' }
+  packages: # @iis/* removed outright — no wrapper packages
+    - { fromPattern: '@iis/*', toPattern: '@iap/*', count: 26 }
+    - { from: 'iis-monorepo', to: 'iap-monorepo' }
+  cli:
+    - { from: 'iis', to: 'iap', kind: bin, note: 'no legacy `iis` alias' }
+  lsp:
+    - { from: 'iis-language-server', to: 'iap-language-server' }
+    - { from: 'iis/preview', to: 'iap/preview' }
+    - { from: 'iis/canonical', to: 'iap/canonical' }
+  mcpTools: # no legacy iis_* aliases — legacy names return unknown-tool errors
+    - { from: 'iis_author', to: 'iap_author' }
+    - { from: 'iis_validate', to: 'iap_validate' }
+    - { from: 'iis_cost', to: 'iap_cost' }
+    - { from: 'iis_security', to: 'iap_security' }
+    - { from: 'iis_compliance', to: 'iap_compliance' }
+  envVars: # no IIS_* fallback
+    - { from: 'IIS_TOOLS', to: 'IAP_TOOLS' }
+    - { from: 'IIS_ANNOTATION_KEYWORDS', to: 'IAP_ANNOTATION_KEYWORDS' }
+    - { from: 'IIS_SPEC_VERSION', to: 'IAP_SPEC_VERSION' }
+    - { from: 'IIS_DETERMINISM_PERTURBATION', to: 'IAP_DETERMINISM_PERTURBATION' }
+  types: # PascalCase acronym-as-word -> IaP brand casing
+    - { from: 'IisDocument', to: 'IaPDocument' }
+    - { from: 'IisError', to: 'IaPError' }
+    - { from: 'IisGraph', to: 'IaPGraph' }
+    - { from: 'IisMcpServer', to: 'IaPMcpServer' }
+    - { from: 'IisWorkspaceResult', to: 'IaPWorkspaceResult' }
+    - { from: 'IISSDK', to: 'IaPSDK' }
+  providerBins:
+    - { fromPattern: 'iis-provider-*', toPattern: 'iap-provider-*' }
+
+# All 33 diagnostic codes hard-renamed IIS<nnn> -> IAP<nnn>. Numeric suffix,
+# severity, and message meaning are UNCHANGED; only the prefix changes. There is
+# NO alias: after the rename IIS<nnn> is not a recognized code anywhere.
+diagnosticMigration:
+  IIS101: IAP101
+  IIS102: IAP102
+  IIS103: IAP103
+  IIS104: IAP104
+  IIS105: IAP105
+  IIS201: IAP201
+  IIS202: IAP202
+  IIS203: IAP203
+  IIS204: IAP204
+  IIS205: IAP205
+  IIS301: IAP301
+  IIS302: IAP302
+  IIS303: IAP303
+  IIS401: IAP401
+  IIS402: IAP402
+  IIS403: IAP403
+  IIS501: IAP501
+  IIS502: IAP502
+  IIS503: IAP503
+  IIS504: IAP504
+  IIS505: IAP505
+  IIS601: IAP601
+  IIS602: IAP602
+  IIS603: IAP603
+  IIS604: IAP604
+  IIS701: IAP701
+  IIS702: IAP702
+  IIS801: IAP801
+  IIS802: IAP802
+  IIS803: IAP803
+  IIS804: IAP804
+  IIS805: IAP805
+  IIS806: IAP806

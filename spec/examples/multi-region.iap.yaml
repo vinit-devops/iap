@@ -1,0 +1,164 @@
+# Multi-region deployment with replication and disaster-recovery intent.
+# Demonstrates: replicatesTo, maximum availability, RPO/RTO intent, region labels,
+# and a global entry point routing to regional services.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: global-user-service
+  description: User profile service deployed across two regions
+  owner: team-identity
+  labels:
+    criticality: tier-0
+
+resources:
+  global-edge:
+    kind: Gateway
+    description: Global entry point with geo-aware routing intent
+    spec:
+      exposure: public
+      domains: [users.example.com]
+      tls:
+        minimumVersion: "1.3"
+    relationships:
+      - type: routesTo
+        target: users-api-primary
+        protocol: https
+        path: /
+      - type: routesTo
+        target: users-api-secondary
+        protocol: https
+        path: /
+
+  users-api-primary:
+    kind: Service
+    labels:
+      region: primary
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/users-api:4.0.1
+      size: l
+      exposure: internal
+      availability: maximum
+      scaling:
+        min: 3
+        max: 15
+    relationships:
+      - type: connectsTo
+        target: users-db-primary
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: authenticatedBy
+        target: users-identity
+
+  users-api-secondary:
+    kind: Service
+    labels:
+      region: secondary
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/users-api:4.0.1
+      size: l
+      exposure: internal
+      availability: maximum
+      scaling:
+        min: 2
+        max: 15
+    relationships:
+      - type: connectsTo
+        target: users-db-replica
+        port: 5432
+        protocol: tcp
+        access: read
+      - type: authenticatedBy
+        target: users-identity
+
+  users-db-primary:
+    kind: Database
+    description: Primary user store; writes land here
+    labels:
+      region: primary
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: maximum
+      capacity:
+        storage: 200Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 5m
+        recoveryTimeObjective: 1h
+    relationships:
+      - type: replicatesTo
+        target: users-db-replica
+        description: Continuous cross-region replication
+
+  users-db-replica:
+    kind: Database
+    description: Cross-region read replica and failover target
+    labels:
+      region: secondary
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: high
+      capacity:
+        storage: 200Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 4h
+
+  media:
+    kind: ObjectStore
+    description: Profile media, replicated cross-region
+    labels:
+      region: primary
+      tier: data
+    spec:
+      versioning: enabled
+      exposure: private
+    relationships:
+      - type: replicatesTo
+        target: media-replica
+
+  media-replica:
+    kind: ObjectStore
+    labels:
+      region: secondary
+      tier: data
+    spec:
+      versioning: enabled
+      exposure: private
+
+  users-identity:
+    kind: Identity
+    spec:
+      type: workload
+
+  users-app:
+    kind: Application
+    spec:
+      components:
+        - global-edge
+        - users-api-primary
+        - users-api-secondary
+        - users-db-primary
+        - users-db-replica
+        - media
+        - media-replica
+      version: "4.0.1"
+
+outputs:
+  public-endpoint:
+    resource: global-edge
+    attribute: endpoint
+  primary-db-secret:
+    resource: users-db-primary
+    attribute: connectionSecret

@@ -1,0 +1,13 @@
+# TEST FIXTURE (test material only): schema-valid document whose
+# spec.delivery value is outside the tiny mapping's supports matrix — the
+# mapping MUST reject it loudly (expect: rejected).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: tiny-queue-exactly-once
+
+resources:
+  events:
+    kind: Queue
+    spec:
+      delivery: exactly-once

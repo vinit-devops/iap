@@ -1,0 +1,158 @@
+# Conformance corpus (kubernetes provider): verbatim copy of
+# spec/examples/basic-webapp.iap.yaml — the shared cross-provider corpus
+# document that both the aws and kubernetes packages must realize (phase-6
+# exit criterion: same model, two targets).
+# Basic web application: gateway -> service -> database + cache + object storage.
+# Demonstrates: core kinds, inline relationships, profiles as environments, outputs.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: basic-webapp
+  description: A small storefront web application
+  owner: team-web
+  organization: example-corp
+  labels:
+    costCenter: "cc-142"
+
+profiles:
+  development:
+    description: Small, cheap, single-zone
+    overrides:
+      resources:
+        web:
+          spec:
+            size: xs
+            scaling: { min: 1, max: 1 }
+        orders-db:
+          spec:
+            availability: standard
+            capacity: { storage: 5Gi }
+            resilience: { backup: none }
+  production:
+    description: Highly available production environment
+    overrides:
+      resources:
+        web:
+          spec:
+            size: l
+            availability: high
+            scaling: { min: 2, max: 6 }
+        orders-db:
+          spec:
+            availability: high
+
+resources:
+  edge:
+    kind: Gateway
+    description: Public entry point
+    spec:
+      exposure: public
+      domains: [shop.example.com]
+      tls:
+        minimumVersion: "1.3"
+    relationships:
+      - type: routesTo
+        target: web
+        protocol: https
+        path: /
+
+  web:
+    kind: Service
+    description: Storefront HTTP service
+    labels:
+      tier: application
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/storefront:1.4.2
+      size: m
+      exposure: internal
+      availability: standard
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+      healthCheck:
+        path: /healthz
+        port: 8080
+        interval: 30s
+      scaling:
+        min: 1
+        max: 4
+        targetUtilization: 70
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: connectsTo
+        target: session-cache
+        port: 6379
+        protocol: tcp
+        access: read-write
+      - type: storesDataIn
+        target: assets
+        access: read-write
+      - type: authenticatedBy
+        target: web-identity
+
+  orders-db:
+    kind: Database
+    description: Primary order store
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "16"
+      availability: standard
+      encryption:
+        atRest: required
+        inTransit: required
+      capacity:
+        storage: 20Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1d
+        recoveryTimeObjective: 4h
+
+  session-cache:
+    kind: Cache
+    labels:
+      tier: data
+    spec:
+      engine: redis-compatible
+      capacity:
+        memory: 1Gi
+
+  assets:
+    kind: ObjectStore
+    description: Product images and static assets
+    labels:
+      tier: data
+    spec:
+      versioning: enabled
+      exposure: private
+
+  web-identity:
+    kind: Identity
+    description: Workload identity for the storefront service
+    spec:
+      type: workload
+
+  storefront-app:
+    kind: Application
+    spec:
+      components: [edge, web, orders-db, session-cache, assets]
+      version: "1.4.2"
+
+outputs:
+  site:
+    resource: edge
+    attribute: endpoint
+    description: Public URL of the storefront
+  db-connection:
+    resource: orders-db
+    attribute: connectionSecret
+    description: Handle to the database connection secret

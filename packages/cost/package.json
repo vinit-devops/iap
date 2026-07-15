@@ -1,0 +1,33 @@
+{
+  "name": "@iap/cost",
+  "version": "0.1.0",
+  "description": "Cost model and estimation engine for IaP (spec ch. 16, IEP-0005): a pure function of a canonical profile-merged document, a mapping cost model, and a content-addressed price snapshot that produces a byte-reproducible cost-report/v1 with per-resource estimates, application/label roll-ups, and deterministic optimization suggestions. Cost is an annotation layer, never document content.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "snapshots"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "@iap/sdk": "workspace:*",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

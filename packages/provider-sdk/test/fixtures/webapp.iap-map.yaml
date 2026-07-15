@@ -1,0 +1,223 @@
+# TEST FIXTURE (test material only): mapping that tiles the canonical form of
+# spec/examples/basic-webapp.iap.yaml (production profile) exactly — every
+# kind, every materialized field, every source-resource relationship verb —
+# used by the engine tests.
+apiVersion: mapping.iap.dev/v1
+provider: tiny
+version: 1.0.0
+specCompat: ">=1.0.0 <2.0.0"
+description: Fixture mapping covering the basic-webapp example (test material only)
+
+mappings:
+  Application:
+    supports:
+      fields:
+        - spec.components
+        - spec.version
+    realize:
+      - targets: [tiny:group:Group]
+        derive:
+          managed:
+            constant: true
+    outputs:
+      identifier:
+        from: tiny:group:Group.id
+
+  Gateway:
+    supports:
+      fields:
+        - spec.exposure
+        - spec.domains
+        - spec.tls
+        - spec.observability
+      values:
+        spec.exposure: [public]
+      relationships: [routesTo]
+    realize:
+      - targets:
+          - tiny:lb:LoadBalancer
+          - tiny:certs:Certificate
+        derive:
+          tiny:lb:LoadBalancer.tlsMinimum:
+            from: spec.tls.minimumVersion
+          tiny:lb:LoadBalancer.public:
+            from: spec.exposure
+            map:
+              public: true
+    outputs:
+      identifier:
+        from: tiny:lb:LoadBalancer.id
+      endpoint:
+        from: tiny:lb:LoadBalancer.dnsName
+
+  Service:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.runtime
+        - spec.size
+        - spec.scaling
+        - spec.exposure
+        - spec.availability
+        - spec.ports
+        - spec.healthCheck
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image]
+        spec.runtime: [container]
+        spec.size: [xs, s, m, l, xl]
+        spec.exposure: [private, internal]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - storesDataIn
+        - authenticatedBy
+    realize:
+      - targets: [tiny:compute:Service]
+        derive:
+          cpu:
+            from: spec.size
+            map:
+              xs: 256
+              s: 512
+              m: 1024
+              l: 2048
+              xl: 4096
+          image:
+            from: spec.artifact.reference
+          replicasMin:
+            from: spec.scaling.min
+          replicasMax:
+            from: spec.scaling.max
+    outputs:
+      identifier:
+        from: tiny:compute:Service.id
+      endpoint:
+        from: tiny:compute:Service.dnsName
+
+  Database:
+    supports:
+      fields:
+        - spec.class
+        - spec.engine
+        - spec.engineVersion
+        - spec.availability
+        - spec.encryption.atRest
+        - spec.encryption.inTransit
+        - spec.exposure
+        - spec.capacity.storage
+        - spec.size
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.class: [relational]
+        spec.engine: [postgresql, mysql]
+        spec.availability: [standard, high]
+        spec.exposure: [private]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - when:
+          spec.class: relational
+        targets:
+          - tiny:sql:Instance
+          - tiny:secrets:Secret
+        derive:
+          tiny:sql:Instance.engine:
+            from: spec.engine
+            map:
+              postgresql: postgres
+              mysql: mysql
+          tiny:sql:Instance.multiZone:
+            from: spec.availability
+            map:
+              standard: false
+              high: true
+          tiny:sql:Instance.encrypted:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+          tiny:sql:Instance.storage:
+            from: spec.capacity.storage
+          tiny:sql:Instance.public:
+            constant: false
+    outputs:
+      identifier:
+        from: tiny:sql:Instance.id
+      endpoint:
+        from: tiny:sql:Instance.endpoint
+      connectionSecret:
+        from: tiny:secrets:Secret.ref
+
+  Cache:
+    supports:
+      fields:
+        - spec.engine
+        - spec.capacity.memory
+        - spec.availability
+        - spec.encryption
+        - spec.exposure
+        - spec.observability
+      values:
+        spec.engine: [redis-compatible]
+      relationships: [dependsOn]
+    realize:
+      - targets:
+          - tiny:cache:Cluster
+          - tiny:secrets:Secret
+        derive:
+          tiny:cache:Cluster.engine:
+            from: spec.engine
+            map:
+              redis-compatible: redis
+          tiny:cache:Cluster.memory:
+            from: spec.capacity.memory
+    outputs:
+      identifier:
+        from: tiny:cache:Cluster.id
+      endpoint:
+        from: tiny:cache:Cluster.endpoint
+      connectionSecret:
+        from: tiny:secrets:Secret.ref
+
+  ObjectStore:
+    supports:
+      fields:
+        - spec.versioning
+        - spec.exposure
+        - spec.encryption
+        - spec.resilience
+        - spec.observability
+      values:
+        spec.exposure: [private]
+      relationships: [dependsOn]
+    realize:
+      - targets: [tiny:blob:Bucket]
+        derive:
+          versioned:
+            from: spec.versioning
+            map:
+              enabled: true
+              disabled: false
+    outputs:
+      identifier:
+        from: tiny:blob:Bucket.id
+      endpoint:
+        from: tiny:blob:Bucket.url
+
+  Identity:
+    supports:
+      fields:
+        - spec.type
+      values:
+        spec.type: [workload]
+    realize:
+      - targets: [tiny:iam:Role]
+        derive:
+          workload:
+            constant: true
+    outputs:
+      identifier:
+        from: tiny:iam:Role.id

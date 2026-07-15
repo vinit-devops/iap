@@ -1,0 +1,30 @@
+# Conformance case: invalid/14-verb-kind-violation
+# expected: IAP301
+# reason: Passes schema validation (the edge is structurally well-formed and
+#         the target exists), but a routesTo target MUST be a Service,
+#         Function, or Gateway (chapter 4 §4.3.1) — routing traffic to a
+#         Volume is meaningless. Fails phase 3 (relationship analysis) with
+#         IAP301 (invalid verb/target-kind combination). Requires a full IaP
+#         validator — plain JSON Schema validation MUST report this document
+#         as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: verb-kind-violation-case
+
+resources:
+  edge:
+    kind: Gateway
+    spec:
+      exposure: public
+    relationships:
+      - type: routesTo
+        target: data-volume
+        path: /data
+
+  data-volume:
+    kind: Volume
+    spec:
+      capacity:
+        storage: 100Gi

@@ -1,0 +1,1751 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/schema/iap-v1.schema.json",
+  "title": "Infrastructure as Prompt (IaP) v1",
+  "description": "Machine-readable schema for IaP documents. IaP describes what infrastructure should exist (intent), never how a provider implements it. Specification version 1.0.0. Fields without an x-iap-since annotation have been present since 1.0.0.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "metadata",
+    "resources"
+  ],
+  "properties": {
+    "apiVersion": {
+      "description": "IaP group and major version this document conforms to. Documents pin the major version only; minor revisions of the specification are strictly additive.",
+      "const": "iap.dev/v1"
+    },
+    "metadata": {
+      "$ref": "#/$defs/common/metadata"
+    },
+    "profiles": {
+      "description": "Named overlays applied at plan time via RFC 7386 JSON Merge Patch. Environments are profiles. Exactly one profile is active per plan.",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/common/resourceId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/common/profile"
+      }
+    },
+    "resources": {
+      "description": "Flat map of every declared resource. The map key is the resource identifier, unique within the document.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/common/resourceId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "relationships": {
+      "description": "Selector-based rule edges only. Point-to-point relationships MUST be declared inline on the source resource.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/common/ruleEdge"
+      }
+    },
+    "policies": {
+      "description": "Declarative governance rules evaluated against the canonical (profile-merged) document.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/common/policy"
+      }
+    },
+    "compliance": {
+      "description": "Document-level compliance framework scope declarations. Frameworks activate their registered policy bundles.",
+      "type": "object",
+      "properties": {
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "soc2",
+              "pci-dss-4.0",
+              "hipaa",
+              "iso27001-2022",
+              "nist-800-53-r5",
+              "cis-8.0"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "patternProperties": {
+        "^x-": true
+      },
+      "additionalProperties": false
+    },
+    "extensions": {
+      "$ref": "#/$defs/common/extensions"
+    },
+    "outputs": {
+      "description": "Named exports of abstract resource attributes (never provider identifiers).",
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/common/resourceId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/common/output"
+      }
+    }
+  },
+  "patternProperties": {
+    "^x-": true
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "common": {
+      "resourceId": {
+        "description": "DNS-label grammar. Resource identifiers are the keys of the resources map and the only way to reference a resource.",
+        "type": "string",
+        "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+      },
+      "quantity": {
+        "description": "Kubernetes-style quantity grammar for exact capacity intent (e.g. 100Gi, 2, 500m).",
+        "type": "string",
+        "pattern": "^[0-9]+(\\.[0-9]+)?(m|k|M|G|T|Ki|Mi|Gi|Ti)?$"
+      },
+      "duration": {
+        "description": "Duration grammar: integer followed by ms, s, m, h, or d.",
+        "type": "string",
+        "pattern": "^[0-9]+(ms|s|m|h|d)$"
+      },
+      "hostname": {
+        "type": "string",
+        "pattern": "^(\\*\\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}$"
+      },
+      "semver": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+      },
+      "labels": {
+        "description": "Free-form key/value labels used by selectors, policies, and rule edges. Values are always strings.",
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9._/-]{0,61}[a-zA-Z0-9])?$"
+        },
+        "additionalProperties": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/common/resourceId",
+            "description": "Document name, unique within an organization."
+          },
+          "description": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owning team or individual."
+          },
+          "organization": {
+            "type": "string"
+          },
+          "labels": {
+            "$ref": "#/$defs/common/labels"
+          },
+          "annotations": {
+            "description": "Free-form string annotations. Never semantic: tools MUST NOT change behavior based on annotations.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "availability": {
+        "description": "Availability intent as a measurable SLO floor: standard >= 99.9% (single-zone acceptable), high >= 99.95% (multi-zone), maximum >= 99.99% (multi-region-capable).",
+        "enum": [
+          "standard",
+          "high",
+          "maximum"
+        ],
+        "default": "standard"
+      },
+      "exposure": {
+        "description": "Network reachability intent: public (internet-reachable), internal (organization network only), private (reachable only via declared connectsTo relationships).",
+        "enum": [
+          "public",
+          "internal",
+          "private"
+        ],
+        "default": "private"
+      },
+      "size": {
+        "description": "Portable t-shirt sizing for compute capacity. Providers map sizes to concrete instance classes; exact quantities may be given via resources overrides.",
+        "enum": [
+          "xs",
+          "s",
+          "m",
+          "l",
+          "xl"
+        ],
+        "default": "m"
+      },
+      "encryption": {
+        "description": "Encryption intent. Omission never weakens posture: both dimensions default to required.",
+        "type": "object",
+        "properties": {
+          "atRest": {
+            "enum": [
+              "required",
+              "preferred"
+            ],
+            "default": "required"
+          },
+          "inTransit": {
+            "enum": [
+              "required",
+              "preferred"
+            ],
+            "default": "required"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "observability": {
+        "description": "Cross-cutting observability intent available on every resource.",
+        "type": "object",
+        "properties": {
+          "logs": {
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "required"
+          },
+          "metrics": {
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "preferred"
+          },
+          "traces": {
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "none"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "computeResources": {
+        "description": "Optional exact-quantity override of t-shirt sizing.",
+        "type": "object",
+        "properties": {
+          "cpu": {
+            "$ref": "#/$defs/common/quantity"
+          },
+          "memory": {
+            "$ref": "#/$defs/common/quantity"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "artifact": {
+        "description": "What to run, expressed provider-neutrally.",
+        "type": "object",
+        "required": [
+          "type",
+          "reference"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "container-image",
+              "source",
+              "archive"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "description": "Image reference, source repository URL, or archive location."
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "relationshipType": {
+        "description": "Closed v1 relationship verb set. Extensions may add edge attributes, never verbs. All verbs except dependsOn imply an ordering dependency (target before source); replicatesTo is symmetric-capable and implies no ordering.",
+        "enum": [
+          "dependsOn",
+          "connectsTo",
+          "routesTo",
+          "publishesTo",
+          "consumesFrom",
+          "replicatesTo",
+          "storesDataIn",
+          "protectedBy",
+          "monitoredBy",
+          "authenticatedBy"
+        ]
+      },
+      "relationshipEdge": {
+        "description": "Inline edge declared on the source resource. The declaring resource is always the source.",
+        "type": "object",
+        "required": [
+          "type",
+          "target"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/$defs/common/relationshipType"
+          },
+          "target": {
+            "$ref": "#/$defs/common/resourceId"
+          },
+          "description": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "protocol": {
+            "enum": [
+              "tcp",
+              "udp",
+              "http",
+              "https",
+              "grpc",
+              "amqp",
+              "mqtt"
+            ]
+          },
+          "access": {
+            "description": "Access level asserted by this edge (connectsTo/storesDataIn only). Least privilege is derived from these values. Default: read-write.",
+            "enum": [
+              "read",
+              "write",
+              "read-write",
+              "admin"
+            ],
+            "default": "read-write"
+          },
+          "path": {
+            "type": "string",
+            "description": "Route path prefix (routesTo only)."
+          },
+          "host": {
+            "$ref": "#/$defs/common/hostname",
+            "description": "Route host match (routesTo only)."
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "selector": {
+        "description": "Label selector matching resources in the same document.",
+        "type": "object",
+        "required": [
+          "labels"
+        ],
+        "properties": {
+          "kinds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/kindName"
+            },
+            "uniqueItems": true
+          },
+          "labels": {
+            "$ref": "#/$defs/common/labels"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "ruleEdge": {
+        "description": "Selector-based bulk edge: every resource matched by source gains this relationship to target.",
+        "type": "object",
+        "required": [
+          "type",
+          "source",
+          "target"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/$defs/common/relationshipType"
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "selector"
+            ],
+            "properties": {
+              "selector": {
+                "$ref": "#/$defs/common/selector"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "target": {
+            "$ref": "#/$defs/common/resourceId"
+          },
+          "description": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "protocol": {
+            "enum": [
+              "tcp",
+              "udp",
+              "http",
+              "https",
+              "grpc",
+              "amqp",
+              "mqtt"
+            ]
+          },
+          "access": {
+            "enum": [
+              "read",
+              "write",
+              "read-write",
+              "admin"
+            ],
+            "default": "read-write"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "profile": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "extends": {
+            "$ref": "#/$defs/common/resourceId",
+            "description": "Name of one other profile whose overrides are applied first (root of the extends chain first)."
+          },
+          "overrides": {
+            "description": "RFC 7386 JSON Merge Patch applied to the document: objects deep-merge, arrays replace wholesale, null deletes. Profiles may add resources. The merged result MUST itself be a valid IaP document.",
+            "type": "object"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "policyCondition": {
+        "description": "Deterministic structural condition tree. No embedded expression language in v1.",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "field",
+              "operator"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Dot path into the resource (e.g. spec.encryption.atRest)."
+              },
+              "operator": {
+                "enum": [
+                  "equals",
+                  "not-equals",
+                  "in",
+                  "not-in",
+                  "exists",
+                  "absent",
+                  "greater-than",
+                  "less-than",
+                  "matches"
+                ]
+              },
+              "value": {
+                "description": "Comparison value; required for all operators except exists and absent."
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "allOf"
+            ],
+            "properties": {
+              "allOf": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/common/policyCondition"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "anyOf"
+            ],
+            "properties": {
+              "anyOf": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/common/policyCondition"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "not"
+            ],
+            "properties": {
+              "not": {
+                "$ref": "#/$defs/common/policyCondition"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "policy": {
+        "type": "object",
+        "required": [
+          "id",
+          "target",
+          "rule",
+          "effect"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/common/resourceId"
+          },
+          "description": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/kindName"
+                },
+                "uniqueItems": true
+              },
+              "selector": {
+                "$ref": "#/$defs/common/selector"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "rule": {
+            "$ref": "#/$defs/common/policyCondition"
+          },
+          "effect": {
+            "description": "deny: violation fails validation. warn: violation is reported. require: the rule MUST hold; tools MAY offer a deterministic autofix.",
+            "enum": [
+              "deny",
+              "warn",
+              "require"
+            ]
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            }
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "extensions": {
+        "description": "Namespaced, non-normative provider refinements. Extension Non-Interference Rule: deleting every extensions block from a valid document MUST yield a valid document with identical core semantics. Unknown namespaces warn, never fail.",
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "$ref": "#/$defs/common/semver",
+              "description": "Extension package version (document level registration only)."
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "output": {
+        "type": "object",
+        "required": [
+          "resource",
+          "attribute"
+        ],
+        "properties": {
+          "resource": {
+            "$ref": "#/$defs/common/resourceId"
+          },
+          "attribute": {
+            "type": "string",
+            "description": "Abstract attribute name declared by the resource kind (e.g. endpoint, connectionSecret, identifier).",
+            "pattern": "^[a-z][a-zA-Z0-9]*$"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "resilienceBackupRequired": {
+        "description": "Data protection and recovery intent. backup defaults to \"required\" for stateful kinds (Database, Volume).",
+        "type": "object",
+        "properties": {
+          "backup": {
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "required"
+          },
+          "recoveryPointObjective": {
+            "$ref": "#/$defs/common/duration"
+          },
+          "recoveryTimeObjective": {
+            "$ref": "#/$defs/common/duration"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "resilienceBackupPreferred": {
+        "description": "Data protection and recovery intent. backup defaults to \"preferred\" for durable-by-design kinds (ObjectStore).",
+        "type": "object",
+        "properties": {
+          "backup": {
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "preferred"
+          },
+          "recoveryPointObjective": {
+            "$ref": "#/$defs/common/duration"
+          },
+          "recoveryTimeObjective": {
+            "$ref": "#/$defs/common/duration"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      }
+    },
+    "kindName": {
+      "enum": [
+        "Application",
+        "Service",
+        "Job",
+        "Function",
+        "Gateway",
+        "Database",
+        "Cache",
+        "ObjectStore",
+        "Volume",
+        "Queue",
+        "Topic",
+        "Identity",
+        "Secret",
+        "Network",
+        "Certificate",
+        "DnsZone",
+        "Stream",
+        "Workflow",
+        "SearchIndex",
+        "Registry",
+        "Dashboard",
+        "Alert"
+      ]
+    },
+    "resource": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/kindName"
+        },
+        "description": {
+          "type": "string"
+        },
+        "labels": {
+          "$ref": "#/$defs/common/labels"
+        },
+        "spec": {
+          "type": "object"
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/common/relationshipEdge"
+          }
+        },
+        "extensions": {
+          "$ref": "#/$defs/common/extensions"
+        }
+      },
+      "patternProperties": {
+        "^x-": true
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Application"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Application"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Service"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Service"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Job"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Job"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Function"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Function"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Gateway"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Gateway"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Database"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Database"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Cache"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Cache"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ObjectStore"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/ObjectStore"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Volume"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Volume"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Queue"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Queue"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Topic"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Topic"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Identity"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Identity"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Secret"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Secret"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "Network",
+                  "Certificate",
+                  "DnsZone",
+                  "Stream",
+                  "Workflow",
+                  "SearchIndex",
+                  "Registry",
+                  "Dashboard",
+                  "Alert"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/ReservedKind"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "kinds": {
+      "Application": {
+        "description": "Logical grouping of resources that ship together. x-iap-capability: application",
+        "type": "object",
+        "required": [
+          "components"
+        ],
+        "properties": {
+          "components": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/common/resourceId"
+            },
+            "uniqueItems": true
+          },
+          "version": {
+            "type": "string",
+            "description": "Application-level version label."
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Service": {
+        "description": "Long-running request-serving workload. x-iap-capability: compute",
+        "type": "object",
+        "required": [
+          "artifact"
+        ],
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/common/artifact"
+          },
+          "runtime": {
+            "description": "Execution substrate hint; largely a mapping concern.",
+            "enum": [
+              "container",
+              "vm",
+              "managed"
+            ],
+            "default": "container"
+          },
+          "size": {
+            "$ref": "#/$defs/common/size"
+          },
+          "resources": {
+            "$ref": "#/$defs/common/computeResources"
+          },
+          "scaling": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 1
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1
+              },
+              "targetUtilization": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 70
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "exposure": {
+            "$ref": "#/$defs/common/exposure"
+          },
+          "availability": {
+            "$ref": "#/$defs/common/availability"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "port"
+              ],
+              "properties": {
+                "name": {
+                  "$ref": "#/$defs/common/resourceId"
+                },
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "protocol": {
+                  "enum": [
+                    "tcp",
+                    "udp",
+                    "http",
+                    "https",
+                    "grpc"
+                  ],
+                  "default": "tcp"
+                }
+              },
+              "patternProperties": {
+                "^x-": true
+              },
+              "additionalProperties": false
+            }
+          },
+          "configuration": {
+            "description": "Non-secret configuration values. Secrets MUST be modeled as Secret resources referenced via relationships.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "healthCheck": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "interval": {
+                "$ref": "#/$defs/common/duration",
+                "default": "30s"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false,
+            "x-iap-presence-semantic": true
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Job": {
+        "description": "Run-to-completion workload, optionally scheduled. x-iap-capability: compute",
+        "type": "object",
+        "required": [
+          "artifact"
+        ],
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/common/artifact"
+          },
+          "schedule": {
+            "type": "string",
+            "description": "Cron expression (5-field) or @hourly/@daily/@weekly/@monthly. Omit for on-demand jobs.",
+            "pattern": "^(@(hourly|daily|weekly|monthly)|(\\S+\\s+){4}\\S+)$"
+          },
+          "size": {
+            "$ref": "#/$defs/common/size"
+          },
+          "resources": {
+            "$ref": "#/$defs/common/computeResources"
+          },
+          "timeout": {
+            "$ref": "#/$defs/common/duration",
+            "default": "1h"
+          },
+          "retries": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 0
+          },
+          "concurrency": {
+            "description": "Behavior when a new run starts while a previous run is active.",
+            "enum": [
+              "allow",
+              "forbid",
+              "replace"
+            ],
+            "default": "forbid"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Function": {
+        "description": "Event-invoked workload; triggers derive from consumesFrom/routesTo relationships. x-iap-capability: compute",
+        "type": "object",
+        "required": [
+          "artifact"
+        ],
+        "properties": {
+          "artifact": {
+            "$ref": "#/$defs/common/artifact"
+          },
+          "size": {
+            "$ref": "#/$defs/common/size",
+            "default": "s"
+          },
+          "resources": {
+            "$ref": "#/$defs/common/computeResources"
+          },
+          "timeout": {
+            "$ref": "#/$defs/common/duration",
+            "default": "30s"
+          },
+          "concurrency": {
+            "type": "object",
+            "properties": {
+              "max": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Gateway": {
+        "description": "Traffic entry point; routes are routesTo relationships with path/host attributes. x-iap-capability: network",
+        "type": "object",
+        "properties": {
+          "exposure": {
+            "enum": [
+              "public",
+              "internal"
+            ],
+            "default": "public",
+            "description": "Gateways exist to expose traffic; private is not a valid gateway exposure."
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/common/hostname"
+            },
+            "uniqueItems": true
+          },
+          "tls": {
+            "type": "object",
+            "properties": {
+              "minimumVersion": {
+                "enum": [
+                  "1.2",
+                  "1.3"
+                ],
+                "default": "1.2"
+              },
+              "certificate": {
+                "$ref": "#/$defs/common/resourceId",
+                "description": "Reference to a Certificate resource; omit for provider-managed certificates."
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Database": {
+        "description": "Managed database intent; engine names are open, non-proprietary dialects the application code depends on. x-iap-capability: database",
+        "type": "object",
+        "required": [
+          "class"
+        ],
+        "properties": {
+          "class": {
+            "enum": [
+              "relational",
+              "document",
+              "key-value",
+              "graph",
+              "timeseries",
+              "vector"
+            ]
+          },
+          "engine": {
+            "description": "Wire-protocol/dialect intent. Provider products never appear here.",
+            "enum": [
+              "postgresql",
+              "mysql",
+              "mariadb",
+              "mongodb-compatible",
+              "cassandra-compatible"
+            ]
+          },
+          "engineVersion": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)*$"
+          },
+          "availability": {
+            "$ref": "#/$defs/common/availability"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "exposure": {
+            "enum": [
+              "private",
+              "internal"
+            ],
+            "default": "private"
+          },
+          "capacity": {
+            "type": "object",
+            "properties": {
+              "storage": {
+                "$ref": "#/$defs/common/quantity",
+                "default": "10Gi"
+              },
+              "throughput": {
+                "type": "string",
+                "pattern": "^[0-9]+(rps|iops)$"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "size": {
+            "$ref": "#/$defs/common/size"
+          },
+          "resilience": {
+            "$ref": "#/$defs/common/resilienceBackupRequired"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Cache": {
+        "description": "In-memory cache intent. x-iap-capability: cache",
+        "type": "object",
+        "required": [
+          "engine"
+        ],
+        "properties": {
+          "engine": {
+            "enum": [
+              "redis-compatible",
+              "memcached-compatible"
+            ]
+          },
+          "capacity": {
+            "type": "object",
+            "properties": {
+              "memory": {
+                "$ref": "#/$defs/common/quantity",
+                "default": "1Gi"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "availability": {
+            "$ref": "#/$defs/common/availability"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "exposure": {
+            "enum": [
+              "private",
+              "internal"
+            ],
+            "default": "private"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "ObjectStore": {
+        "description": "Durable blob/object storage intent. x-iap-capability: storage",
+        "type": "object",
+        "properties": {
+          "versioning": {
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "disabled"
+          },
+          "exposure": {
+            "enum": [
+              "private",
+              "public"
+            ],
+            "default": "private"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "lifecycle": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "after",
+                "action"
+              ],
+              "properties": {
+                "after": {
+                  "$ref": "#/$defs/common/duration"
+                },
+                "action": {
+                  "enum": [
+                    "archive",
+                    "delete"
+                  ]
+                }
+              },
+              "patternProperties": {
+                "^x-": true
+              },
+              "additionalProperties": false
+            }
+          },
+          "resilience": {
+            "$ref": "#/$defs/common/resilienceBackupPreferred"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Volume": {
+        "description": "Block/file volume attached to compute. x-iap-capability: storage",
+        "type": "object",
+        "required": [
+          "capacity"
+        ],
+        "properties": {
+          "capacity": {
+            "type": "object",
+            "required": [
+              "storage"
+            ],
+            "properties": {
+              "storage": {
+                "$ref": "#/$defs/common/quantity"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "accessMode": {
+            "enum": [
+              "single-writer",
+              "multi-reader",
+              "multi-writer"
+            ],
+            "default": "single-writer"
+          },
+          "performance": {
+            "enum": [
+              "standard",
+              "high",
+              "maximum"
+            ],
+            "default": "standard"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "resilience": {
+            "$ref": "#/$defs/common/resilienceBackupRequired"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Queue": {
+        "description": "Point-to-point message queue. x-iap-capability: messaging",
+        "type": "object",
+        "properties": {
+          "delivery": {
+            "enum": [
+              "at-least-once",
+              "exactly-once"
+            ],
+            "default": "at-least-once"
+          },
+          "ordering": {
+            "enum": [
+              "none",
+              "fifo"
+            ],
+            "default": "none"
+          },
+          "messageRetention": {
+            "$ref": "#/$defs/common/duration",
+            "default": "7d"
+          },
+          "deadLetter": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": false
+              },
+              "maxReceives": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 5,
+                "x-iap-default-when": {
+                  "enabled": true
+                },
+                "description": "Default applies only while enabled is true; authored alongside enabled: false it is an IAP104 error."
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false,
+            "x-iap-presence-semantic": true
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Topic": {
+        "description": "Publish/subscribe channel; subscribers declare consumesFrom edges. x-iap-capability: messaging",
+        "type": "object",
+        "properties": {
+          "delivery": {
+            "enum": [
+              "at-least-once",
+              "exactly-once"
+            ],
+            "default": "at-least-once"
+          },
+          "ordering": {
+            "enum": [
+              "none",
+              "ordered"
+            ],
+            "default": "none"
+          },
+          "messageRetention": {
+            "$ref": "#/$defs/common/duration",
+            "default": "7d"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Identity": {
+        "description": "Workload identity intent; concrete permissions derive from relationship access levels. x-iap-capability: identity",
+        "type": "object",
+        "properties": {
+          "type": {
+            "enum": [
+              "workload"
+            ],
+            "default": "workload"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Secret": {
+        "description": "Managed secret material; values never appear in IaP documents. x-iap-capability: security",
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "generated: the platform creates the value. provided: supplied out-of-band at deploy time. external: synchronized from an external secret system.",
+            "enum": [
+              "generated",
+              "provided",
+              "external"
+            ],
+            "default": "generated"
+          },
+          "rotation": {
+            "type": "object",
+            "properties": {
+              "policy": {
+                "enum": [
+                  "required",
+                  "preferred",
+                  "none"
+                ],
+                "default": "preferred"
+              },
+              "interval": {
+                "$ref": "#/$defs/common/duration",
+                "default": "90d"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "ReservedKind": {
+        "description": "Reserved registry kind (Network, Certificate, DnsZone, Stream, Workflow, SearchIndex, Registry, Dashboard, Alert). Schema intentionally minimal in v1; full specification arrives in a future minor. Validators MUST accept and SHOULD warn (IAP801).",
+        "type": "object",
+        "x-iap-reserved": true
+      }
+    }
+  }
+}

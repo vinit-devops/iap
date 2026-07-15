@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iap.dev/fixtures/tiny-extension.schema.json",
+  "title": "tiny provider extension refinement (test material only)",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Extension package version registered at document level.",
+      "type": "string"
+    },
+    "instanceClass": {
+      "description": "Concrete instance class override.",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,37 @@
+# Kubernetes package conformance: capability assertions over the shared
+# basic-webapp corpus document (production profile). Each satisfied verdict
+# flows through this package's attestation functions — NetworkPolicy denial
+# for exposure.private, an encrypted-StorageClass demand for
+# encryption.atRest, operator instance count for the availability floor —
+# structurally different from the AWS attestations of the same abstract
+# capabilities (IEP-0012 "Provider impact").
+apiVersion: conformance.iap.dev/v1
+case: webapp-core
+document: corpus/basic-webapp.iap.yaml
+profile: production
+assertions:
+  - id: storage-encrypted
+    select: { resource: orders-db, kind: Database }
+    capability: encryption.atRest
+    expect: satisfied
+  - id: transit-encrypted
+    select: { resource: orders-db, kind: Database }
+    capability: encryption.inTransit
+    expect: satisfied
+  - id: private-exposure
+    select: { resource: orders-db }
+    capability: exposure.private
+    expect: satisfied
+  - id: assets-private-exposure
+    select: { resource: assets, kind: ObjectStore }
+    capability: exposure.private
+    expect: satisfied
+  - id: ha-instances
+    select: { resource: orders-db }
+    capability: availability.zonesMinimum
+    params: { min: 2 }
+    expect: satisfied
+  - id: backup-unattested
+    select: { resource: orders-db }
+    capability: resilience.backup
+    expect: unsupported

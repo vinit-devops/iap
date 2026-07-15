@@ -1,0 +1,28 @@
+{
+  "name": "@iap/deploy",
+  "version": "0.1.0",
+  "description": "Deployment orchestration engine for IaP (spec ch. 14, IEP-0010; roadmap Phase 14): drives an approved plan through a provider executor with state locking, plan/approval verification, atomic state commits with partial-state recovery, post-deployment verification, a drift engine, and a rollback framework. AI and MCP are absent from execution.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/state": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,16 @@
+# Mock provider conformance corpus (test material): schema-valid document
+# declaring a reserved kind (Workflow) the mock package does not map at all —
+# the mapping MUST fail closed with an unsupported-kind diagnostic
+# (expect: rejected). Workflow stays genuinely uncovered after the M7.4
+# widening (which covers every kind the official examples use), keeping the
+# package's uncovered-kind rejection surface honest.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: mock-workflow-orchestrator
+
+resources:
+  order-workflow:
+    kind: Workflow
+    spec:
+      steps: 3

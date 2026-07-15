@@ -1,0 +1,18 @@
+# Conformance corpus (kubernetes provider): a Function resource — a core
+# kind this package does not cover. Mapping a document that declares it must
+# fail closed with an unsupported-kind diagnostic (plans are complete or
+# absent; ch. 12 §12.3).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: k8s-image-resizer
+
+resources:
+  image-resizer:
+    kind: Function
+    description: Event-invoked workload outside this package's kind coverage
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/resizer:2.0.1
+      timeout: 60s

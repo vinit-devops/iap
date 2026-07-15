@@ -1,0 +1,23 @@
+# Conformance case: invalid/07-inert-deadletter
+# expected: IAP104
+# reason: Passes schema validation (both fields are individually well-formed),
+#         but deadLetter.maxReceives is set while deadLetter.enabled is false,
+#         so the field would silently do nothing. Chapter 8 treats this inert
+#         cross-field combination as an authoring error (IAP104); the
+#         x-iap-default-when annotation on maxReceives marks the dependency.
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: inert-deadletter-case
+
+resources:
+  work-queue:
+    kind: Queue
+    spec:
+      delivery: at-least-once
+      deadLetter:
+        enabled: false
+        maxReceives: 3

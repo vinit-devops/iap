@@ -1,0 +1,105 @@
+# Conformance case: valid/03-profiles-policies
+# expected: pass
+# reason: Exercises profiles (extends + overrides via RFC 7386 merge), a require
+#         policy on spec.encryption.atRest, compliance framework scoping,
+#         abstract outputs, x-* annotation passthrough, and a versioned
+#         extensions block (exempt from core semantics per the
+#         Extension Non-Interference Rule).
+
+apiVersion: iap.dev/v1
+
+x-generator: iap-conformance-suite/1.0.0
+
+metadata:
+  name: governed-shop
+  organization: example-corp
+  labels:
+    domain: commerce
+  x-review-ticket: ARCH-2041
+
+resources:
+  api:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/shop-api:5.1.0
+      availability: standard
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+
+  orders-db:
+    kind: Database
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      encryption:
+        atRest: required
+        inTransit: required
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+    extensions:
+      kubernetes:
+        storageClassHint: fast
+
+profiles:
+  default:
+    description: Baseline sizing shared by every environment.
+    overrides:
+      resources:
+        orders-db:
+          spec:
+            size: s
+  production:
+    description: Production overlay; deep-merges on top of default.
+    extends: default
+    overrides:
+      resources:
+        api:
+          spec:
+            availability: high
+            scaling:
+              min: 3
+              max: 12
+        orders-db:
+          spec:
+            size: l
+            availability: high
+
+policies:
+  - id: encrypt-data-at-rest
+    description: Every data-holding resource must require encryption at rest.
+    target:
+      kinds: [Database, Cache, ObjectStore, Volume, Queue, Topic]
+    rule:
+      field: spec.encryption.atRest
+      operator: equals
+      value: required
+    effect: require
+
+compliance:
+  frameworks:
+    - soc2
+
+extensions:
+  kubernetes:
+    version: 1.0.0
+    namespace: shop
+
+outputs:
+  api-endpoint:
+    resource: api
+    attribute: endpoint
+    description: Abstract endpoint of the API service.
+  orders-db-secret:
+    resource: orders-db
+    attribute: connectionSecret

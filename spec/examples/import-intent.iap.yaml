@@ -1,0 +1,132 @@
+# Existing-resource import intent: a brownfield document adopting resources that already exist.
+# Demonstrates: the x-* passthrough convention. v1 models import intent with x-iap-* tool
+# annotations (x-iap-import, x-iap-import-source) plus descriptive metadata.annotations —
+# never with core fields. The core document stays pure intent; the state engine's import
+# handlers (roadmap Phase 14) read these annotations to adopt live resources instead of
+# creating them, and every other tool ignores them.
+apiVersion: iap.dev/v1
+
+metadata:
+  name: crm-adoption
+  description: CRM platform; the database and document archive predate this document
+  owner: team-crm
+  organization: example-corp
+  labels:
+    migration: brownfield
+  annotations:
+    imported-from: "urn:example:legacy-estate:crm-2019"
+    import-reviewed-by: platform-governance
+
+resources:
+  crm-api:
+    kind: Service
+    description: New CRM API, deployed fresh in front of the adopted data stores
+    labels:
+      tier: application
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/crm-api:1.0.0
+      size: m
+      exposure: internal
+      availability: high
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+      healthCheck:
+        path: /healthz
+        port: 8080
+        interval: 30s
+      scaling:
+        min: 2
+        max: 8
+    relationships:
+      - type: connectsTo
+        target: legacy-crm-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+      - type: connectsTo
+        target: session-cache
+        port: 6379
+        protocol: tcp
+        access: read-write
+      - type: storesDataIn
+        target: document-archive
+        access: read-write
+      - type: authenticatedBy
+        target: crm-identity
+
+  legacy-crm-db:
+    # Adopted, not created: x-iap-import marks import intent for the state engine's
+    # import handlers. The spec below still declares full intent — after adoption the
+    # resource is governed exactly like any other, and drift from this intent is reported.
+    kind: Database
+    x-iap-import: true
+    x-iap-import-source: "urn:example:legacy-estate:crm-2019/database"
+    description: Pre-existing production CRM database, adopted rather than created
+    labels:
+      tier: data
+    spec:
+      class: relational
+      engine: postgresql
+      engineVersion: "14"
+      exposure: private
+      availability: high
+      capacity:
+        storage: 250Gi
+      resilience:
+        backup: required
+        recoveryPointObjective: 1h
+        recoveryTimeObjective: 4h
+
+  document-archive:
+    kind: ObjectStore
+    x-iap-import: true
+    x-iap-import-source: "urn:example:legacy-estate:crm-2019/archive"
+    description: Pre-existing contract and attachment archive, adopted rather than created
+    labels:
+      tier: data
+    spec:
+      versioning: enabled
+      exposure: private
+      resilience:
+        backup: preferred
+
+  session-cache:
+    kind: Cache
+    description: New session cache, created alongside the new API
+    labels:
+      tier: data
+    spec:
+      engine: redis-compatible
+      exposure: private
+      capacity:
+        memory: 1Gi
+
+  crm-identity:
+    kind: Identity
+    description: Workload identity for the CRM API
+    spec:
+      type: workload
+
+  crm-app:
+    kind: Application
+    spec:
+      components:
+        - crm-api
+        - legacy-crm-db
+        - document-archive
+        - session-cache
+      version: "1.0.0"
+
+outputs:
+  crm-endpoint:
+    resource: crm-api
+    attribute: endpoint
+    description: Internal endpoint of the CRM API
+  crm-db-secret:
+    resource: legacy-crm-db
+    attribute: connectionSecret
+    description: Handle to the adopted database connection secret

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-pkg/
+extensions/vscode/dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+*.log
+.vitest-cache/

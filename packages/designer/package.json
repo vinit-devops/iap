@@ -1,0 +1,30 @@
+{
+  "name": "@iap/designer",
+  "version": "0.1.0",
+  "description": "Headless visual-designer session for IaP (roadmap Phase 15): every canvas edit (add resource, connect, set property, remove) is translated into a compiler operation and committed through the gate, so the designer canvas is a VIEW and the IaP document stays the single source of truth. Produces valid, deterministic IaP with inspectable provenance.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/intent-compiler": "workspace:*",
+    "@iap/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@iap/sdk": "workspace:*",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

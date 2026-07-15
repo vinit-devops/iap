@@ -1,0 +1,20 @@
+# Conformance case: invalid/03-provider-field
+# expected: schema-invalid
+# reason: "instanceType" is not a field of the Service spec; provider sizing
+#         nouns do not exist in core. Core specs are closed
+#         (additionalProperties: false); provider refinements belong in a
+#         namespaced extensions block. Fails phase 1 (schema validation).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: provider-field-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+      instanceType: t3.large

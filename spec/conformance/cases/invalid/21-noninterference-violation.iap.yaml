@@ -1,0 +1,29 @@
+# Conformance case: invalid/21-noninterference-violation
+# expected: IAP803
+# reason: Passes schema validation (extension content is deliberately open),
+#         but the aws extension block asserts exposure: public on a Database
+#         whose core intent is spec.exposure: private — an extension
+#         attempting to override core semantics. The mechanical deletion test
+#         (chapter 11 §11.3: strip all extensions blocks, re-run phases 1-7,
+#         compare canonical core semantics) diverges, because honoring the
+#         extension would publicly expose a resource the core document keeps
+#         private. Fails with IAP803 (extension non-interference violation).
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: noninterference-violation-case
+
+resources:
+  orders-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql
+      exposure: private
+    extensions:
+      aws:
+        exposure: public
+        publiclyAccessible: true

@@ -1,0 +1,29 @@
+{
+  "name": "@iap/graph",
+  "version": "0.1.0",
+  "description": "Typed relationship/dependency graph engine over canonical IaP edges (spec ch. 4, ch. 9)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0",
+    "yaml": "^2.7.0"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@iap/planner",
+  "version": "0.2.0",
+  "description": "Deterministic planner for IaP (spec ch. 14, IEP-0011): nine-element determinism input vector with inputsHash, semantic diff of provider plans against state snapshots, closed lifecycle-action determination, wave scheduler, versioned risk rule table, rollback limitations and approval gates, ed25519 plan envelopes with injected expiry, PL-2 fail-closed invalidation, and canonical plan.iap.dev/v1 artifacts hashed to planId",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "node ../../tools/schema-generation/sync-schemas.mjs && tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/model": "workspace:*",
+    "@iap/parser": "workspace:*",
+    "@iap/provider-sdk": "workspace:*",
+    "ajv": "^8.17.1",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,34 @@
+# Phase 9 Completion Report — Policy Engine
+
+**Date:** 2026-07-10 · **Milestones:** M9.1–M9.3 (delivered together as `@iap/policy`; reviewable doc: `docs/milestones/M9.1-policy-engine.md`)
+
+## Exit criteria verification
+
+| Exit criterion                                             | Status                                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policies run before provider mapping and before deployment | **Pass**                                             | The engine is pre-mapping **by construction**: `evaluatePolicies` consumes only the canonical model (`@iap/model` output) and has no mapping, plan, or provider inputs at all — there is nothing later-stage for it to run "after". In the SDK the ordering is structural too: `IaPWorkspaceResult.policies()` derives from `canonical()` alone (`packages/sdk/src/index.ts`), and per ch. 8 §8.2 error findings (IAP501/IAP502) make the document invalid, which forbids producing a plan or mapping input. Mapping/deploy stages arrive in Phases 6/7/14 and will consume only valid documents. |
+| Policy evaluation is deterministic                         | **Pass**                                             | Ch. 7 §7.6 order implemented and tested: policies by lexicographic `id`, resources by lexicographic ID (`packages/policy/test/policy.test.ts`, `determinism` block — authoring order shuffled, output order pinned; byte-identical repeat runs via `JSON.stringify` equality). No wall clock (`now` is injected; `TypeError` without it when exceptions are present), no environment reads, exact BigInt arithmetic for ordered comparisons (no floating point), escape-aware rejection of non-RE2 regex constructs so `matches` cannot backtrack unboundedly on RE2-valid patterns.              |
+| Exceptions visible in plans                                | **Pass** (findings surface) / plan artifact deferred | Exceptions are never silent: an active exception **downgrades** the finding to a warning that stays in the findings stream with the full audit trail appended (`[exception: <reason> approved by <approver> until <expiry>]`), the evaluation trace records verdict `exempted`, and expired exceptions surface as IAP503 warnings. Everything a plan needs to display is in `PolicyResult`. Embedding these into plan artifacts is Phase 7 planner territory (there is no plan format yet, IEP-0011); noted as a Phase 7 integration obligation.                                                  |
+| A provider extension cannot bypass a core policy           | **Pass**                                             | Policy conditions read canonical **core** fields only (dot paths over kind/labels/spec resolved against the canonical model), and the Extension Non-Interference Rule (ch. 11 §11.3) makes it normative that `extensions` blocks cannot alter core semantics — a stripped-extensions document must validate identically (IAP803 otherwise, mechanical deletion test). An extension can therefore neither change the values policies see nor suppress a finding; extension namespaces are additive data the evaluator never consults for core paths.                                               |
+
+## Deliverables checklist (roadmap phase 9)
+
+- **Policy evaluator** ✓ — `@iap/policy` `evaluatePolicies`: full ch. 7 semantics (9 operators, 3 combinators, 3 effects, IAP501–IAP504), evaluation trace, deterministic autofix merge patches for `require` equals-conjunctions.
+- **Policy pack format** ✓ — a pack is a named array of schema-valid ch. 7 `Policy` objects (validated against `$defs/common/policy` in tests); activation by concatenation.
+- **Policy registry** ✓ (in-process) — the `POLICY_PACKS` export with six built-in packs (production/encryption/backup/tagging/logging baselines + private-only). Organization-level distribution, signing, and central registries are **deferred to Phase 16** (control plane) per the roadmap's own M16.3; approved-geography and budget-limits packs await org region values and Phase 10 cost annotations (IAP505 is plan-time).
+- **Exception workflow model** ✓ — `PolicyException` with scope/reason/approver/expiry/ticket, downgrade-with-audit-trail, expired-exception surfacing, injected `now`.
+- **Policy conformance tests** ✓ — conformance cases 17 (IAP501) and 18 (IAP502) are executed, counted harness checks (`tests/conformance/run.mjs`, `policy evaluation (phase 5)` section); 39 unit tests cover the operator/effect matrix.
+
+## Verification state
+
+`pnpm run verify` green end to end: build ×7 packages, ESLint clean, **337 passed + 5 skipped** unit tests, **59/59** harness checks (two new counted phase-5 checks). `pnpm run format:check` clean.
+
+## Corrections and notes
+
+- `spec/examples/enterprise-pci.iap.yaml` was violating its own `logging-required-in-scope` policy (targeted a `Secret`, which carries no observability block) — revealed the moment phase 5 became executable. Fixed per ch. 7 §7.7's worked example (target exactly the kinds that carry observability); phases 1–4 outcomes unchanged.
+- `validate()` in the SDK still reports phases 1–4; folding phase 5 into the eight-phase pipeline (with the §8.2 gate: phases 2+ skipped after earlier errors) happens when the remaining phase engines (6–8) land in Phase 11. `policies()` is the standalone phase-5 surface until then.
+- IAP505 (budget exceeded) is registry-defined as plan-time and needs cost annotations — Phase 10.
+
+## Decision
+
+Phase 9 is **complete**. Remaining cross-phase obligations recorded above: plan-artifact exception visibility (Phase 7), IAP505 budget policies (Phase 10), phase 5 in the unified validation pipeline (Phase 11), organization pack distribution (Phase 16).

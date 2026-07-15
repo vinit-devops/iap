@@ -1,0 +1,19 @@
+# Conformance corpus (kubernetes provider): FIFO queue realized as an
+# operator-managed broker quorum queue with single active consumer
+# (first-match-wins realize rule).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: k8s-work-queue
+
+resources:
+  order-events:
+    kind: Queue
+    description: Order processing queue
+    spec:
+      delivery: at-least-once
+      ordering: fifo
+      messageRetention: 4d
+      deadLetter:
+        enabled: true
+        maxReceives: 3

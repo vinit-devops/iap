@@ -1,0 +1,32 @@
+# Conformance case: invalid/17-policy-deny-violation
+# expected: IAP501
+# reason: Passes schema validation (policy and resource are each well-formed),
+#         but the deny policy's condition — the forbidden state
+#         spec.exposure equals public — evaluates true for the targeted
+#         ObjectStore "assets" in the canonical document. Fails phase 5
+#         (policy evaluation) with IAP501 (deny violation). Requires a full
+#         IaP validator — plain JSON Schema validation MUST report this
+#         document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: policy-deny-violation-case
+
+resources:
+  assets:
+    kind: ObjectStore
+    spec:
+      exposure: public
+      versioning: enabled
+
+policies:
+  - id: no-public-object-stores
+    description: Object stores must never be internet-reachable.
+    target:
+      kinds: [ObjectStore]
+    rule:
+      field: spec.exposure
+      operator: equals
+      value: public
+    effect: deny

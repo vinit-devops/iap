@@ -1,0 +1,6 @@
+# SUPERSEDED — the IIS→IaP rename became a HARD, no-compatibility cut, so the
+# compat-era "allowlist" (with prospective Category-B legacy shims) no longer
+# applies. Replaced by the protected-occurrences file (Category C/D/E/H only):
+#   docs/migrations/iis-to-iap-protected-occurrences.yaml
+superseded: true
+replacedBy: docs/migrations/iis-to-iap-protected-occurrences.yaml

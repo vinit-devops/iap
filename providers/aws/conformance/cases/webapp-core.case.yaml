@@ -1,0 +1,45 @@
+# Capability assertions over the webapp-core corpus document (IEP-0012 PC-2):
+# every intent floor the document declares is attested against the generated
+# plan through the package's attestation functions, plus one deliberately
+# unattested capability proving the "unsupported" verdict is reachable.
+apiVersion: conformance.iap.dev/v1
+case: webapp-core
+document: corpus/webapp-core.iap.yaml
+assertions:
+  - id: db-storage-encrypted
+    select: { resource: orders-db, kind: Database }
+    capability: encryption.atRest
+    expect: satisfied
+  - id: db-transit-encrypted
+    select: { resource: orders-db }
+    capability: encryption.inTransit
+    expect: satisfied
+  - id: db-private-exposure
+    select: { resource: orders-db }
+    capability: exposure.private
+    expect: satisfied
+  - id: db-multi-az
+    select: { resource: orders-db }
+    capability: availability.zonesMinimum
+    params: { min: 2 }
+    expect: satisfied
+  - id: cache-at-rest-encrypted
+    select: { resource: session-cache, kind: Cache }
+    capability: encryption.atRest
+    expect: satisfied
+  - id: cache-transit-encrypted
+    select: { resource: session-cache }
+    capability: encryption.inTransit
+    expect: satisfied
+  - id: queue-at-rest-encrypted
+    select: { resource: work-queue, kind: Queue }
+    capability: encryption.atRest
+    expect: satisfied
+  - id: bucket-private-exposure
+    select: { resource: assets, kind: ObjectStore }
+    capability: exposure.private
+    expect: satisfied
+  - id: bucket-backup-unattested
+    select: { resource: assets }
+    capability: resilience.backup
+    expect: unsupported

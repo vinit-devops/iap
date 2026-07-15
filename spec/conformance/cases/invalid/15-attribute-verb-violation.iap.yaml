@@ -1,0 +1,35 @@
+# Conformance case: invalid/15-attribute-verb-violation
+# expected: IAP302
+# reason: Passes schema validation (relationshipEdge structurally allows path
+#         on any edge; the verb/attribute matrix is semantic), but the path
+#         attribute is valid only on routesTo edges (chapter 4 §4.4) — here it
+#         appears on a connectsTo edge. Fails phase 3 (relationship analysis)
+#         with IAP302 (invalid edge attribute for verb). Requires a full IaP
+#         validator — plain JSON Schema validation MUST report this document
+#         as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: attribute-verb-violation-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write
+        path: /orders
+
+  orders-db:
+    kind: Database
+    spec:
+      class: relational
+      engine: postgresql

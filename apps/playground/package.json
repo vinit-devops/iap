@@ -1,0 +1,42 @@
+{
+  "name": "@iap/playground",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IaP public Planning Playground (roadmap-v2 Phase 19, M19.5). A safe, local, plan-only web app that runs a natural-language request through the full plan-preview pipeline (author -> validate -> architecture -> dependencies -> cost -> security -> compliance -> AWS plan preview) and shows the result. No credentials, no deploy, no state written to disk — results are in-memory only. It reuses the existing @iap/* engines server-side; the browser holds no planning logic.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "iap-playground": "./dist/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "SEE LICENSE (TBD)",
+  "dependencies": {
+    "@iap/architecture": "workspace:*",
+    "@iap/compliance": "workspace:*",
+    "@iap/cost": "workspace:*",
+    "@iap/graph": "workspace:*",
+    "@iap/intent-compiler": "workspace:*",
+    "@iap/planner": "workspace:*",
+    "@iap/provider-sdk": "workspace:*",
+    "@iap/sdk": "workspace:*",
+    "@iap/security": "workspace:*",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

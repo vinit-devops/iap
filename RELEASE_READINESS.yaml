@@ -1,0 +1,378 @@
+# IaP Release-Readiness classification (Phase 19, M19.1 — Independent Implementation Audit).
+# Evidence-based: derived by reading the actual source + tests, NOT roadmap labels.
+# Read-only audit by 5 parallel capability auditors + orchestrator synthesis, 2026-07-12.
+#
+# Classification scheme (roadmap-v2 §7):
+#   A — Implemented and independently verified (real logic + tests on real behavior)
+#   B — Implemented but only locally / with mocks (in-memory, no real backend)
+#   C — Partially implemented (real but incomplete; some paths deferred/stubbed)
+#   D — Scaffold or thin-client design only
+#   E — Documentation only
+#   F — Deferred (explicitly postponed in code)
+#   G — Missing (referenced but absent)
+version: 1
+audit: M19.1
+date: '2026-07-12'
+method: read-only source+test inspection; full `pnpm verify` green (build, lint, 1213 unit, 65 conformance, 45 provider, 29 determinism, eval)
+
+# One-line honest characterization of the product as it exists today:
+headline: >-
+  A production-grade DETERMINISTIC planning / analysis / mapping system with two
+  intentional, clearly-bounded absences: (1) NO real cloud execution — deploy,
+  state, drift, reconcile run only against an in-memory mock; (2) NO in-tree LLM
+  — natural-language authoring and "AI review" are deterministic rule engines
+  plus an out-of-tree LLM adapter contract. It plans and analyzes; it does not
+  yet deploy, and it does not itself think.
+
+capabilities:
+  # ---- Authoring pipeline ----
+  - {
+      name: parse + phase-1 schema validation,
+      package: parser,
+      class: A,
+      evidence: 'packages/parser/src/index.ts:64,165 (61 tests)',
+    }
+  - {
+      name: canonical model (canonicalization C2-C6,
+      exact quantities,
+      SHA-256 hash),
+      package: model,
+      class: A,
+      evidence: 'packages/model/src/canonicalize.ts (112 tests)',
+    }
+  - {
+      name: validation phases 1-4 (IAP1xx-4xx,
+      ref/rel/dep,
+      cycles),
+      package: validator,
+      class: A,
+      evidence: 'packages/validator/src/index.ts (39 tests)',
+    }
+  - {
+      name: IAP203 abstract-attribute correctness,
+      package: validator,
+      class: C,
+      gap: 'only resource existence checked; per-kind attribute tables not machine-readable',
+      evidence: 'packages/validator/src/index.ts:473',
+    }
+  - {
+      name: policy evaluation engine (ch.7,
+      IAP5xx,
+      autofix,
+      deterministic),
+      package: policy,
+      class: A,
+      evidence: 'packages/policy/src/index.ts (39 tests)',
+    }
+  - {
+      name: policy `matches` operator,
+      package: policy,
+      class: C,
+      gap: 'JS-RegExp approximation of RE2 (no linear-time guarantee)',
+      evidence: 'packages/policy/src/index.ts:24',
+    }
+  - {
+      name: operation gate (structural->resolve->COW dry-run->pipeline->confirm->commit),
+      package: intent-compiler,
+      class: A,
+      evidence: 'packages/intent-compiler/src/gate.ts:199 (279 tests)',
+    }
+  - {
+      name: deterministic NL rules extractor (keyword/pattern; precision-over-recall),
+      package: intent-compiler,
+      class: A,
+      gap: 'not NL-general — coverage-bounded; uncovered text -> UnparsedSpan',
+      evidence: 'packages/intent-compiler/src/extract-rules.ts',
+    }
+  - {
+      name: LLM ModelAdapter boundary + enforcement middleware (residency/redaction/limits/repair),
+      package: intent-compiler,
+      class: A,
+      evidence: 'packages/intent-compiler/src/adapter.ts:152',
+    }
+  - {
+      name: NL->IaP authoring by a REAL model,
+      package: intent-compiler,
+      class: G,
+      gap: 'no LLM in-tree; only fixtureAdapter (replay) + rulesAdapter (deterministic). Model-driven authoring works only with an out-of-tree adapter you supply.',
+      evidence: 'packages/intent-compiler/src/adapter.ts:1-8; author.ts default = rulesAdapter()',
+    }
+  - {
+      name: AI review,
+      package: ai-review,
+      class: A,
+      gap: 'deterministic rule engine — zero AI inference (folds security+compliance+best-practice rules); "AI" = the review lens, not a model',
+      evidence: 'packages/ai-review/src/review.ts:9,35',
+    }
+
+  # ---- Analysis engines ----
+  - {
+      name: architecture views (5) + mermaid/dot exporters + diffViews,
+      package: architecture,
+      class: A,
+      evidence: 'packages/architecture/src/index.ts (27 tests)',
+    }
+  - {
+      name: dependency graph (ordering,
+      Tarjan cycles,
+      Kahn waves,
+      impact),
+      package: graph,
+      class: A,
+      evidence: 'packages/graph/src/index.ts (23 tests)',
+    }
+  - {
+      name: cost estimation engine (per-resource math,
+      roll-ups,
+      budget IAP505,
+      diff),
+      package: cost,
+      class: A,
+      evidence: 'packages/cost/src/{estimate,model,budget}.ts (30 tests)',
+    }
+  - {
+      name: cost pricing DATA,
+      package: cost,
+      class: C,
+      gap: 'bundled snapshot is explicitly illustrative ("not real vendor pricing"); no real per-provider snapshot vendored',
+      evidence: 'cost/snapshots/reference-cloud.snapshot.json:8',
+    }
+  - {
+      name: cost oversizing/utilization suggestion,
+      package: cost,
+      class: F,
+      gap: 'deferred pending a versioned utilization input; excess-availability + orphaned-resource rules ARE real',
+      evidence: 'packages/cost/src/suggest.ts:1-8',
+    }
+  - {
+      name: security posture derivation + findings IAP601-603,
+      package: security,
+      class: A,
+      evidence: 'packages/security/src/{derive,findings}.ts (10 tests)',
+    }
+  - {
+      name: security IAP604 (isolation unenforceable),
+      package: security,
+      class: F,
+      gap: 'deferred to planner/mapping — not derivable from document alone; not emitted anywhere yet',
+      evidence: 'packages/security/src/findings.ts:1-6',
+    }
+  - {
+      name: compliance evaluation + 6 framework bundles (soc2/pci/hipaa/iso/nist/cis),
+      package: compliance,
+      class: A,
+      gap: 'control mappings are a representative subset by spec design',
+      evidence: 'packages/compliance/src/{evaluate,bundles,rules}.ts (9 tests)',
+    }
+
+  # ---- Planning & execution ----
+  - {
+      name: planner determinism + planId content hash (golden-byte/perturbed/key-shuffle),
+      package: planner,
+      class: A,
+      evidence: 'planner/src/plan.ts:211-218; tests/determinism/run.mjs (29 checks live)',
+    }
+  - {
+      name: planner diff/lifecycle/scheduler/risk + envelope ed25519 sign/verify,
+      package: planner,
+      class: A,
+      evidence: 'planner/src/{diff,lifecycle,scheduler,risk,envelope}.ts (176 tests)',
+    }
+  - {
+      name: planner cost delta,
+      package: planner,
+      class: F,
+      gap: 'HARDCODED {status:deferred, reason:pricing-deferred-phase-10}; planner has NO @iap/cost dep — not wired to the real (complete) cost engine',
+      evidence: 'planner/src/plan.ts:343-354',
+    }
+  - {
+      name: planner compliance delta,
+      package: planner,
+      class: F,
+      gap: 'HARDCODED {deferred:phase-11}; planner has NO @iap/compliance dep — not wired to the real (complete) compliance engine',
+      evidence: 'planner/src/plan.ts:440',
+    }
+  - {
+      name: deployment orchestration (apply/verify/drift/rollback/destroy + state-locking),
+      package: deploy,
+      class: B,
+      gap: 'against an in-memory fixtureExecutor only; @iap/deploy is imported by NO other package and NOT wired to the CLI',
+      evidence: 'packages/deploy/src/{deploy,executor}.ts',
+    }
+  - {
+      name: deploy update/replace/import distinction,
+      package: deploy,
+      class: G,
+      gap: 'fixtureExecutor has none; the complete lifecycle lives in @iap/provider-mock MockSubstrate, which deploy does not even depend on',
+      evidence: 'deploy/src/executor.ts vs providers/mock/src/handlers.ts:148-154,418-433',
+    }
+  - {
+      name: deploy reconcile,
+      package: deploy,
+      class: C,
+      gap: 'a lock op-type only; folded into re-apply, no dedicated reconcile logic/test',
+      evidence: 'deploy/src/deploy.ts:59',
+    }
+  - {
+      name: state locking/CAS/integrity/history,
+      package: state,
+      class: B,
+      gap: 'logic real + tested but IN-MEMORY Map only; single-process',
+      evidence: 'packages/state/src/local.ts:70-147',
+    }
+  - {
+      name: state durable persistence,
+      package: state,
+      class: C,
+      gap: 'zero filesystem/remote code; capabilities.encryptionAtRest:true is MISLEADING (plaintext in a Map)',
+      evidence: 'packages/state/src/local.ts:47-54',
+    }
+
+  # ---- Providers ----
+  - {
+      name: provider-sdk signing (ed25519) + digest integrity + 7-stage fail-closed loader,
+      package: provider-sdk,
+      class: A,
+      evidence: 'packages/provider-sdk/src/{signing,loader}.ts — verified fail-closed 3 ways (30+ tests)',
+    }
+  - {
+      name: provider-sdk mapping engine + conformance runner,
+      package: provider-sdk,
+      class: A,
+      evidence: 'packages/provider-sdk/src/{engine,conformance}.ts',
+    }
+  - {
+      name: AWS provider MAPPING (8 kinds -> ~13 AWS targets ECS/ALB/RDS/ElastiCache/SQS/S3/IAM/ACM),
+      provider: aws,
+      class: A,
+      evidence: 'providers/aws/mappings/core.iap-map.yaml (11 conformance + 8 acceptance tests)',
+    }
+  - {
+      name: AWS provider EXECUTION (real cloud),
+      provider: aws,
+      class: G,
+      gap: 'no execution runtime; src is attestation predicates only; header defers to "Phase 14" (unbuilt)',
+      evidence: 'providers/aws/src/index.ts:1-11; manifest certificationLevel=core',
+    }
+  - {
+      name: Kubernetes provider MAPPING (8 kinds -> 13 K8s targets),
+      provider: kubernetes,
+      class: A,
+      evidence: 'providers/kubernetes/mappings/core.iap-map.yaml (12 conformance + 8 acceptance tests)',
+    }
+  - {
+      name: Kubernetes provider EXECUTION,
+      provider: kubernetes,
+      class: G,
+      gap: 'mapping-only, no execution',
+      evidence: 'providers/kubernetes/src/index.ts',
+    }
+  - {
+      name: mock provider execution (Create/Update/Replace/Delete/Import/Verify,
+      waves,
+      recovery,
+      redaction),
+      provider: mock,
+      class: B,
+      gap: 'complete ch.14 lifecycle but IN-MEMORY Map only (by design, the reference substrate)',
+      evidence: 'providers/mock/src/{handlers,substrate}.ts (22 lifecycle tests)',
+    }
+  - {
+      name: REAL cloud execution (any provider),
+      provider: '-',
+      class: G,
+      gap: 'THE core gap. No cloud SDK, no network code, no credentials/OIDC, no apply-to-live anywhere in the repo.',
+      evidence: 'no @aws-sdk in any package.json; grep for http/fetch in provider src = none',
+    }
+
+  # ---- Interfaces & ecosystem ----
+  - {
+      name: CLI analysis/authoring commands (create/validate/plan/cost/security/compliance/graph/diagram/policy/normalize/fmt/explain/diff/doctor/init),
+      package: cli,
+      class: A,
+      evidence: 'packages/cli/src/cli.ts:68-232 (80 tests); dist/cli.js runs as `iap`',
+    }
+  - {
+      name: CLI deploy-family (deploy/destroy/rollback/drift/state),
+      package: cli,
+      class: F,
+      gap: 'phase-gated stubs — exit 2 "not yet available (Phase 14)"',
+      evidence: 'packages/cli/src/commands/stubs.ts:22-26',
+    }
+  - {
+      name: CLI import/export,
+      package: cli,
+      class: F,
+      gap: 'stubbed (Phase 18) even though @iap/migrate exists — not wired',
+      evidence: 'packages/cli/src/commands/stubs.ts:27-28',
+    }
+  - {
+      name: language server (full LSP — diagnostics/completion/hover/definition/references/rename/symbols/code-actions/preview),
+      package: language-server,
+      class: A,
+      gap: 'comment-preserving edits + multi-doc workspace deferred',
+      evidence: 'packages/language-server/src/providers.ts (31 tests); has bin',
+    }
+  - {
+      name: MCP tool registry + dispatcher (real read-only tools over engines,
+      fail-closed),
+      package: mcp-server,
+      class: C,
+      gap: 'NO MCP wire protocol: no @modelcontextprotocol/sdk, no JSON-RPC/stdio transport, no bin (server.ts:5 references a nonexistent bin.ts). Cannot be connected by an IDE today.',
+      evidence: 'packages/mcp-server/src/{tools,server}.ts (12 tests)',
+    }
+  - {
+      name: MCP knowledge client (@iap/mcp — ch.20 authoritative-knowledge framework),
+      package: mcp,
+      class: B,
+      gap: 'mislabeled as MCP client; real deterministic framework but in-repo fixture sources only; real MCP transport is out-of-tree',
+      evidence: 'packages/mcp/src/{client,source}.ts (10 tests)',
+    }
+  - {
+      name: SDK facade (load/serialize/registerExtension over parser+validator+model+graph+policy),
+      package: sdk,
+      class: A,
+      evidence: 'packages/sdk/src/index.ts (32 tests); consumed by cli/lsp/mcp-server/designer/control-plane',
+    }
+  - {
+      name: visual designer (headless DesignerSession — edits via the operation gate),
+      package: designer,
+      class: C,
+      gap: 'NO UI (zero .tsx/.jsx/.html, no web shell, no bin) — headless model library only',
+      evidence: 'packages/designer/src/session.ts:53-131 (7 tests)',
+    }
+  - {
+      name: control-plane (RBAC/SoD approvals/tenant projects/audit/prChecks core),
+      package: control-plane,
+      class: B,
+      gap: 'NO hosted service — no HTTP/API, no persistence (in-memory Map), no git-app surface',
+      evidence: 'packages/control-plane/src/{rbac,project,checks}.ts (8 tests)',
+    }
+  - {
+      name: migrate importer,
+      package: migrate,
+      class: C,
+      gap: 'Kubernetes-only; Terraform/CloudFormation/Pulumi/Crossplane referenced but NOT implemented; not wired to CLI',
+      evidence: 'packages/migrate/src/kubernetes.ts (4 tests)',
+    }
+
+# Aggregate counts (by primary class, excluding sub-gap rows counted once)
+summary:
+  A: 24
+  B: 6
+  C: 8
+  F: 7
+  G: 6
+  # No pure-D (scaffold) or pure-E (docs-only) capabilities — everything has real code.
+
+# The three findings that most affect the Developer Preview and the M19.3 real-AWS gate:
+criticalFindings:
+  - id: CF-1
+    title: No real cloud execution anywhere
+    detail: 'deploy/state/drift/reconcile run only against an in-memory mock; no cloud SDK, network, or credentials. M19.3 "real AWS golden path" is a BUILD task (new execution layer), not a validation task.'
+  - id: CF-2
+    title: No in-tree LLM
+    detail: 'NL authoring + AI review are deterministic rule engines + an out-of-tree LLM adapter contract. The shipped capability is rules-based authoring + an LLM-ready gate, not model-driven authoring.'
+  - id: CF-3
+    title: Integration disconnects behind a "complete" label
+    detail: 'planner not wired to cost/compliance (hardcoded deferred); @iap/deploy orphaned (unimported, CLI stubs); planner/deploy/provider plan shapes do not connect; MCP server has no wire transport. ROADMAP.yaml says "WHOLE ROADMAP COMPLETE" but phases 5-8 conformance, 10/11 plan-deltas, 14 execution, and the MCP transport are not delivered end-to-end.'

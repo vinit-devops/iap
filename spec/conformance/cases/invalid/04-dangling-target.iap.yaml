@@ -1,0 +1,27 @@
+# Conformance case: invalid/04-dangling-target
+# expected: IAP201
+# reason: Passes schema validation (the target is a well-formed resource
+#         identifier), but the connectsTo target "orders-db" is not declared
+#         in the profile-merged document. Fails phase 2 (reference resolution)
+#         with IAP201 (dangling edge target).
+#         Requires a full IaP validator — plain JSON Schema validation MUST
+#         report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: dangling-target-case
+
+resources:
+  api:
+    kind: Service
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/api:1.0.0
+    relationships:
+      - type: connectsTo
+        target: orders-db
+        port: 5432
+        protocol: tcp
+        access: read-write

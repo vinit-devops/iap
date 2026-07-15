@@ -1,0 +1,77 @@
+{
+  "name": "iap-vscode",
+  "displayName": "IaP",
+  "description": "Infrastructure as Prompt (IaP) language support: syntax registration and Language Server Protocol client (diagnostics, completion, hover, navigation, rename, code actions, architecture preview).",
+  "version": "0.1.0",
+  "publisher": "iap",
+  "license": "SEE LICENSE (TBD)",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "main": "./extension.bundled.js",
+  "activationEvents": [
+    "onLanguage:iap"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "iap",
+        "aliases": [
+          "IaP"
+        ],
+        "extensions": [
+          ".iap.yaml",
+          ".iap.yml",
+          ".iap-map.yaml"
+        ],
+        "filenames": [
+          "infrastructure.iap.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "IaP",
+      "properties": {
+        "iap.languageServer.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the iap-language-server executable. When empty, the extension resolves the bin from the installed @iap/language-server package."
+        },
+        "iap.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace the communication between VS Code and the IaP language server."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "iap.restartServer",
+        "title": "IaP: Restart Language Server"
+      },
+      {
+        "command": "iap.showPreview",
+        "title": "IaP: Show Architecture Preview"
+      }
+    ]
+  },
+  "scripts": {
+    "build:vsix": "node build-vsix.mjs",
+    "smoke": "node build-vsix.mjs && node smoke.mjs"
+  },
+  "dependencies": {
+    "@iap/language-server": "workspace:*",
+    "vscode-languageclient": "^9.0.1"
+  }
+}
