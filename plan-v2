@@ -1,0 +1,66 @@
+# ROADMAP-V4: Live AWS deployment for the 50 most-used AWS services
+
+## Context
+
+IaP v0.1.0 can plan/analyze 8 AWS-mapped kinds but live-deploy only 3 target types (`aws:s3:Bucket`, `aws:sqs:Queue`, `aws:iam:Role`) — everything else fails closed (`SUPPORTED_TARGET_TYPES` in `packages/deploy-aws/src/types.ts:9`). The user wants a roadmap (documents only, no implementation now) to extend live deployment to the ~50 most-used AWS services.
+
+Decisions already made by the user:
+- Count = **50 AWS services** (≈ 90–120 target-type handlers, since one service often needs several).
+- **Spec work is in scope** (graduating reserved kinds, adding new core kinds via additive spec minors).
+- Verification bar: **every handler mock-tested (aws-sdk-client-mock) + one live golden-path run per wave** on cheap resources with full teardown and an evidence doc; every live run and spec minor is a human-approval gate.
+- Deliverable: **roadmap documents only**; implementation happens later milestone-by-milestone.
+
+Key architecture facts the roadmap builds on (verified in code):
+- Two layers: mapping artifact `providers/aws/mappings/core.iap-map.yaml` (signed, fail-closed, already emits ~13 target types) and runtime `packages/deploy-aws/` (TargetHandler contract: `read/desiredProjection/create/update/delete`, hardcoded handler Map, eager one-client-per-service `clients.ts`).
+- CLI/state/drift/planner are target-type-agnostic — expansion lives in `packages/deploy-aws/` + mapping YAML + spec.
+- `extensions.aws` can never add vocabulary (Non-Interference Rule); new services need core-kind fit or a spec minor. 13 core kinds exist; 9 reserved kinds (Network, Certificate, DnsZone, Stream, Workflow, SearchIndex, Registry, Dashboard, Alert) need graduation via additive `1.x.0` releases.
+- Replacement-update semantics were deferred in the M19.3 live run and become blocking at DynamoDB — must land in the foundation milestone.
+
+## Deliverables (5 documents, house style)
+
+1. **`ROADMAP-V4.yml`** (repo root) — machine-readable tracker matching ROADMAP-V3 conventions exactly: header comment (maintained-by-agent, one-milestone-at-a-time, "completion gated by exit criteria, never dates", status legend `pending|in-progress|prepared|completed|blocked|deferred`, HUMAN-APPROVAL GATES block), `version: 4`, `updated: '2026-07-15'`, `source: roadmap-v4`, `supersedes: null`, `executionSequence{order, deferred, criticalPath}`, `decisionsTaken`, then `phases:` 21–24 with milestones (id/title/status/dependsOn/note/exitCriteria with verdict tags/evidence).
+2. **`roadmap-v4`** (repo root) — the prose master execution prompt paired with the tracker (per house convention: V1–V3 all had one).
+3. **`docs/reports/aws-support-matrix.md`** — regenerated matrix in the frozen-header house format: read-first blockquote (honest current state: 3 live types), 50-service table (service → IaP kind → class A/B/C/D → wave → target types), not-mapped/deferred lists, reserved-kind status.
+4. **`docs/guides/live-run-runbook.md`** — per-wave live-run harness runbook + the 9-lifecycle-test evidence template (create/no-op/safe update/replacement update/drift/controlled failure/recovery/destroy/cleanup verify) + cost section, generalizing the M19.3 evidence doc (recoverable from git history at `e10ebe0^:docs/reports/m19.3-live-run-evidence.md`).
+5. **Three ADR stubs** in `docs/adr/` (house ADR template): handler-registry-and-lazy-clients, default-vpc-live-testing, replacement-update-semantics.
+
+## Roadmap content (what the documents must encode)
+
+### Phase 21 — Executor foundation + finish the already-mapped kinds (no spec work)
+- **M21.1 Foundation** (no new services): handler-registry refactor (handlers self-declare `targetType`; Map + `SUPPORTED_TARGET_TYPES` derived, not hand-maintained), lazy per-service client cache replacing eager `clients.ts`, **replacement-update semantics** (immutable-attr detection → gated delete+create), live-run harness/runbook + budget-alarm pre-flight + post-run managed-resource sweep. Exit: existing 3 handlers pass unchanged suite through the registry; fail-closed behavior preserved.
+- **M21.2 Cheap mapped targets** (~4 handlers): Resource Groups, Secrets Manager, ACM cert (honest scope: PENDING_VALIDATION only until DnsZone in M23.2), ALB TargetGroup. Live run ~$0.
+- **M21.3 Compute/data mapped targets** (~6 handlers): ECS Cluster+Service, ALB, RDS DBInstance+DBSubnetGroup, ElastiCache. Headline exit criterion: **every target in core.iap-map.yaml is executable**. Live: 3-tier app on default VPC (recorded decision; retrofit in M23.4), ~$2–4.
+
+### Phase 22 — Mapping expansion, zero spec change (mapping bump + re-sign per wave)
+- **M22.1 Serverless core** (~8 handlers): Lambda (Function), API Gateway HTTP API, SNS (Topic), SSM Parameter (Secret), EventBridge Scheduler (Job cron), CloudWatch Logs (derived), S3-public + SQS-DLQ upgrades; IAM-derivation table for execution roles. Live: end-to-end serverless API, ~$0.
+- **M22.2 Serverless data + derived posture** (~7 handlers): DynamoDB, Timestream, KMS CMK (encryption posture), AWS Backup (backup posture). First live exercise of replacement semantics (DynamoDB immutable key schema). <$0.25.
+- **M22.3 VPC data engines** (~9 handlers): Aurora, DocumentDB, Neptune, MemoryDB, Amazon MQ, Memcached values. Most expensive routine wave (~$3–6); Neptune/DocumentDB flagged demotion candidates.
+- **M22.4 Volumes** (~4 handlers): EBS, EFS, FSx. <$1.
+- **M22.5 Compute runtimes + edge-adjacent** (~9 handlers): EC2 Instance+LaunchTemplate, Auto Scaling, App Runner, Batch (Fargate CE), NLB, WAFv2 (derived from public Gateway). <$1.
+
+### Phase 23 — Reserved-kind graduations (spec minors) + Class C handlers
+- **M23.1 Spec minor 1.1.0** (human gate; IEP + schema + chapter updates): graduate DnsZone, Certificate, Registry, Alert, Dashboard; `Database.class` += `wide-column`, `warehouse`.
+- **M23.2 1.1.0 handler wave** (~9 handlers): Route 53, ECR, CloudWatch Alarms+Dashboards, Keyspaces, Redshift Serverless, ACM as first-class Certificate (cert reaches ISSUED, closing M21.2's gap). ~$2.
+- **M23.3 Spec minor 1.2.0** (human gate): graduate Network, Workflow, Stream, SearchIndex — all 9 reserved kinds graduated after this.
+- **M23.4 Network + Workflow handlers** (~7 handlers): VPC/Subnet/SG/IGW/RouteTable/NatGateway, Step Functions. Live: full VPC up/down + Express state machine; **retrofit M21.3 golden path onto IaP-managed Network**; explicit verification of planner dependency ordering on the 6-resource graph. <$1.
+- **M23.5 Stream + Search handlers** (~4 handlers): Kinesis, Firehose, MSK Serverless, OpenSearch. MSK live evidence gets its own approval gate (may defer while handler ships mock-tested). ~$3–5.
+
+### Phase 24 — New vocabulary + hard cases + closeout
+- **M24.1 Spec minor 1.3.0** (human gate): new core kinds **Cdn**, **EventBus**; `Identity.class` += `user-directory` (Cognito); `Service.runtime` += `kubernetes`; `Gateway.protocol` += `graphql`; Email-kind decision for SES with recommendation to **reject/defer**.
+- **M24.2 Edge + eventing handlers** (~6 handlers): CloudFront (slow deploys, disable-then-delete teardown noted), EventBridge bus+rules, Cognito user pools. ~$0 but longest wall clock.
+- **M24.3 Stretch wave** (each item individually gated, pre-declared defer candidates): EKS, AppSync, SES. Deferring any does not block closeout.
+- **M24.4 Closeout**: regenerate support matrix, coverage-tiling audit, consolidated evidence index, roadmap status reconciliation.
+
+### Cross-cutting content to encode
+- **decisionsTaken**: default-VPC pragmatism for early live runs (retrofit M23.4); replacement semantics in foundation; SES-as-stretch; Beanstalk/SageMaker/Bedrock/Glue/EMR/Athena/CodePipeline/CloudTrail-family explicitly deferred with reasons; cut order if pressure hits (SES → AppSync → EKS → Neptune → FSx → MSK live evidence).
+- **criticalPath**: M21.1 → M21.3 → M22.1 → M23.1 → M23.3 → M24.1 (spec drafting parallels Phase 22; spec gates never block Class B waves).
+- **Risk register** (in prose roadmap): replacement semantics (top dependency), VPC dependency for data-engine live runs, IAM-derivation scope creep, mapping re-sign cadence (~8 bumps; key custody in runbook), slow/async resources (waiter budgets), cost control (<$25 total live spend across ~12 runs), planner ordering at scale.
+- **Totals**: 50 services (3 live + 7 A + 24 B + 10 C + 6 D), 14 milestones, ~88–105 handlers, 3 spec minors, ~12 live runs. The executing agent must make the 50-count exact in the support matrix (name every service once; derived-posture services like KMS/WAF/CloudWatch Logs count only if listed as rows).
+
+## Verification
+
+- `ROADMAP-V4.yml` parses as YAML (`node -e "require('yaml').parse(...)"` or python) and follows the V3 field shape (compare against `git show e10ebe0^:ROADMAP-V3.yml`).
+- Support matrix has exactly 50 unique service rows; every row carries kind/class/wave; class counts sum to 50; every milestone referenced by a row exists in the tracker.
+- Every milestone has ≥1 falsifiable exit criterion and its gates marked; every live-run milestone references the runbook + evidence template.
+- No implementation files touched (`git status` shows only the 5 new/updated docs).
+- `pnpm run verify` untouched/green is NOT required (docs-only change), but `check:names` and `scan:secrets` must pass since CI runs on the repo.
