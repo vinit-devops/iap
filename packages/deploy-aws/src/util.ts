@@ -31,6 +31,22 @@ export function canonical(projection: Record<string, string>): string {
   return JSON.stringify(sorted);
 }
 
+const DURATION_UNIT_SECONDS: Record<string, number> = { ms: 0.001, s: 1, m: 60, h: 3600, d: 86400 };
+
+/**
+ * Coerce an IaP duration (`^[0-9]+(ms|s|m|h|d)$`, e.g. `30s`, `7d`) to an
+ * integer count of seconds as a string — what second-valued AWS attributes
+ * require. A value that is already a bare integer passes through unchanged.
+ */
+export function durationToSeconds(value: string): string {
+  const m = /^([0-9]+)(ms|s|m|h|d)$/.exec(value);
+  if (m === null) return value; // already integer seconds (or leave for AWS to reject)
+  const amount = Number(m[1]);
+  const unit = m[2] ?? 's';
+  const factor = DURATION_UNIT_SECONDS[unit] ?? 1;
+  return String(Math.round(amount * factor));
+}
+
 /** Extract a human-readable message from an unknown thrown value. */
 export function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);

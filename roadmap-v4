@@ -1,0 +1,166 @@
+# roadmap-v4 — master execution prompt (Phases 21–24)
+
+**Tracker:** `ROADMAP-V4.yml` (repo root) · **Matrix:** `docs/reports/aws-support-matrix.md` ·
+**Runbook:** `docs/guides/live-run-runbook.md` · **Updated:** 2026-07-16
+
+**Contract for the executing agent.** Work one milestone at a time against `ROADMAP-V4.yml`,
+updating `status` and `evidence` there as work completes. Milestone completion is gated by exit
+criteria, never dates. STOP and request human approval at every gate: every live run against
+real AWS, every spec minor, the MSK live-evidence sub-gate, and each M24.3 stretch item. At the
+**first** live-run wave (M21.2), ask the user which AWS account/profile to use; reuse that
+provided profile for every subsequent wave without re-asking. Never commit — the user commits
+manually; all changes stay in the working tree on `main`.
+
+## Context
+
+IaP v0.1.0 can plan/analyze 8 AWS-mapped kinds but live-deploy only 3 target types
+(`aws:s3:Bucket`, `aws:sqs:Queue`, `aws:iam:Role` — `SUPPORTED_TARGET_TYPES` in
+`packages/deploy-aws/src/types.ts:9`); everything else fails closed. This roadmap extends live
+deployment to the **50 most-used AWS services** (~88–105 target-type handlers).
+
+Architecture facts the roadmap builds on:
+
+- **Two layers.** The signed, fail-closed mapping artifact
+  `providers/aws/mappings/core.iap-map.yaml` (12 distinct target types across 8 kinds today;
+  digest + ed25519 signature live in `providers/aws/manifest.json`), and the runtime
+  `packages/deploy-aws/` (TargetHandler contract:
+  `read`/`desiredProjection`/`create`/`update`/`delete`; hardcoded handler Map; eager
+  one-client-per-service `clients.ts`).
+- **CLI/state/drift/planner are target-type-agnostic** — expansion lives in
+  `packages/deploy-aws/` + mapping YAML + spec.
+- **`extensions.aws` can never add vocabulary** (Non-Interference Rule); new services need a
+  core-kind fit or a spec minor. 13 core kinds exist; 9 reserved kinds (`Network`,
+  `Certificate`, `DnsZone`, `Stream`, `Workflow`, `SearchIndex`, `Registry`, `Dashboard`,
+  `Alert`) graduate via additive `1.x.0` releases.
+- **Replacement-update semantics were deferred in the M19.3 live run** and become blocking at
+  DynamoDB (immutable key schema) — they land in the foundation milestone M21.1.
+
+## Verification bar (applies to every wave)
+
+- Every handler **mock-tested** with `aws-sdk-client-mock`.
+- **An individual live run per service** (requester-directed 2026-07-16 — never one combined
+  run per wave): each service deploys, passes the 9 lifecycle tests (create / no-op / safe
+  update / replacement update / drift / controlled failure / recovery / destroy / cleanup
+  verify), tears down fully, and gets its own evidence doc
+  (`docs/reports/<milestone>-<service>-live-run-evidence.md`) before the next service starts.
+  A failed service run stops the wave.
+- Budget-alarm pre-flight before, managed-resource sweep after, every live run.
+- **Cost status after every service run** (requester-directed 2026-07-16): estimated cost
+  incurred for that run + the roadmap's running total against the <$25 ceiling, reported
+  before the next service starts.
+- Wave-level human approval covers that wave's per-service runs; every spec minor is its own
+  human-approval gate.
+
+## Phase 21 — Executor foundation + finish the already-mapped kinds (no spec work)
+
+**M21.1 Foundation** (no new services). Handler-registry refactor: handlers self-declare
+`targetType`; the Map and `SUPPORTED_TARGET_TYPES` are derived, not hand-maintained
+(`docs/adr/ADR-0004-handler-registry-and-lazy-clients.md`). Lazy per-service client cache
+replaces eager `clients.ts`. **Replacement-update semantics**: immutable-attr detection → plan
+emits `replace` → gated delete+create (`docs/adr/ADR-0006-replacement-update-semantics.md`).
+Live-run harness/runbook + budget-alarm pre-flight + post-run sweep. Exit: existing 3 handlers
+pass the unchanged suite through the registry; fail-closed behavior preserved.
+
+**M21.2 Cheap mapped targets** (~4 handlers): Resource Groups, Secrets Manager, ACM certificate
+(honest scope: PENDING_VALIDATION only until DnsZone lands in M23.2), ALB TargetGroup. Live run
+~$0. First live wave — AWS account/profile selection happens here.
+
+**M21.3 Compute/data mapped targets** (~6 handlers): ECS Cluster+Service, ALB, RDS
+DBInstance+DBSubnetGroup, ElastiCache. Headline exit criterion: **every target type in
+`core.iap-map.yaml` is executable**. Live: 3-tier app on the default VPC (recorded decision,
+`docs/adr/ADR-0005-default-vpc-live-testing.md`; retrofit in M23.4), ~$2–4.
+
+## Phase 22 — Mapping expansion, zero spec change (mapping bump + re-sign per wave)
+
+**M22.1 Serverless core** (~8 handlers): Lambda (`Function`), API Gateway HTTP API (`Gateway`),
+SNS (`Topic`), SSM Parameter (`Secret`), EventBridge Scheduler (`Job` cron), CloudWatch Logs
+(derived), S3-public + SQS-DLQ upgrades; IAM-derivation table for execution roles. Live:
+end-to-end serverless API, ~$0.
+
+**M22.2 Serverless data + derived posture** (~7 handlers): DynamoDB, Timestream, KMS CMK
+(encryption posture), AWS Backup (backup posture). **First live exercise of replacement
+semantics** (DynamoDB immutable key schema). <$0.25.
+
+**M22.3 VPC data engines** (~9 handlers): Aurora, DocumentDB, Neptune, MemoryDB, Amazon MQ,
+Memcached engine values. Most expensive routine wave (~$3–6); Neptune/DocumentDB flagged
+demotion candidates.
+
+**M22.4 Volumes** (~4 handlers): EBS, EFS, FSx. <$1.
+
+**M22.5 Compute runtimes + edge-adjacent** (~9 handlers): EC2 Instance+LaunchTemplate, Auto
+Scaling, App Runner, Batch (Fargate CE), NLB, WAFv2 (derived from a public `Gateway`). <$1.
+
+## Phase 23 — Reserved-kind graduations (spec minors) + Class C handlers
+
+**M23.1 Spec minor 1.1.0** (human gate; IEP + schema + chapter updates): graduate `DnsZone`,
+`Certificate`, `Registry`, `Alert`, `Dashboard`; `Database.class` += `wide-column`,
+`warehouse`. Drafting may parallel Phase 22; the gate never blocks Class B waves.
+
+**M23.2 1.1.0 handler wave** (~9 handlers): Route 53, ECR, CloudWatch Alarms+Dashboards,
+Keyspaces, Redshift Serverless, ACM as first-class `Certificate` (cert reaches ISSUED, closing
+M21.2's honest gap). ~$2.
+
+**M23.3 Spec minor 1.2.0** (human gate): graduate `Network`, `Workflow`, `Stream`,
+`SearchIndex` — all 9 reserved kinds graduated after this.
+
+**M23.4 Network + Workflow handlers** (~7 handlers): VPC/Subnet/SecurityGroup/IGW/RouteTable/
+NatGateway, Step Functions. Live: full VPC up/down + Express state machine; **retrofit the
+M21.3 golden path onto IaP-managed `Network`**; explicit verification of planner dependency
+ordering on the 6-resource graph. <$1.
+
+**M23.5 Stream + Search handlers** (~4 handlers): Kinesis, Firehose, MSK Serverless,
+OpenSearch. MSK live evidence gets its own approval gate (may defer while the handler ships
+mock-tested). ~$3–5.
+
+## Phase 24 — New vocabulary + hard cases + closeout
+
+**M24.1 Spec minor 1.3.0** (human gate): new core kinds **`Cdn`** and **`EventBus`**;
+`Identity.class` += `user-directory` (Cognito); `Service.runtime` += `kubernetes`;
+`Gateway.protocol` += `graphql`; Email-kind decision for SES with a standing recommendation to
+**reject/defer**.
+
+**M24.2 Edge + eventing handlers** (~6 handlers): CloudFront (slow deploys;
+disable-then-delete teardown), EventBridge bus+rules, Cognito user pools. ~$0 but longest wall
+clock.
+
+**M24.3 Stretch wave** (each item individually gated; pre-declared defer candidates): EKS,
+AppSync, SES. Deferring any or all does not block closeout.
+
+**M24.4 Closeout**: regenerate the support matrix against reality, coverage-tiling audit
+(every one of the 50 accounted for: live, deferred-with-reason, or cut at a recorded gate),
+consolidated evidence index, tracker status reconciliation.
+
+## Risk register
+
+1. **Replacement semantics** (top dependency) — M21.1 must land it or M22.2 (DynamoDB) blocks;
+   the M19.3 run proved S3/SQS/IAM cannot exercise it naturally.
+2. **VPC dependency for data-engine live runs** — Phase 22 engines run on the default VPC
+   (ADR-0005) because `Network` graduates only at M23.3; the M23.4 retrofit closes the gap.
+3. **IAM-derivation scope creep** — the M22.1 execution-role derivation table must stay
+   bounded (least-privilege templates per service, reviewed at the gate), or it swallows waves.
+4. **Mapping re-sign cadence** — ~8 mapping bumps across Phases 22–24, each requiring a digest
+   update + ed25519 re-sign of `providers/aws/manifest.json`; key custody procedure lives in
+   the runbook.
+5. **Slow/async resources** — cluster engines, MSK, CloudFront and NAT gateways need explicit
+   waiter budgets; a wave that can't finish teardown in-session is a failed wave.
+6. **Cost control** — <$25 total live spend across ~12 runs; budget-alarm pre-flight + sweep
+   every wave; the cut order (SES → AppSync → EKS → Neptune → FSx → MSK live evidence) is the
+   pressure valve.
+7. **Planner ordering at scale** — first real multi-resource dependency graphs arrive at M21.3
+   and get an explicit ordering verification at M23.4 (6-resource network graph, create and
+   reverse-destroy order).
+
+## Decisions taken (requester-directed 2026-07-15/16)
+
+Mirrors `decisionsTaken` in the tracker: 50-service count (3/7/24/10/6 class split);
+mock + one-live-run-per-wave verification bar; AWS account/profile asked at the first live wave
+only, then reused; default-VPC pragmatism with M23.4 retrofit; replacement semantics in the
+foundation; SES as stretch behind an Email-kind decision; Beanstalk/SageMaker/Bedrock/Glue/
+EMR/Athena/CodePipeline/CloudTrail-family explicitly deferred with reasons; cut order
+SES → AppSync → EKS → Neptune → FSx → MSK live evidence; <$25 cost ceiling; ~88–105 handler
+estimate (sizing only, never a gate).
+
+## Totals
+
+50 services (3 live + 7 A + 24 B + 10 C + 6 D) · 14 execution milestones + 3 spec-minor gates ·
+~88–105 handlers · 3 spec minors (1.1.0, 1.2.0, 1.3.0) · ~12 live runs · <$25 live spend.

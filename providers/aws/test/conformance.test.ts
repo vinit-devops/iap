@@ -28,7 +28,7 @@ describe('conformance cases (PC-2)', () => {
   it('ships the three required cases', () => {
     expect(caseFiles).toEqual([
       'database-availability-maximum.case.yaml',
-      'function-unsupported-kind.case.yaml',
+      'volume-unsupported-kind.case.yaml',
       'webapp-core.case.yaml',
     ]);
   });
@@ -61,7 +61,8 @@ describe('conformance cases (PC-2)', () => {
   });
 
   it('an uncovered kind rejects with unsupported-kind, never a partial plan', () => {
-    const result = runCase('function-unsupported-kind.case.yaml');
+    // Function played this role until M22.1 covered it; Volume is uncovered until M22.4.
+    const result = runCase('volume-unsupported-kind.case.yaml');
     const outcome = result.assertions[0]!;
     expect(outcome.actual).toBe('rejected');
     expect(outcome.detail).toContain('unsupported-kind');
@@ -105,20 +106,20 @@ describe('fail-closed engine diagnostics (ch. 12 §12.3)', () => {
     );
   });
 
-  it('rejects the Function kind with unsupported-kind', () => {
+  it('rejects the Volume kind with unsupported-kind (uncovered until M22.4)', () => {
     const diagnostics = diagnosticsFor(
-      canonicalModelFor(join(corpusDir, 'corpus', 'function-image-resizer.iap.yaml')),
+      canonicalModelFor(join(corpusDir, 'corpus', 'volume-shared-media.iap.yaml')),
     );
     expect(diagnostics).toContainEqual(
       expect.objectContaining({
         reason: 'unsupported-kind',
-        resourceId: 'image-resizer',
-        kind: 'Function',
+        resourceId: 'shared-media',
+        kind: 'Volume',
       }),
     );
   });
 
-  it('rejects dead-letter redrive intent this realization does not wire', () => {
+  it('dead-letter redrive intent now WIRES (M22.1): the queue derives redrive', () => {
     const text = [
       'apiVersion: iap.dev/v1',
       'metadata:',
@@ -134,14 +135,12 @@ describe('fail-closed engine diagnostics (ch. 12 §12.3)', () => {
     const parsed = loadDocument(text, { filename: 'inline-dlq.iap.yaml' });
     expect(parsed.ok).toBe(true);
     const canonical = canonicalize(parsed.document!, { profile: null });
-    const diagnostics = diagnosticsFor(canonical.model);
-    expect(diagnostics).toContainEqual(
-      expect.objectContaining({
-        reason: 'unsupported-value',
-        resourceId: 'events',
-        field: 'spec.deadLetter.enabled',
-        value: true as Scalar,
-      }),
-    );
+    const result = applyMapping(canonical.model, coreMapping());
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const queue = result.plan.resources.find((r) => r.type === 'aws:sqs:Queue');
+      // canonicalization defaults maxReceives to 5 while enabled.
+      expect(queue?.desiredAttributes['redriveMaxReceiveCount']).toBe(5 as Scalar);
+    }
   });
 });

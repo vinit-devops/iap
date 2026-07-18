@@ -3,8 +3,10 @@
 # reason: Exercises both relationship declaration forms. Inline edges: connectsTo
 #         with port/protocol/access attributes and authenticatedBy -> Identity.
 #         Top-level rule edge: selector-based monitoredBy from every tier=data
-#         resource to a reserved-kind Alert (validators SHOULD warn IAP801 for
-#         the reserved kind; warnings do not affect conformance).
+#         resource to an Alert. (Alert was reserved in 1.0.0 — IAP801 was
+#         expected then; it graduated in 1.1.0 via IEP-0015, so a 1.1.0
+#         validator MUST NOT warn IAP801 here. The resource body is unchanged
+#         since 1.0.0 and validates under the promoted contract.)
 
 apiVersion: iap.dev/v1
 
@@ -65,7 +67,7 @@ resources:
 
   data-alerts:
     kind: Alert
-    description: Reserved kind in v1; accepted with warning IAP801.
+    description: Reserved in 1.0.0 (warned IAP801); fully specified since 1.1.0 (IEP-0015).
     spec:
       severity: high
 

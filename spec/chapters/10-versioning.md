@@ -1,6 +1,6 @@
 # 10. Versioning
 
-**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.0.0 · Status: Draft**
+**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.3.0 (IEP-0017) · Status: Released**
 
 This chapter defines how the specification, its kinds, and its satellite artifacts evolve over time, and the compatibility guarantees that every conforming tool MUST uphold. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in [Chapter 2](02-document-layout.md).
 
@@ -24,7 +24,7 @@ The specification carries a semantic version of the form `1.x.y` (analogous to O
 
 A minor release (`1.x.0`) MAY add:
 
-- new kinds (typically graduating reserved kinds from the registry in [Chapter 5](05-capability-model.md));
+- new kinds — either by graduating a reserved kind from the registry or, since 1.3.0, by introducing a brand-new fully specified kind directly ([Chapter 5](05-capability-model.md) §5.6/§5.7);
 - new optional fields on existing kinds or common definitions;
 - new enum values for existing fields;
 - new error codes, policy operators, or diagnostic categories.
@@ -51,7 +51,11 @@ Every kind, field, and enum value added after 1.0.0 carries an `x-iap-since` ann
 
 Kinds are versioned with the specification. There are **no per-kind versions in v1**: no `Database/v2`, no per-kind `apiVersion`. The set of kinds, their fields, and their defaults are fully determined by the specification version, which keeps the document surface flat and the compatibility story one-dimensional.
 
-Reserved kinds (`Network`, `Certificate`, `DnsZone`, `Stream`, `Workflow`, `SearchIndex`, `Registry`, `Dashboard`, `Alert`) are intentionally thin in 1.0.0. Validators MUST accept documents that use them and SHOULD emit warning **IAP801** (reserved kind in use) so authors understand the contract is not yet frozen. A reserved kind graduates to a fully specified kind in a minor release; because its 1.0.0 schema accepts any object body, graduation is additive from the validator's perspective, but field-level guarantees begin only at the graduating minor.
+Reserved kinds are intentionally thin: validators MUST accept documents that use them and SHOULD emit warning **IAP801** (reserved kind in use) so authors understand the contract is not yet frozen. A reserved kind graduates to a fully specified kind in a minor release; because its reserved schema accepts any object body, graduation is additive from the validator's perspective, but field-level guarantees begin only at the graduating minor.
+
+1.0.0 reserved nine kinds (`Network`, `Certificate`, `DnsZone`, `Stream`, `Workflow`, `SearchIndex`, `Registry`, `Dashboard`, `Alert`). Specification 1.1.0 graduated `Certificate`, `DnsZone`, `Registry`, `Dashboard`, and `Alert` ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md); [Chapter 5](05-capability-model.md) §5.6), and specification 1.2.0 graduated the remaining four — `Network`, `Stream`, `Workflow`, and `SearchIndex` ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — **emptying the reserved registry**. Per §5.6 rule 5, IAP801 ceases to apply to a kind from its graduating minor onward: a 1.2.0-aware validator MUST NOT warn IAP801 for any of the nine graduated kinds (and, the registry now being empty, emits IAP801 for no kind at all), while validators pinned to an earlier minor continue to warn for the kinds still reserved in that minor. The reserved-kind mechanism (the `ReservedKind` schema template and the IAP801 code) is retained so a future minor MAY reserve and later graduate new kind names.
+
+Specification **1.3.0** grew the vocabulary a different way: it introduced two brand-new fully specified kinds — `Cdn` and `EventBus` ([IEP-0017](../ieps/IEP-0017-new-kinds-cdn-eventbus.md); [Chapter 5](05-capability-model.md) §5.7) — **directly**, without a prior reserved stage, the first kinds added other than by graduation. Because these names were never reserved, IAP801 never applied to them. 1.3.0 also widened three existing enums additively (each new value carries `x-iap-since: 1.3.0` and is annotated in the schema `description`, since JSON Schema cannot annotate individual enum members): `Identity.type` gained `user-directory`, `Service.runtime` gained `kubernetes`, and a new optional `Gateway.protocol` field offers `http`/`graphql` (no default, so existing Gateway documents canonicalize byte-identically). An `Email` kind was evaluated and **rejected** for 1.3.0 (email sending is a messaging-verb/integration concern, not an infrastructure kind; [Chapter 5](05-capability-model.md) §5.7.1) — the decision is revisitable and reserves no name. Every 1.0.0/1.1.0/1.2.0 document remains valid under 1.3.0 with unchanged semantics.
 
 ## 10.4 Extension and Mapping Versioning
 

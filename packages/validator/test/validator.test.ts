@@ -75,6 +75,118 @@ describe('conformance cases — valid corpus (zero errors)', () => {
   }
 });
 
+describe('IAP801 reserved-kind warning (spec 1.2.0, IEP-0016 — registry now empty)', () => {
+  const docWithKind = (kind: string, spec = '{}') => `
+apiVersion: iap.dev/v1
+metadata: { name: reserved-scope }
+resources:
+  subject:
+    kind: ${kind}
+    spec: ${spec}
+`;
+
+  // As of 1.2.0 (IEP-0016) all nine reserved kinds have graduated, so the
+  // reserved registry is empty and IAP801 fires for nothing (ch. 5 §5.6
+  // rule 5). The four kinds graduated in 1.2.0 MUST NOT warn any more.
+  const graduated: Array<[string, string]> = [
+    // 1.1.0 wave (IEP-0015)
+    ['Certificate', '{ domains: [shop.example.com] }'],
+    ['DnsZone', '{ zoneName: shop.example.com }'],
+    ['Registry', '{ format: container-image }'],
+    ['Dashboard', '{ audience: platform-operations }'],
+    ['Alert', '{ severity: high }'],
+    // 1.2.0 wave (IEP-0016)
+    ['Network', '{ tiers: [public, private] }'],
+    ['Stream', '{ retention: 24h }'],
+    ['Workflow', '{ steps: 3 }'],
+    ['SearchIndex', '{ indexType: text }'],
+  ];
+
+  it.each(graduated)('does not fire for graduated kind %s (ch. 5 §5.6 rule 5)', (kind, spec) => {
+    const result = validateDocument(docWithKind(kind, spec));
+    expect(result.findings.filter((f) => f.code === 'IAP801')).toEqual([]);
+    expect(result.ok).toBe(true);
+    // Warnings never gate: all phases ran.
+    expect(result.phases.dependency.skipped).toBe(false);
+  });
+
+  it('emits IAP801 for no kind in the closed vocabulary (reserved registry empty)', () => {
+    const kinds = [
+      'Application',
+      'Service',
+      'Job',
+      'Function',
+      'Gateway',
+      'Database',
+      'Cache',
+      'ObjectStore',
+      'Volume',
+      'Queue',
+      'Topic',
+      'Identity',
+      'Secret',
+      'Network',
+      'Certificate',
+      'DnsZone',
+      'Stream',
+      'Workflow',
+      'SearchIndex',
+      'Registry',
+      'Dashboard',
+      'Alert',
+    ];
+    for (const kind of kinds) {
+      const result = validateDocument(docWithKind(kind, '{}'));
+      expect(
+        result.findings.filter((f) => f.code === 'IAP801'),
+        kind,
+      ).toEqual([]);
+    }
+  });
+
+  it('graduated kinds enforce their promoted contracts (Certificate without domains fails phase 1)', () => {
+    const result = validateDocument(docWithKind('Certificate', '{ issuance: managed }'));
+    expect(result.ok).toBe(false);
+    expect(errorsOf(result.phases.schema.findings).length).toBeGreaterThan(0);
+  });
+
+  it('graduated kinds enforce their promoted contracts (SearchIndex without indexType fails phase 1)', () => {
+    const result = validateDocument(docWithKind('SearchIndex', '{ exposure: internal }'));
+    expect(result.ok).toBe(false);
+    expect(errorsOf(result.phases.schema.findings).length).toBeGreaterThan(0);
+  });
+
+  it('accepts the Database class values added in 1.1.0 and pairs wide-column with cassandra-compatible', () => {
+    const result = validateDocument(`
+apiVersion: iap.dev/v1
+metadata: { name: new-classes }
+resources:
+  events-db:
+    kind: Database
+    spec: { class: wide-column, engine: cassandra-compatible }
+  analytics-db:
+    kind: Database
+    spec: { class: warehouse }
+`);
+    expect(result.findings.filter((f) => f.severity === 'error')).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects any engine paired with class warehouse as IAP104 (no engine pairs in 1.1.0)', () => {
+    const result = validateDocument(`
+apiVersion: iap.dev/v1
+metadata: { name: warehouse-engine }
+resources:
+  analytics-db:
+    kind: Database
+    spec: { class: warehouse, engine: postgresql }
+`);
+    const codes = result.phases.schema.findings.map((f) => f.code);
+    expect(codes).toContain('IAP104');
+    expect(result.ok).toBe(false);
+  });
+});
+
 describe('phase mechanics', () => {
   it('gates phases 2–4 behind phase 1 errors (ch. 8 §8.2)', () => {
     const result = validateDocument('apiVersion: iap.dev/v2\nmetadata: {name: x}\nresources: {}\n');

@@ -1,21 +1,17 @@
 /**
  * Shared runtime types: the handler contract every target type implements and
  * the structured plan/apply reports the executor returns.
+ *
+ * The supported-target-type set is DERIVED from the handler registry
+ * (`registry.ts`) — handlers self-declare their `targetType` and registration
+ * is the single source of truth (ADR-0004). Nothing here is hand-maintained
+ * per target type.
  */
 
 import type { PlanResource } from '@iap/provider-sdk';
 
-/** The exactly-three target types the v0.1 executor realizes. */
-export const SUPPORTED_TARGET_TYPES = ['aws:s3:Bucket', 'aws:sqs:Queue', 'aws:iam:Role'] as const;
-
-export type SupportedTargetType = (typeof SUPPORTED_TARGET_TYPES)[number];
-
-export function isSupportedTargetType(type: string): type is SupportedTargetType {
-  return (SUPPORTED_TARGET_TYPES as readonly string[]).includes(type);
-}
-
-/** Per-object convergence action. */
-export type PlanAction = 'create' | 'no-op' | 'update' | 'delete';
+/** Per-object convergence action. `replace` = gated delete+create (ADR-0006). */
+export type PlanAction = 'create' | 'no-op' | 'update' | 'replace' | 'delete';
 
 /** Observed state of a single resource, from read-only describe calls. */
 export interface ResourceState {
@@ -31,7 +27,12 @@ export interface ResourceState {
 
 /** The SDK-facing contract each target type implements. */
 export interface TargetHandler {
-  readonly targetType: SupportedTargetType;
+  readonly targetType: string;
+  /**
+   * Projection keys that cannot change in place (ADR-0006). Drift on any of
+   * these classifies as `replace` (gated delete+create), never `update`.
+   */
+  readonly immutableProjectionKeys?: readonly string[];
   /** Read-only: describe the live resource. Never mutates. */
   read(resource: PlanResource): Promise<ResourceState>;
   /** Desired managed-attribute projection, for drift comparison against read. */
@@ -80,7 +81,7 @@ export interface ApplyReport {
   errors: string[];
 }
 
-/** Fail-closed error for any target type outside the v0.1 golden path. */
+/** Fail-closed error for any target type without a registered handler. */
 export class UnsupportedTargetTypeError extends Error {
   constructor(public readonly targetType: string) {
     super(`unsupported target type in v0.1 executor: ${targetType}`);

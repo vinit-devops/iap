@@ -1,0 +1,18 @@
+# Conformance case: invalid/28-eventbus-bad-source
+# expected: schema-invalid
+# reason: EventBus was introduced as a fully specified kind in 1.3.0
+#         (IEP-0017): spec.sources is a closed enum (internal | partner |
+#         custom) of neutral source classes. "external" is not a member — the
+#         enum admits no provider products or ad-hoc values — so the contract
+#         rejects it in phase 1 (schema).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: eventbus-bad-source-case
+
+resources:
+  bus:
+    kind: EventBus
+    spec:
+      sources: [internal, external]

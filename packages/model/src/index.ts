@@ -24,7 +24,14 @@ export type LegacyApiVersion = (typeof LEGACY_API_VERSIONS)[number];
 /** DNS-label grammar for resource identifiers (spec ch. 2 §2.6.1). */
 export const RESOURCE_ID_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
-/** Fully specified v1 kinds (spec ch. 3). */
+/**
+ * Kinds fully specified since 1.0.0 (spec ch. 3 §3.4–§3.16). Deliberately
+ * NOT extended by the 1.1.0 or 1.2.0 graduations: downstream tables keyed by
+ * CORE_KINDS (e.g. the provider-sdk abstract-output registry and the
+ * planner's kind reconstruction) cover exactly these thirteen kinds until
+ * provider support for the graduated kinds lands (M23.2 onward). Use
+ * {@link GRADUATED_KINDS} / {@link isSpecifiedKind} for the graduated tiers.
+ */
 export const CORE_KINDS = [
   'Application',
   'Service',
@@ -41,8 +48,76 @@ export const CORE_KINDS = [
   'Secret',
 ] as const;
 
-/** Reserved registry kinds (spec ch. 3 §3.17, ch. 5) — loose validation, IAP801 warning. */
-export const RESERVED_KINDS = [
+/**
+ * Kinds graduated from the reserved registry to fully specified kinds, in two
+ * waves: `Certificate`, `DnsZone`, `Registry`, `Dashboard`, `Alert` in spec
+ * 1.1.0 (IEP-0015, ch. 3 §3.17–§3.21) and `Network`, `Stream`, `Workflow`,
+ * `SearchIndex` in spec 1.2.0 (IEP-0016, ch. 3 §3.22–§3.25), both via the
+ * ch. 5 §5.6 promotion process. Each is schema-validated against its own
+ * `$defs/kinds/<Kind>` definition; IAP801 no longer applies to any of them.
+ * After 1.2.0 this tier holds all nine originally reserved kinds and the
+ * reserved registry is empty.
+ */
+export const GRADUATED_KINDS = [
+  'Certificate',
+  'DnsZone',
+  'Registry',
+  'Dashboard',
+  'Alert',
+  'Network',
+  'Stream',
+  'Workflow',
+  'SearchIndex',
+] as const;
+
+/**
+ * Reserved registry kinds (spec ch. 5 §5.3) — loose validation, IAP801
+ * warning. EMPTY as of spec 1.2.0 (IEP-0016): all nine kinds reserved in
+ * 1.0.0 have graduated (five in 1.1.0, four in 1.2.0). The registry and its
+ * machinery ({@link isReservedKind}, the validator's IAP801 emission, the
+ * ReservedKind subschema) are retained deliberately: a future minor MAY
+ * reserve new kind names, at which point IAP801 fires for them again.
+ */
+export const RESERVED_KINDS = [] as const satisfies readonly string[];
+
+/**
+ * Kinds introduced directly as new fully specified core-vocabulary kinds in a
+ * minor — NOT graduations of a previously reserved name. `Cdn` (content
+ * delivery / edge distribution) and `EventBus` (event routing) were added in
+ * spec 1.3.0 (IEP-0017, ch. 3 §3.27–§3.28) via the ch. 5 §5.7 direct-
+ * introduction process. Each is schema-validated against its own
+ * `$defs/kinds/<Kind>` definition and is a {@link isSpecifiedKind}.
+ *
+ * They are deliberately a SEPARATE tier from {@link CORE_KINDS}: downstream
+ * tables keyed on `CORE_KINDS` (the provider-sdk abstract-output registry,
+ * which the drift test asserts equals `CORE_KINDS` exactly, and the planner's
+ * kind reconstruction) cover exactly the 1.0.0 thirteen until provider support
+ * for these kinds lands (M24.2 onward) — the M23.1 lesson, preserved. Growing
+ * `CORE_KINDS` would break those tables; growing this tier does not.
+ */
+export const NEW_KINDS = ['Cdn', 'EventBus'] as const;
+
+/**
+ * The closed v1 kind vocabulary, pinned to the exact order of the normative
+ * `$defs/kindName` enum (the drift test asserts equality). The enum order is
+ * frozen since 1.0.0, so core and reserved names interleave here: the five
+ * kinds graduated in 1.1.0 keep their original registry positions, and the two
+ * kinds introduced in 1.3.0 (`Cdn`, `EventBus`) are appended at the end.
+ */
+export const KINDS = [
+  'Application',
+  'Service',
+  'Job',
+  'Function',
+  'Gateway',
+  'Database',
+  'Cache',
+  'ObjectStore',
+  'Volume',
+  'Queue',
+  'Topic',
+  'Identity',
+  'Secret',
   'Network',
   'Certificate',
   'DnsZone',
@@ -52,9 +127,9 @@ export const RESERVED_KINDS = [
   'Registry',
   'Dashboard',
   'Alert',
+  'Cdn',
+  'EventBus',
 ] as const;
-
-export const KINDS = [...CORE_KINDS, ...RESERVED_KINDS] as const;
 
 /** Closed v1 relationship verb set (spec ch. 4 §4.3). */
 export const RELATIONSHIP_TYPES = [
@@ -92,6 +167,8 @@ export const COMPLIANCE_FRAMEWORKS = [
 ] as const;
 
 export type CoreKind = (typeof CORE_KINDS)[number];
+export type GraduatedKind = (typeof GRADUATED_KINDS)[number];
+export type NewKind = (typeof NEW_KINDS)[number];
 export type ReservedKind = (typeof RESERVED_KINDS)[number];
 export type Kind = (typeof KINDS)[number];
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
@@ -214,6 +291,26 @@ export interface Finding {
 
 export function isCoreKind(kind: string): kind is CoreKind {
   return (CORE_KINDS as readonly string[]).includes(kind);
+}
+
+/** True for the kinds graduated to fully specified in spec 1.1.0/1.2.0 (IEP-0015/0016). */
+export function isGraduatedKind(kind: string): kind is GraduatedKind {
+  return (GRADUATED_KINDS as readonly string[]).includes(kind);
+}
+
+/** True for the kinds introduced directly as new specified kinds in spec 1.3.0 (IEP-0017). */
+export function isNewKind(kind: string): kind is NewKind {
+  return (NEW_KINDS as readonly string[]).includes(kind);
+}
+
+/**
+ * True for every fully specified kind — core (1.0.0), graduated (1.1.0/1.2.0),
+ * and directly introduced (1.3.0). These kinds have their own
+ * `$defs/kinds/<Kind>` schema definition; only {@link RESERVED_KINDS} fall back
+ * to the loose ReservedKind subschema.
+ */
+export function isSpecifiedKind(kind: string): kind is CoreKind | GraduatedKind | NewKind {
+  return isCoreKind(kind) || isGraduatedKind(kind) || isNewKind(kind);
 }
 
 export function isReservedKind(kind: string): kind is ReservedKind {

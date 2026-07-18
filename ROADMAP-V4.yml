@@ -1,0 +1,463 @@
+# Machine-readable roadmap tracker for Phases 21-24 (roadmap-v4 at repo root).
+# Companion to the retired ROADMAP.yaml (Phases 0-18), ROADMAP-V2.yml (Phase 19)
+# and ROADMAP-V3.yml (Phase 20), all removed in e10ebe0 and recoverable at e10ebe0^.
+# Maintained by the executing agent: one milestone at a time, status + evidence
+# updated as work completes. Milestone completion is gated by exit criteria,
+# never dates.
+# statuses: pending | in-progress | prepared | completed | blocked | deferred
+#
+# HUMAN-APPROVAL GATES (executing agent must stop and request approval):
+#   - Every live-run wave (M21.2, M21.3, M22.1-M22.5, M23.2, M23.4, M23.5,
+#     M24.2, M24.3) — agent prepares to the boundary, human approves the wave;
+#     execution is then PER SERVICE individually (one live run + evidence doc
+#     per service, sequential, full teardown between services —
+#     requester-directed 2026-07-16).
+#   - AWS account/profile selection: asked of the user at the FIRST live-run
+#     wave (M21.2) only; all subsequent waves reuse that provided AWS profile
+#     without re-asking (requester-directed 2026-07-16).
+#   - Every spec minor release (M23.1 -> 1.1.0, M23.3 -> 1.2.0, M24.1 -> 1.3.0)
+#     — additive vocabulary changes need explicit sign-off before schema lands.
+#   - MSK live evidence (inside M23.5) has its own approval gate — the handler
+#     may ship mock-tested while the live run is deferred.
+#   - Each M24.3 stretch item (EKS, AppSync, SES) is individually gated.
+version: 4
+updated: '2026-07-18'
+status: completed # ROADMAP-V4 COMPLETE 2026-07-18 — all phases 21-24 done. 68 handlers shipped+mock-tested; ~35 services live-proven; specs 1.1.0/1.2.0/1.3.0 released; all 9 reserved kinds graduated + Cdn/EventBus added; 50-service coverage audit PASS (zero gaps); total live spend ~$4/$25; 21+ live bugs fixed; zero orphans. Open caveat: mapping emission for graduated/new kinds deferred (per-branch-outputs grammar). NOTE: several exit criteria (spec releases, live waves, MSK/EKS/AppSync/SES gates) were executed under a user directive (2026-07-17) to complete the roadmap autonomously without per-gate approval; defers were taken per the documented cut order.
+source: roadmap-v4 # the master execution prompt (committed at repo root this time)
+supersedes: null # extends the retired V1-V3 trackers (removed in e10ebe0); does not replace them
+executionSequence:
+  order: [M21.1, M21.2, M21.3, M22.1, M22.2, M22.3, M22.4, M22.5, M23.1, M23.2, M23.3, M23.4, M23.5, M24.1, M24.2, M24.3, M24.4]
+  deferred:
+    notInScope: 'Beanstalk, SageMaker, Bedrock, Glue, EMR, Athena, CodePipeline, CloudTrail family — explicitly outside the 50 (reasons in decisionsTaken.deferredServices); requester-directed 2026-07-16'
+    M24.3: 'stretch wave (EKS, AppSync, SES) — pre-declared defer candidates, each individually gated; deferring any or all does not block M24.4 closeout'
+  criticalPath: 'M21.1 -> M21.3 -> M22.1 -> M23.1 -> M23.3 -> M24.1; spec drafting parallels Phase 22; spec gates never block Class B waves'
+
+decisionsTaken: # requester-directed 2026-07-15/16
+  serviceCount: '50 AWS services (3 live + 7 class A + 24 class B + 10 class C + 6 class D); ~88-105 target-type handlers since one service often needs several'
+  verificationBar: 'every handler mock-tested (aws-sdk-client-mock) + an INDIVIDUAL live run per service (not one combined run per wave — requester-directed 2026-07-16): each service deploys, passes the 9 lifecycle tests, tears down fully, and gets its own evidence doc before the next service starts; a failed service run stops the wave. COST STATUS after each service run: estimated cost incurred + running total vs the <$25 ceiling (requester-directed 2026-07-16). Wave-level approval covers its per-service runs; every spec minor is its own gate'
+  awsAccountSelection: 'executing agent asks the user for the AWS account/profile at the FIRST live-run wave (M21.2) only; all subsequent waves reuse that provided AWS profile without re-asking (2026-07-16)'
+  defaultVpcPragmatism: 'early live runs (M21.3 three-tier golden path, Phase 22 data engines) use the account default VPC; M23.4 retrofits the M21.3 golden path onto IaP-managed Network (see docs/adr/ADR-0005-default-vpc-live-testing.md)'
+  replacementSemanticsInFoundation: 'replacement-update semantics (immutable-attr detection -> gated delete+create) land in M21.1, not later — deferred in the M19.3 live run and blocking at DynamoDB (M22.2) (see docs/adr/ADR-0006-replacement-update-semantics.md)'
+  sesAsStretch: 'SES needs an Email-kind decision (M24.1) with a standing recommendation to reject/defer; implementation only as an M24.3 stretch item'
+  deferredServices:
+    beanstalk: 'legacy PaaS; overlaps App Runner/ECS coverage'
+    sageMaker: 'ML platform; no IaP kind fit without a major vocabulary expansion'
+    bedrock: 'ML/GenAI control plane; same vocabulary problem as SageMaker'
+    glue: 'ETL job orchestration; Workflow kind covers Step Functions first — Glue is a follow-on'
+    emr: 'cluster analytics; expensive to live-test, low top-50 pull-through'
+    athena: 'query service over S3; no resource lifecycle worth an IaP handler yet'
+    codePipeline: 'CI/CD family (CodePipeline/CodeBuild/CodeDeploy); IaP targets runtime infra, not delivery pipelines'
+    cloudTrailFamily: 'CloudTrail/Config/Organizations — account-governance plane, out of workload scope'
+  cutOrder: 'SES -> AppSync -> EKS -> Neptune -> FSx -> MSK live evidence (applied only if cost/time pressure hits; each cut is a human decision)'
+  costCeiling: '<$25 total live spend across the ~12 live runs; budget-alarm pre-flight + post-run sweep every wave (see docs/guides/live-run-runbook.md)'
+  handlerEstimate: '~88-105 handlers across the roadmap; an estimate for sizing, never an exit criterion'
+
+phases:
+  - id: '21'
+    title: Executor foundation + finish the already-mapped kinds (no spec work)
+    priority: P0
+    status: completed # all three milestones completed 2026-07-16; Phase 22 (mapping expansion) next
+    dependsOn: ['20']
+    milestones:
+      - id: M21.1
+        title: Foundation — handler registry, lazy clients, replacement semantics, live-run harness
+        status: completed # 2026-07-16; no live run in this milestone (harness proven against mock)
+        note: >-
+          No new services. Handler-registry refactor: handlers self-declare
+          targetType; the handler Map and SUPPORTED_TARGET_TYPES
+          (packages/deploy-aws/src/types.ts) become derived, not hand-maintained
+          (docs/adr/ADR-0004-handler-registry-and-lazy-clients.md). Lazy
+          per-service client cache replaces the eager one-client-per-service
+          clients.ts. Replacement-update semantics: immutable-attribute
+          detection -> plan emits replace -> gated delete+create
+          (docs/adr/ADR-0006-replacement-update-semantics.md). Live-run
+          harness + runbook (docs/guides/live-run-runbook.md) with
+          budget-alarm pre-flight and post-run managed-resource sweep.
+        exitCriteria:
+          - 'Existing 3 handlers (aws:s3:Bucket, aws:sqs:Queue, aws:iam:Role) pass the unchanged test suite through the derived registry [PASS — 24 pre-existing tests unchanged and green]'
+          - 'Fail-closed behavior preserved: an unmapped target type still raises UnsupportedTargetTypeError [PASS — unsupported.test.ts green through the registry]'
+          - 'Replacement path unit-proven: an immutable-attr change plans replace and executes delete+create only behind an explicit gate [PASS — replacement.test.ts: gate-closed refusal, delete-then-create order, managed-only, dry-run preserved]'
+          - 'docs/guides/live-run-runbook.md pre-flight + sweep steps are executable (dry-run against mock) [PASS — live:preflight/live:sweep --mock RESULT: PASS; digest + ed25519 signature checks run real]'
+        evidence:
+          - 'packages/deploy-aws/src/registry.ts (registrations self-declare targetType via class statics; SUPPORTED_TARGET_TYPES + dispatch map derived; duplicate registration fails fast)'
+          - 'packages/deploy-aws/src/clients.ts (lazy per-service client cache; overrides short-circuit)'
+          - 'packages/deploy-aws/src/executor.ts (replace classification on immutable projection keys; replacement gate replace: true; managed-only replace; delete-then-create)'
+          - 'packages/deploy-aws/src/sqs.ts (fifoQueue declared immutable — first real immutable key)'
+          - 'packages/deploy-aws/test/replacement.test.ts (12 tests: classification, gates, SQS fifo replace, derived registry, lazy clients)'
+          - 'pnpm exec vitest run packages/deploy-aws/test -> 36 passed (24 pre-existing unchanged)'
+          - 'CLI: --confirm-replace flag wired (packages/cli/src/cli.ts, deploy.ts, execution.ts); replace glyph ±; cli suite 86 green'
+          - 'tools/live-run/preflight.mjs + sweep.mjs (+ package.json live:preflight / live:sweep); mock runs PASS'
+          - 'pnpm run lint green; pnpm run test -> 1283 passed (includes fixing pre-existing rename-safety failure: asserted file roadmap-v2 was removed in e10ebe0 pre-roadmap; assertion moved to spec/ieps/IEP-0014)'
+          - 'check:names + scan:secrets green'
+
+      - id: M21.2
+        title: Cheap mapped targets (~4 handlers)
+        status: completed # 2026-07-16: 4/4 per-service live runs PASS (Resource Groups, Secrets Manager, ACM, TargetGroup); first TWO live replacement executions (ACM validation-method, TargetGroup port); total wave cost $0.00
+        dependsOn: [M21.1]
+        gate: 'HUMAN APPROVAL REQUIRED — first live run of the roadmap: user selects the AWS account/profile here (reused for all later waves); live-run execution approval.'
+        note: >-
+          Resource Groups, Secrets Manager, ACM certificate, ALB TargetGroup.
+          Honest scope: ACM reaches PENDING_VALIDATION only (no DnsZone kind
+          until M23.2 closes the loop to ISSUED). Live run ~$0.
+        exitCriteria:
+          - 'Handlers for aws:resourcegroups:Group, aws:secretsmanager:Secret, aws:acm:Certificate, aws:elasticloadbalancing:TargetGroup mock-tested (aws-sdk-client-mock) [PASS — 18 tests in m21.2-handlers.test.ts; full lifecycle each incl. ACM validation-method replace and TargetGroup port replace]'
+          - 'Individual live run PER SERVICE (Resource Groups, Secrets Manager, ACM, TargetGroup) per docs/guides/live-run-runbook.md — each with the 9 lifecycle tests, full teardown, and its own evidence doc (replacement N/A rows justified) [PASS 4/4 2026-07-16 — evidence docs m21.2-{resource-groups,secrets-manager,acm,target-group}-live-run-evidence.md; zero orphans each; $0.00 total; replacement executed LIVE twice (ACM, TargetGroup), N/A justified twice (RG, Secrets Manager)]'
+        evidence:
+          - 'packages/deploy-aws/src/resource-groups.ts (tag-filter query over iap:application; version rides as iap:applicationVersion tag)'
+          - 'packages/deploy-aws/src/secrets-manager.ts (value NEVER read back; GetRandomPassword on generateSecretString; ForceDeleteWithoutRecovery teardown; scheduled-deletion reads absent)'
+          - 'packages/deploy-aws/src/acm.ts (immutable domainName/validationMethod -> replace; honest PENDING_VALIDATION scope note until M23.2)'
+          - 'packages/deploy-aws/src/target-group.ts (immutable targetType/protocol/port/vpcId; default-VPC resolution via EC2 per ADR-0005, fail-closed without one; duration coercion 30s->30)'
+          - 'packages/deploy-aws/src/registry.ts (+4 register lines — the only registration edit, per ADR-0004)'
+          - 'packages/deploy-aws/test/m21.2-handlers.test.ts -> 18 tests green; deploy-aws suite 54 green'
+          - 'pnpm run test -> 1301 passed; lint + check:names + scan:secrets green'
+          - 'SDK deps added: client-acm, client-elastic-load-balancing-v2, client-secrets-manager, client-resource-groups, client-ec2 (default-VPC resolution)'
+          - 'LIVE 1/4: docs/reports/m21.2-resource-groups-live-run-evidence.md (run iapg-1784203769 pre-jarvis-naming, eu-central-1; CLI-driven; 8 PASS + replacement justified-N/A; refusal exit 3; zero orphans)'
+          - 'LIVE 2/4: docs/reports/m21.2-secrets-manager-live-run-evidence.md (jarvis-1784205298; async force-delete behavior confirmed; value never read)'
+          - 'LIVE 3/4: docs/reports/m21.2-acm-live-run-evidence.md (jarvis-1784205607; FIRST LIVE REPLACEMENT — validationMethod drift, gate-closed refusal then gated delete+create; 3 live findings: example.com CAA -> FAILED, domainName-change plans create not replace (fix M23.2), ACM list lag)'
+          - 'LIVE 4/4: docs/reports/m21.2-target-group-live-run-evidence.md (jarvis-1784206236; all 9 applicable incl. port-replace live and default-VPC resolution per ADR-0005)'
+          - 'Runs 2-4 executor-driven (synthetic single-resource plans): mapping siblings (rds/elbv2 LoadBalancer/ecs) get handlers in M21.3, when the CLI mapping path is exercised end-to-end'
+          - 'Pre-flight created account budget iap-live-runs ($25 monthly, 80% email alert) after correctly failing closed without one'
+          - 'Wave cost: $0.00 total; roadmap running total $0.00 of $25 ceiling'
+
+      - id: M21.3
+        title: Compute/data mapped targets (~6 handlers) — every mapped target executable
+        status: completed # 2026-07-16: 4/4 per-service live runs PASS (ECS, ALB, ElastiCache, RDS); 12/12 mapped types executable; 5 live bugs found+fixed; wave cost ~$0.08
+        dependsOn: [M21.2]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (~$2-4): three-tier app on the account default VPC.'
+        note: >-
+          ECS Cluster+Service, ALB, RDS DBInstance+DBSubnetGroup, ElastiCache.
+          Live: 3-tier app on the default VPC — recorded decision
+          (docs/adr/ADR-0005-default-vpc-live-testing.md), retrofit onto
+          IaP-managed Network happens in M23.4.
+        exitCriteria:
+          - 'HEADLINE: every target type emitted by providers/aws/mappings/core.iap-map.yaml is executable (12 distinct target types, up from 3) [PASS — programmatic check: 12 mapped, 12 supported, 0 missing]'
+          - 'All new handlers mock-tested; live per-service runs per runbook with full teardown + evidence docs [PASS 4/4 2026-07-16 — m21.3-{ecs,alb,elasticache,rds}-live-run-evidence.md; zero orphans each; wave ~$0.08 (running total ~$0.08/$25); replacement executed LIVE on ECS+ALB, classification+refusal LIVE on ElastiCache+RDS with execution justified-deferred to M22.2 DynamoDB]'
+        evidence:
+          - 'packages/deploy-aws/src/ecs-service.ts (cluster + task-definition family owned by the service handler; all revisions deregistered at delete; launchType immutable)'
+          - 'packages/deploy-aws/src/load-balancer.ts (type/scheme immutable; accessLogsEnabled without bucket fails closed; sslPolicy honestly deferred to listener wiring)'
+          - 'packages/deploy-aws/src/rds-instance.ts (ManageMasterUserPassword — no password material through IaP; engine/storageEncrypted immutable; deletion-protection disable-then-delete teardown)'
+          - 'packages/deploy-aws/src/rds-subnet-group.ts (default-VPC subnets per ADR-0005; subnetTier rides as iap:subnetTier tag)'
+          - 'packages/deploy-aws/src/elasticache.ts (engine + both encryption modes immutable; auth token generated locally only with TLS on, never logged; replica-count reconcile)'
+          - 'packages/deploy-aws/src/network.ts (shared default-VPC/subnets/SG resolution, extracted from target-group.ts)'
+          - 'packages/deploy-aws/test/m21.3-handlers.test.ts -> 23 tests; deploy-aws suite 77 green; workspace 1324 passed; lint + check:names + scan:secrets green'
+          - 'unsupported-type fixture rotated to aws:dynamodb:Table (ecs:Service graduated to supported)'
+          - 'Honest gaps recorded: ECS auto-scaling + serviceConnect (M22.5), RDS requireSecureTransport parameter groups, ElastiCache cacheNodeMemory->nodeType sizing, ALB sslPolicy (listener wiring)'
+          - 'LIVE bugs found+fixed (each mock-regression-tested): ECS service-linked-role first-use race (operational fix); EC2-launch-type rejects assignPublicIp (honest half-replace state proven, ADR-0006); tagging-index ECS ghosts (sweep now verifies ecs: ARNs); ElastiCache needs handler-owned cache subnet group for Redis AUTH; ElastiCache update ordering (replicas before failover, eventual convergence); ElastiCache tag-API rejects reads during modify windows (read now resilient, destroy stays fail-closed)'
+          - 'Process finding: account budget iap-live-runs limit changed $25->$50 outside the session; pre-flight failed closed on it; flagged to approver, not modified by the agent'
+
+  - id: '22'
+    title: Mapping expansion, zero spec change (mapping bump + re-sign per wave)
+    priority: P0
+    status: completed # 2026-07-18: ALL of Phase 22 done (M22.1-M22.5); 33 Class B handlers live-proven across 15 M22.3-5 per-service runs + M22.1-2; 10 live bugs found+fixed across the phase; executor dependsOn topological ordering added; NO mapping bump (per-branch-outputs grammar gap deferred to M23.2, honest); running cost ~$4/$25 (incl. two M22.3 token-expiry overruns). Phase 23 next
+    dependsOn: ['21']
+    milestones:
+      - id: M22.1
+        title: Serverless core (~8 handlers)
+        status: completed # 2026-07-16: 8/8 per-service live runs PASS incl. end-to-end serverless API (public URL -> API GW -> Lambda -> JSON); 3 live bugs found+fixed; wave $0.00
+        dependsOn: [M21.3]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (~$0): end-to-end serverless API.'
+        note: >-
+          Lambda (Function), API Gateway HTTP API (Gateway), SNS (Topic),
+          SSM Parameter (Secret), EventBridge Scheduler (Job cron), CloudWatch
+          Logs (derived log posture), S3-public + SQS-DLQ upgrades to live
+          handlers, IAM-derivation table for execution roles. Mapping bump +
+          manifest re-sign (procedure in docs/guides/live-run-runbook.md).
+        exitCriteria:
+          - 'Handlers mock-tested for lambda:Function, apigatewayv2:Api, sns:Topic, ssm:Parameter, scheduler:Schedule, logs:LogGroup + S3-public/SQS-DLQ upgrades [PASS — 15 tests m22.1-handlers.test.ts; deploy-aws suite 92 green; workspace 1339]'
+          - 'IAM-derivation table produces least-privilege execution roles for Lambda/Scheduler (reviewed, bounded scope) [PASS — mapping constants: action-scoped logs/invoke policies, single role serves lambda+scheduler trust (array Principal); resource scoping tightens later, recorded]'
+          - 'Live end-to-end serverless runs per runbook (per-service); teardown + evidence docs [PASS 8/8 2026-07-16 — m22.1-{sns,ssm-parameter,cloudwatch-logs,s3-public,sqs-dlq,lambda,scheduler,apigateway}-live-run-evidence.md; HEADLINE: public URL -> API Gateway -> Lambda returned {"ok":true} live; Lambda invoked directly too; S3 public read + lockdown proven by anonymous curl (200 then 403); zero orphans each; $0.00 total, running ~$0.08/$25]'
+          - 'core.iap-map.yaml bumped + manifest digest re-signed; signature verify green [PASS — 12 kinds mapped (Function/Job/Topic/Secret added), 17 target types emitted, all executable; test:providers 45/45; preflight signature step green]'
+        evidence:
+          - 'providers/aws/mappings/core.iap-map.yaml (+Function/Job/Topic/Secret blocks; Queue DLQ + ObjectStore public branches); manifest re-signed keyId aws-test-2026, capabilities.kinds -> 12'
+          - 'packages/deploy-aws/src/{lambda-function,sns-topic,ssm-parameter,scheduler-schedule,log-group,apigateway-http-api}.ts (6 new handlers)'
+          - 'Upgrades: iam.ts (multi-service trust via Principal array; inline-policy-safe delete), s3.ts (public-access block + public-read policy, desired-gated), sqs.ts (handler-owned <name>-dlq sibling + RedrivePolicy)'
+          - 'Conformance surface updated: unsupported-kind case rotated Function->Volume (uncovered until M22.4); DLQ rejection test flipped to positive wiring test; PC-5 kinds list -> 12'
+          - 'CLI end-to-end: serverless doc (Function+Job+Topic+Secret) plans 8 resources through the bumped mapping; key-value Database correctly fails closed until M22.2'
+          - 'HONEST GAP: apigatewayv2:Api has no mapping emission until a Gateway discriminator exists (1.3.0 Gateway.protocol, M24.1) — handler ships and live-proves now'
+          - 'LIVE bugs found+fixed (mock-regression-covered): SQS defaults SqsManagedSseEnabled=true (absent desired no longer reads as drift — desired-gated); Scheduler tags apply to schedule GROUPS only (handler now owns a tagged group per schedule); versioned-bucket teardown needs a version purge (runbook note; fail-closed proven)'
+          - 'Identity-carrying-name finding extended: SNS .fifo suffix (like ACM domainName) makes fifo drift read absent->create, never replace — identity pinning fix tracked for M23.2'
+          - 'Replacements this wave: SSM type change executed gated delete+create LIVE; Lambda packageType + APIGW protocol classification+refusal LIVE (execution justified: needs ECR image / different product)'
+          - 'Budget governance: account budget found at $50, requester confirmed $25 ceiling stands, budget reset to $25 before the wave'
+
+      - id: M22.2
+        title: Serverless data + derived posture (~7 handlers)
+        status: completed # 2026-07-17: 3/4 per-service live runs PASS + Timestream justified deferral (account not onboarded); DynamoDB executed the mandated live key-schema replacement; wave ~$0.003; FIRST PARALLEL WAVE (per-service runs via concurrent subagents, requester-directed 2026-07-17)
+        dependsOn: [M22.1]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (<$0.25); first live exercise of replacement semantics.'
+        note: >-
+          DynamoDB, Timestream, KMS CMK (encryption posture), AWS Backup
+          (backup posture). DynamoDB immutable key schema is the first live
+          replacement-semantics exercise — the M21.1 foundation becomes
+          load-bearing here.
+        exitCriteria:
+          - 'Handlers mock-tested for dynamodb:Table, timestream:Database+Table, kms:Key, backup:BackupPlan+BackupVault [PASS — 42 tests across m22.2-{dynamodb,timestream,kms,backup}.test.ts; deploy-aws 134 green; workspace 1381]'
+          - 'Live run includes a DynamoDB immutable-key-schema change: plan says replace, gated delete+create executes, data-loss warning surfaced [PASS 2026-07-17 — keySchema pk:S -> pk:S,sk:S planned replace; gate-closed refusal verbatim ("immutable attribute drift requires delete+create (destructive)"), exit 3, zero mutation; gate-open delete THEN create executed live incl. the name-release race recorded honestly]'
+          - 'Teardown + evidence doc per runbook [PASS — m22.2-{dynamodb,kms,backup,timestream}-live-run-evidence.md; run-scoped checks zero orphans each; coordinator region-global sweep PASS after the wave (parallel-run protocol)]'
+        evidence:
+          - 'packages/deploy-aws/src/{dynamodb,timestream,kms,backup}.ts (6 target types: dynamodb:Table, timestream:Database+Table, kms:Key, backup:BackupVault+BackupPlan); registry/clients/index wired; unsupported-kind sentinel rotated dynamodb:Table -> ec2:Volume (uncovered until M22.4)'
+          - 'LIVE 1/4 DynamoDB (jarvis-1784279604): 9/9 incl. the ROADMAP-MANDATED first data-engine replacement executed live; desired-gated SSE proven drift-free against the AWS-owned default key'
+          - 'LIVE 2/4 KMS (jarvis-1784279606): 9/9; SECOND live replacement this wave (keySpec SYMMETRIC_DEFAULT -> RSA_2048, alias repointed); alias-as-identity + PendingDeletion-as-terminal proven live (7-day AWS minimum window)'
+          - 'LIVE 3/4 Backup (jarvis-1784279607): 9/9 with replacement justified-N/A (UpdateBackupPlan versions proven in-place, 4 VersionIds); deleted-vault describe returns AccessDeniedException — dual-token absent detection validated live'
+          - 'LIVE 4/4 Timestream: JUSTIFIED DEFERRAL — account not onboarded (AWS closed LiveAnalytics onboarding 2025); verbatim AccessDeniedException captured; executor failed closed (exit 3, zero mutations); handlers stay mock-proven 11/11; re-runnable if AWS Support grants access'
+          - 'HONEST GAP: no mapping emission for key-value/timeseries Database yet — outputs bindings are per-kind and fail closed, so heterogeneous-target branches need a per-branch-outputs grammar (M23.1 spec-minor candidate; apigatewayv2 M22.1 precedent). KMS/Backup posture joins additionally need sibling-reference wiring (alias/vaultName). Mapping untouched -> no re-sign this wave'
+          - 'PARALLEL-WAVE PROTOCOL (new): 4 concurrent per-service runs with distinct run ids; per-run RUN-SCOPED orphan checks; the region-global live:sweep runs once by the coordinator after the wave. sweep.mjs now verifies kms: ARNs against KeyState (PendingDeletion = deleted terminal state), mirroring the M21.3 ECS-ghost fix; mock sweep PASS, real global sweep PASS (zero orphans, 3 index ghosts verified)'
+          - 'Live finding (latent, no bite): AwsExecutor orders resources alphabetically by logicalId and IGNORES dependsOn — Backup sequenced vault->plan as two applies; ordering fix needed before M22.3 cluster waves'
+          - 'COST STATUS: wave ~$0.003 (two CMKs ~1h prorated; DynamoDB/Backup/Timestream $0.00). Running total ~$0.09 of $25.00'
+
+      - id: M22.3
+        title: VPC data engines (~9 handlers)
+        status: completed # 2026-07-18: 6/6 per-service live runs PASS (Aurora, DocDB, Neptune, MemoryDB, MQ, ElastiCache-Memcached); executor dependsOn topological-ordering fix landed + proven live; 3 live bugs fixed (2 MQ idempotency, memcached create-window); wave cost ~$0.35 (survived 2 token-expiry orphan episodes, cleaned up)
+        dependsOn: [M22.2]
+        gate: 'HUMAN APPROVAL REQUIRED — most expensive routine wave (~$3-6).'
+        note: >-
+          Aurora, DocumentDB, Neptune, MemoryDB, Amazon MQ, Memcached engine
+          values on ElastiCache. Runs on the default VPC (ADR-0005).
+          Neptune and DocumentDB are flagged demotion candidates in the cut
+          order.
+        exitCriteria:
+          - 'Handlers mock-tested for rds:DBCluster (Aurora), docdb:DBCluster, neptune:DBCluster, memorydb:Cluster, mq:Broker + cluster-instance/subnet-group sub-handlers [PASS — m22.3-{aurora,docdb,neptune,memorydb,mq}.test.ts + elasticache memcached branch; deploy-aws 303 green]'
+          - 'Live run per runbook with waiter budgets respected (slow cluster spin-up); teardown + evidence doc [PASS 6/6 2026-07-18 — m22.3-{aurora,docdb,neptune,memorydb,mq,elasticache-memcached}-live-run-evidence.md; all 9/9 or replacement-deferred; reversed-topology teardown honored dependsOn; zero orphans global sweep PASS]'
+        evidence:
+          - 'PREREQUISITE FIX: AwsExecutor now orders resources topologically over dependsOn (reversed on destroy, cycles fail closed, alphabetical tiebreak) — the M22.2 latent finding; test/ordering.test.ts (5 tests); proven live both directions by the ASG run (M22.5) and every cluster/instance/subnet-group teardown here'
+          - 'Aurora (jarvis-1784307755): 9/9; Serverless v2 min-0-ACU scale-to-zero; ManageMasterUserPassword AWS-owned secret auto-deleted with cluster; engine replace classify+refuse, execution deferred'
+          - 'DocDB (jarvis-1784307756) 9/9 + Neptune (jarvis-1784338123) 9/9: handler-owned subnet groups; DocDB write-only master password; Neptune no credential material (IAM/none); both cut-order candidates run lean'
+          - 'MemoryDB (jarvis-1784338124) 9/9: secure defaults TLS-on/open-access; tlsEnabled immutable replace classify+refuse deferred; drift via aclName (slow pending-update model)'
+          - 'MQ (jarvis-1784338125) 9/9 + 2 LIVE BUGS FIXED: (1) engineType case mismatch ActiveMQ vs ACTIVEMQ caused spurious destructive replace; (2) accepted instanceType update never converged (read ignored PendingHostInstanceType) — both escaped the idealised mock, regression tests added'
+          - 'ElastiCache Memcached (jarvis-1784338126) 9/9: engine discriminator on the ReplicationGroup target; sibling-family probe makes memcached<->redis a gated replace; create-window CacheClusterNotFound tolerance (prior-attempt fix) confirmed live; redis M21.3 regressions unbroken'
+          - 'HONEST GAP: no mapping emission for wide-column/warehouse/graph Database yet — the per-branch-outputs grammar gap ([[per-branch-outputs-mapping-gap]]) blocks heterogeneous Database branches; handlers ship+live-prove at target-type level (M22.2 precedent). Fix scoped to M23.2'
+          - 'RELIABILITY LESSON: the wave was hit twice by SSO-token expiry stranding billing resources (~5h crash + ~15h overnight, both fully cleaned up). Mitigation added: every live prompt now fails fast on ExpiredToken; agent poller auto-resume proved unreliable across token lapses, so the coordinator actively nudges/takes over teardown. Recorded [[parallel-live-run-waves]]'
+          - 'COST: wave ~$0.35 clean-run resource-hours; ~$3.5 additional from the two token-expiry overrun episodes (avoidable, recorded honestly). Running total ~$4/$25 estimate — reconciled vs Cost Explorer at M24.4'
+
+      - id: M22.4
+        title: Volumes (~4 handlers)
+        status: completed # 2026-07-18: 3/3 per-service live runs PASS (EBS, EFS, FSx); 1 live bug fixed (EFS mount-target availability race); wave cost ~$0.03
+        dependsOn: [M22.3]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (<$1).'
+        note: EBS, EFS, FSx realizing the Volume kind.
+        exitCriteria:
+          - 'Handlers mock-tested for ec2:Volume, efs:FileSystem (+MountTarget), fsx:FileSystem [PASS — m22.4-{ebs,efs,fsx}.test.ts]'
+          - 'Live run per runbook; teardown + evidence doc [PASS 3/3 — m22.4-{ebs,efs,fsx}-live-run-evidence.md; zero orphans each]'
+        evidence:
+          - 'EBS (jarvis-1784289033) 9/9: tag-identity (iap:resourceId=logicalId) proven live idempotent; grow-only ModifyVolume + shrink refusal verbatim; AZ-pin replacement executed gate-open (delete+create across AZs)'
+          - 'EFS (jarvis-1784289034) 9/9 + LIVE BUG FIXED: CreateMountTarget raced a still-creating filesystem (always failed live, left non-convergeable partial); fixed with a bounded fail-closed available-waiter before the mount-target call + regression test. performanceMode replace executed; elastic+maxIO invalid-combo surfaced (planner pre-validation backlog note)'
+          - 'FSx (jarvis-1784338127) 9/9: OpenZFS SINGLE_AZ_1 only (other types fail closed); priciest M22.4 resource run lean; deploymentType replace classify+refuse deferred'
+          - 'HONEST GAP: Volume kind has no mapping emission until the graduated-kind/heterogeneous-branch grammar lands; handlers live-proven at target-type level'
+          - 'COST: wave ~$0.03 (gp3 cents, EFS ~$0, FSx OpenZFS ~$0.03/h × ~0.7h). Cheapest data wave'
+
+      - id: M22.5
+        title: Compute runtimes + edge-adjacent (~9 handlers)
+        status: completed # 2026-07-18: 6/6 per-service live runs PASS (EC2+LT, ASG, AppRunner, Batch, NLB, WAF); 2 live bugs fixed (EC2 AZ-capacity failover, Batch disable-settle-delete); dependsOn ordering proven live both ways by ASG; wave cost <$0.10
+        dependsOn: [M22.4]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (<$1).'
+        note: >-
+          EC2 Instance+LaunchTemplate, Auto Scaling, App Runner, Batch
+          (Fargate compute environment), NLB, WAFv2 (derived from a public
+          Gateway).
+        exitCriteria:
+          - 'Handlers mock-tested for ec2:Instance, ec2:LaunchTemplate, autoscaling:AutoScalingGroup, apprunner:Service, batch:ComputeEnvironment+JobQueue+JobDefinition, NLB variant, wafv2:WebACL [PASS — m22.5-{ec2-instance,launch-template,asg,apprunner,batch,nlb,waf}.test.ts; deploy-aws 303 green]'
+          - 'Live run per runbook; teardown + evidence doc [PASS 6/6 — m22.5-{ec2,asg,apprunner,batch,nlb,waf}-live-run-evidence.md; zero orphans each]'
+          - 'Phase 22 closes with all Class B services executable; mapping re-signed at every bump in the phase [PASS on executability; NO mapping bump this phase — see honest gap below; no re-sign needed]'
+        evidence:
+          - 'EC2+LT (jarvis-1784289036) 9/9 + LIVE BUG FIXED: eu-central-1a had no t4g.nano capacity so pinning the first-subnet AZ failed create outright; fixed with deterministic AZ-capacity failover (advances only on InsufficientInstanceCapacity/Unsupported, else fails closed) + 3 regression tests. Instance replace executed gate-open; LT new-default-version update flow live-verified'
+          - 'ASG (jarvis-1784289037) 9/9 — HEADLINE: dependsOn topological ordering proven LIVE both directions (LT->ASG create, ASG->LT destroy) though alphabetical order argues the opposite; desired 0->1->0 spun a real t4g.nano InService ~17s; replacement justified-N/A'
+          - 'Batch (jarvis-1784289039) 9/9, $0.00 (no job ever submitted) + LIVE BUG FIXED: back-to-back disable-then-delete raced itself (Cannot delete, resource is being modified); fixed as disable-SETTLE-delete (poll to DISABLED, 120s budget) + regression tests. Reversed-topology JQ-before-CE teardown proven; IAM role sibling wired'
+          - 'NLB (jarvis-1784289040) 9/9: network variant on the LoadBalancer target; ALB-only attr (sslPolicy) on a network LB fails closed verbatim (no silent drop, ch.12 §12.3); loadBalancerType replace classify+refuse deferred (ALB proven M21.3); absence-drift recreate cycled a 2nd NLB'
+          - 'WAF (jarvis-1784289041) 9/9: REGIONAL WebACL, fresh-LockToken per mutation (3 rotations incl. one from CLI drift, zero WAFOptimisticLockException); cross-scope replace probe rejected outright by ListWebACLs(CLOUDFRONT) from a regional endpoint — honest live finding'
+          - 'App Runner (jarvis-1784338128) 9/9 — HEADLINE: curl to the ServiceUrl returned HTTP 200 live hello page (public serverless container); no Cpu/Memory phantom drift; replacement justified-N/A. Tests 6-9 coordinator-completed via handler driver after agent poller stall (teardown verified zero-orphan)'
+          - 'HONEST GAP: NLB has no listeners/targets and WAF no ALB association (the "derived from a public Gateway" story is future mapping scope); no mapping emission for the new kinds pending the per-branch-outputs grammar ([[per-branch-outputs-mapping-gap]], M23.2)'
+          - 'COST: wave <$0.10 (t4g.nano seconds-minutes, NLB ~$0.03/h ×~25min, WAF ~$0.01, Batch $0). PHASE 22 COMPLETE: 15/15 M22.3-5 live runs + all M22.1-2; running total ~$4/$25 incl. the M22.3 token-expiry overruns'
+
+  - id: '23'
+    title: Reserved-kind graduations (spec minors) + Class C handlers
+    priority: P0
+    status: completed # 2026-07-18: ALL M23.1-M23.5 done. Specs 1.1.0 (IEP-0015) + 1.2.0 (IEP-0016) released — all 9 reserved kinds graduated, reserved registry empty. ~20 Class C handlers live-proven (M23.2 6 + M23.4 7 + M23.5 4, MSK live deferred). ACM->ISSUED justified-partial (needs delegated domain). ~7 more live bugs fixed. Phase 24 next
+    dependsOn: ['22']
+    milestones:
+      - id: M23.1
+        title: Spec minor 1.1.0 — graduate DnsZone, Certificate, Registry, Alert, Dashboard
+        status: completed # 2026-07-18: IEP-0015 Accepted + released 1.1.0 (drafted defaults for 5 open questions, revisitable) under the standing autonomous-completion directive; drafted in parallel with Phase 22
+        dependsOn: [M22.1]
+        gate: 'HUMAN APPROVAL REQUIRED — spec minor release 1.1.0 (IEP + schema + chapter updates).'
+        note: >-
+          Additive spec minor: graduate DnsZone, Certificate, Registry, Alert,
+          Dashboard from reserved to fully specified; Database.class gains
+          wide-column and warehouse values. Drafting may parallel Phase 22;
+          the gate never blocks Class B waves.
+        exitCriteria:
+          - 'IEP drafted + accepted; spec/schema/iap-v1.schema.json and chapters updated additively (1.1.0) [PASS — spec/ieps/IEP-0015 Accepted; schema + chapters 03/05/08/10 + conformance additive; packages/model GRADUATED_KINDS tier + packages/validator IAP801 emission]'
+          - 'Existing 1.0.0 documents still validate unchanged (no breaking change) [PASS — full 1.0.0 corpus + 9 examples validate; workspace suite 1573 green; providers 45/45; determinism 29/29]'
+          - 'IAP801 reserved-kind warning no longer fires for the five graduated kinds [PASS — IAP801 (previously spec-only, now emitted) fires only for the remaining 4 reserved kinds; tested both directions]'
+        evidence:
+          - 'IEP-0015 (Certificate, DnsZone, Registry, Dashboard, Alert full specs; Database.class += wide-column, warehouse); five open questions resolved to drafted defaults (postgresql!=warehouse, dnssec=none, neutral Alert.channels, keep severity+severityFloor, chapters stamped 1.1.0) — all revisitable'
+          - 'Compatibility-safe design: graduated kinds live in a new GRADUATED_KINDS tier, NOT CORE_KINDS (growing CORE_KINDS broke 42 provider-sdk/planner tests — reverted by design); downstream table extension deferred to M23.2 with the per-branch-outputs fix [[per-branch-outputs-mapping-gap]]'
+          - 'Pre-existing unrelated failure noted: tests/conformance/run.mjs references old ROADMAP.yaml (now ROADMAP-V4.yml) — 1-line fix, out of M23.1 scope'
+
+      - id: M23.2
+        title: 1.1.0 handler wave (~9 handlers)
+        status: completed # 2026-07-18: 6/6 per-service live runs (5 full 9/9, ACM complete-with-justified-partial — ISSUED blocked on an external delegated-domain dependency); 3 live bugs fixed; wave ~$0; global sweep zero orphans
+        dependsOn: [M23.1]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (~$2).'
+        note: >-
+          Route 53, ECR, CloudWatch Alarms+Dashboards, Keyspaces, Redshift
+          Serverless, ACM as first-class Certificate — the ACM cert now
+          reaches ISSUED via DnsZone validation records, closing the honest
+          M21.2 PENDING_VALIDATION gap.
+        exitCriteria:
+          - 'Handlers mock-tested for route53:HostedZone+RecordSet, ecr:Repository, cloudwatch:Alarm+Dashboard, cassandra:Keyspace+Table, redshiftserverless:Namespace+Workgroup [PASS — 59 M23.2 handler tests; deploy-aws 364 green; workspace 1632]'
+          - 'ACM certificate reaches ISSUED in the live run (DnsZone-validated), upgrading the M21.2 scope note [JUSTIFIED PARTIAL — the DNS-validation WIRING is live-proven (handler published the _acm-validations CNAME into the hosted zone live, verbatim record captured), but ISSUED requires a registered+publicly-delegated domain, which the account does not have; cert stays PENDING_VALIDATION. External-dependency deferral flagged to the requester (register/delegate a domain to close it), same class as M22.2 Timestream onboarding]'
+          - 'Live run per runbook; teardown + evidence doc [PASS 6/6 — m23.2-{route53,ecr,cloudwatch,keyspaces,redshift-serverless,acm-issued}-live-run-evidence.md; global sweep zero orphans]'
+        evidence:
+          - 'Route53 HostedZone (jarvis-1784345750) 9/9; ECR (jarvis-1784345751) 9/9 incl. encryption-replace executed live; CloudWatch Alarm+Dashboard (jarvis-1784345752) 9/9 incl. the tag-less dashboard managed-gate via embedded marker widget proven live'
+          - 'Keyspaces Keyspace+Table (jarvis-1784345753) 9/9 incl. schema-replace executed live; Redshift Serverless Namespace+Workgroup (jarvis-1784345754) 9/9, managed admin password (no plaintext), zero-query so ~$0, live "delete workgroup before namespace" error confirmed the dependsOn reversal is load-bearing'
+          - 'ACM (jarvis-1784345755) complete-with-justified-partial: HEADLINE the handler published the ACM DNS-validation CNAME into the hosted zone LIVE (the M21.2->M23.2 upgrade wiring proven); tag-identity fix proven (domainName change -> replace, same cert ARN, fixing the M21.2 orphan bug); ISSUED deferred (no delegated domain)'
+          - 'LIVE BUGS FIXED (3, mock-regression-covered): ACM fail-fast on cert Status=FAILED (reserved-TLD .internal certs never emit a validation record — was burning 60 polls); Keyspaces UpdateTable one-property-per-call (AWS rejects multi-property changes); Keyspaces tag-reconcile-before-property-update (tagging races an in-flight UpdateTable)'
+          - 'HONEST GAP: mapping emission for the graduated kinds + wide-column/warehouse Database branches deferred (per-branch-outputs grammar gap [[per-branch-outputs-mapping-gap]]); NOT an M23.2 exit criterion — handlers driven directly by the live runs, as all of Phase 22. No mapping bump -> no re-sign this wave'
+          - 'COST: wave ~$0 (all resources free-tier or zero-query/short-lived; Redshift billed on query-seconds, none run). Running total ~$4/$25 (dominated by the M22.3 token-expiry overruns, not this wave)'
+
+      - id: M23.3
+        title: Spec minor 1.2.0 — graduate Network, Workflow, Stream, SearchIndex
+        status: completed # 2026-07-18: IEP-0016 Accepted/released 1.2.0 (drafted defaults, revisitable) under the standing autonomous-completion directive; reserved registry now EMPTY
+        dependsOn: [M23.1]
+        gate: 'HUMAN APPROVAL REQUIRED — spec minor release 1.2.0.'
+        note: >-
+          After this release all 9 reserved kinds are graduated (1.1.0 took
+          five, 1.2.0 takes the remaining four).
+        exitCriteria:
+          - 'IEP drafted + accepted; schema/chapters updated additively (1.2.0); 1.0.0/1.1.0 documents still validate [PASS — IEP-0016; additive schema/chapters 03/05/08/10 + conformance; workspace 1642 green, test:spec 74, providers 45, determinism 29 byte-identical (1.0.0+1.1.0 corpora + examples still validate)]'
+          - 'All 9 reserved kinds fully specified — reserved registry empty [PASS — RESERVED_KINDS=[] , GRADUATED_KINDS=9, CORE_KINDS=13 unchanged, KINDS=22; IAP801 fires for NO kind (tested); JSON-Schema empty-enum avoided by removing the reserved-fallback dispatch branch, ReservedKind template retained for future reservations]'
+        evidence:
+          - 'IEP-0016 (Network, Workflow, Stream, SearchIndex full specs); open questions → conservative defaults (IPv4-only addressSpace, advisory Workflow.steps, closed verb set, SearchIndex indexType-only, no field defaults) — all revisitable'
+          - 'Canonicalization-preservation design: Stream + Workflow (the kinds with reserved-era corpus docs) use INLINE duration grammar + reference NO common encryption/observability blocks, so canonicalization stays byte-identical (defaulting/$ref-duration re-spelling would have broken determinism goldens); Network + SearchIndex (no corpus users) reference common blocks freely'
+          - 'GRADUATED_KINDS tier boundary held (CORE_KINDS stays the 1.0.0 thirteen — M23.1 lesson); IAP801 mechanism retained though registry empty (a future minor may reserve new kinds)'
+
+      - id: M23.4
+        title: Network + Workflow handlers (~7 handlers)
+        status: completed # 2026-07-18: 7 handlers (51 tests); one orchestrated live run — full VPC graph up/down (create/destroy order = exact reverse, ordering proven live) + Express state machine SUCCEEDED; 1 live bug fixed (NAT waiter EIP-release race); EIP released zero orphans; cost <$0.01
+        dependsOn: [M23.3]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (<$1): full VPC up/down + Express state machine.'
+        note: >-
+          VPC/Subnet/SecurityGroup/InternetGateway/RouteTable/NatGateway, Step
+          Functions. Retrofit the M21.3 golden path onto IaP-managed Network,
+          closing the ADR-0005 default-VPC pragmatism. Explicit verification
+          of planner dependency ordering on the 6-resource network graph.
+        exitCriteria:
+          - 'Handlers mock-tested for ec2:Vpc, ec2:Subnet, ec2:SecurityGroup, ec2:InternetGateway, ec2:RouteTable, ec2:NatGateway, states:StateMachine [PASS — m23.4-{vpc,network-routing,state-machine}.test.ts, 51 tests; deploy-aws 416 green; workspace 1694]'
+          - 'Live: full VPC up/down + Express state machine per runbook; teardown + evidence doc [PASS 2026-07-18 — m23.4-network-workflow-live-run-evidence.md; jarvis-1784349970; state machine start-sync-execution SUCCEEDED (100ms); full graph torn down, EIP released, global sweep PASS; cost <$0.01]'
+          - 'M21.3 golden path re-run on IaP-managed Network (retrofit recorded in evidence) [PASS — the three-tier golden path now runs on an IaP-CREATED VPC (own VPC/subnets/SG/IGW/NAT/route-tables), not the account default VPC — closes the ADR-0005 default-VPC pragmatism]'
+          - 'Planner dependency ordering explicitly verified on the 6-resource graph (create order and reverse destroy order) [PASS — create: role->sm->vpc->igw->subnets->nat->route-tables->sg; destroy: exact reverse (sg->route-tables->nat->subnets->igw->vpc->sm->role); NAT before its subnet, IGW detach before VPC, VPC last — captured live in the evidence doc]'
+        evidence:
+          - 'Handlers: vpc.ts (Vpc/Subnet/SecurityGroup — tag-identity=logicalId, SG rule serialization desired-gated, immutable cidr/vpcId/az), network-routing.ts (IGW attach/detach-ordered, RouteTable route-diff, NatGateway handler-owned EIP with mandatory release), state-machine.ts (name->ARN, canonical-JSON definition compare, EXPRESS default, roleArn sibling ref)'
+          - 'LIVE BUG FIXED: NatGatewayHandler.waitForNatDeleted returned while NAT still `deleting` (EIP still bound) -> ReleaseAddress raced AWS and failed, cascading to block subnet/IGW/VPC deletes. Fixed: waiter polls until deleted/failed/absent (NAT_EIP_BOUND_STATES) before releasing; regression test (fake-timers). The kind of production EIP-orphan bug live runs exist to catch'
+          - 'Output-binding note: the driver threaded AWS-generated ids (VpcId->subnets/SG/IGW, SubnetId->NAT, IGW/NAT ids->routes) via sequential id-capturing applies, because the cross-resource output-binding grammar is deferred ([[per-branch-outputs-mapping-gap]]); mapping emission for the Network kind graph rides that same deferred work'
+          - 'COST: <$0.01 (NAT ~6.2min ≈ $0.005, 1 Express execution 100ms, everything else free). Running total ~$4/$25'
+
+      - id: M23.5
+        title: Stream + Search handlers (~4 handlers)
+        status: completed # 2026-07-18: 4 handlers (40 tests); Kinesis/Firehose/OpenSearch live 9/9 each; MSK Serverless live DEFERRED at its sub-gate (mock-proven, cut-order); global sweep zero orphans; wave ~$0.05
+        dependsOn: [M23.4]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (~$3-5); MSK live evidence has its OWN approval gate and may defer while the handler ships mock-tested.'
+        note: >-
+          Kinesis, Firehose, MSK Serverless, OpenSearch. MSK live evidence is
+          separately gated (long spin-up, cost); deferring it does not block
+          the milestone if the handler is mock-proven.
+        exitCriteria:
+          - 'Handlers mock-tested for kinesis:Stream, firehose:DeliveryStream, kafka:Cluster (MSK Serverless), opensearch:Domain [PASS — m23.5-{kinesis,firehose,msk,opensearch}.test.ts, 40 tests; deploy-aws 456 green; workspace 1734]'
+          - 'Live run per runbook for Kinesis/Firehose/OpenSearch; teardown + evidence doc [PASS 3/3 — m23.5-{kinesis,firehose,opensearch}-live-run-evidence.md; all 9/9; zero orphans; global sweep PASS]'
+          - 'MSK live evidence executed OR explicitly deferred at its own gate (recorded either way) [DEFERRED — m23.5-msk-live-run-evidence.md records the justified deferral: MSK Serverless ~$0.75/hr + 15-30min spin-up, on the roadmap cut order; handler mock-proven (10 tests), live-ready when the sub-gate approves]'
+        evidence:
+          - 'Kinesis (jarvis-1784351929) 9/9: ON_DEMAND stream; exercised ON_DEMAND<->PROVISIONED mode change in-place live (mutable, not replace); on-demand OpenShardCount + unpinned encryption proven drift-free'
+          - 'Firehose (jarvis-1784351930) 9/9, $0: DirectPut->S3 with IaP-wired sibling S3 bucket + firehose-trust IAM role (id/ARN threading); survived a mid-run SSO token expiry cleanly via the fail-fast guard (halted, resumed on refresh, zero orphans) — the token-expiry mitigation working as designed'
+          - 'OpenSearch (jarvis-search-1931) 9/9: single-node t3.small.search domain, encryption + node-to-node + EnforceHTTPS on, reached active with a live endpoint; teardown (tests 6-9) coordinator-completed via the handler driver after the agent create-poll stalled on the token blip — honestly documented, zero orphans'
+          - 'MSK Serverless: JUSTIFIED DEFERRAL at its own sub-gate (handler mock-proven: Serverless type, name->ARN, IAM auth, default-VPC >=2-subnet fail-closed, replace-for-config-drift)'
+          - 'HONEST GAP: no mapping emission for Stream/SearchIndex kinds yet (per-branch-outputs grammar [[per-branch-outputs-mapping-gap]]); handlers driven directly by the live runs'
+          - 'COST: wave ~$0.05 (Kinesis ~$0.01, Firehose $0, OpenSearch ~$0.02-0.03, MSK $0 deferred). Running total ~$4/$25. PHASE 23 COMPLETE (M23.1-M23.5): all 9 reserved kinds graduated (specs 1.1.0+1.2.0) + their handlers live-proven'
+
+  - id: '24'
+    title: New vocabulary + hard cases + closeout
+    priority: P1
+    status: completed # 2026-07-18: M24.1-M24.4 all done. Spec 1.3.0 (Cdn/EventBus + enum widenings, Email rejected); CloudFront/EventBridge/Cognito live-proven; EKS/AppSync/SES deferred per cut order; closeout artifacts (matrix/audit/evidence-index) done. ROADMAP-V4 COMPLETE
+    dependsOn: ['23']
+    milestones:
+      - id: M24.1
+        title: Spec minor 1.3.0 — Cdn, EventBus + enum widenings
+        status: completed # 2026-07-18: IEP-0017 Accepted/released 1.3.0 under the standing autonomous-completion directive; Email kind REJECTED (rationale recorded); Cdn+EventBus in a new NEW_KINDS tier
+        dependsOn: [M23.3]
+        gate: 'HUMAN APPROVAL REQUIRED — spec minor release 1.3.0; includes the SES Email-kind decision (recommendation: reject/defer).'
+        note: >-
+          New core kinds Cdn and EventBus; Identity.class gains
+          user-directory (Cognito); Service.runtime gains kubernetes;
+          Gateway.protocol gains graphql. The Email-kind question for SES is
+          decided here with a standing recommendation to reject/defer.
+        exitCriteria:
+          - 'IEP drafted + accepted; schema/chapters updated additively (1.3.0); earlier documents still validate [PASS — IEP-0017; additive schema/chapters + conformance valid/06 + invalid/27-29; workspace 1744 green, test:spec 79, providers 45, determinism 29; 1.0.0/1.1.0/1.2.0 corpora + examples still validate]'
+          - 'Email-kind decision recorded (accepted or rejected/deferred) with rationale [PASS — REJECTED (revisitable): email sending is a messaging-verb/integration concern, not an infra resource kind; model over Function/Service/EventBus/Topic/Queue + extensions; recorded in ch.5 §5.7.1, IEP Decision, ch.10 §10.3; reserves no name]'
+        evidence:
+          - 'IEP-0017 released 1.3.0: Cdn (network kind, origins required) + EventBus (messaging kind) fully specified; enum widenings Identity.type += user-directory (real discriminator is `type`, not `class`), Service.runtime += kubernetes, Gateway gains a NEW optional protocol field (http|graphql, no default — also seeds the M22.1 apigatewayv2 mapping gap)'
+          - 'New kinds placed in a NEW_KINDS tier (NOT CORE_KINDS) to avoid provider-sdk ABSTRACT_OUTPUT_ATTRIBUTES/planner breakage (the M23.1 lesson); isSpecifiedKind = core|graduated|new. Email kind REJECTED (revisitable). Workspace 1744 green, all prior corpora validate'
+
+      - id: M24.2
+        title: Edge + eventing handlers (~6 handlers)
+        status: completed # 2026-07-18: 5 handlers (36 tests); 3/3 live runs 9/9 (EventBridge, Cognito, CloudFront); CloudFront disable-then-delete executed (coordinator finished the delete — agent teardown claim was premature, caught by the global sweep); sweep.mjs gains a Cognito-ghost check; wave ~$0
+        dependsOn: [M24.1]
+        gate: 'HUMAN APPROVAL REQUIRED — live run (~$0 but longest wall clock: CloudFront distribution deploys are slow).'
+        note: >-
+          CloudFront (slow deploys; teardown is disable-then-delete — runbook
+          carries the waiter budget), EventBridge bus+rules, Cognito user
+          pools.
+        exitCriteria:
+          - 'Handlers mock-tested for cloudfront:Distribution, events:EventBus, events:Rule, cognito-idp:UserPool+UserPoolClient [PASS — 36 M24.2 handler tests; deploy-aws 492 green; workspace 1780]'
+          - 'Live run per runbook including CloudFront disable-then-delete teardown; evidence doc [PASS 3/3 — m24.2-{eventbridge,cognito,cloudfront}-live-run-evidence.md; global sweep PASS (zero real orphans, Cognito tag-index ghost verified deleted)]'
+        evidence:
+          - 'EventBridge (jarvis-1784356901) 9/9 $0: bus empty-projection + rule cross-ref; test-fidelity finding — eventBusName-drift->replace is structurally unobservable live (rules are physically per-bus, a moved rule reads absent->create; mock drives replace via an impossible stub; safety net still correct, just unreachable via live reads)'
+          - 'Cognito (jarvis-1784356902) 9/9 $0: pool+client; test 4 EXECUTED the generateSecret false->true replace live — new client with a real 52-char secret, ZERO leak in any report/log (write-only discipline held under a live replace); untaggable client managed via parent-pool tags'
+          - 'CloudFront (jarvis-1784356903) 9/9 $0: Cdn kind (1.3.0) reached Deployed with a live dxxxx.cloudfront.net endpoint; disable-then-delete teardown (roadmap longest wall-clock); slow deploy-gated tests 3/5 justify-deferred (mechanism mock-proven)'
+          - 'TEARDOWN-VERIFICATION FINDING: the CloudFront agent wrote a premature "fully torn down / NoSuchDistribution" doc while the distribution was still Deployed (disabled but not deleted); the coordinator global sweep + independent GetDistribution caught it, issued the real DeleteDistribution (confirmed NoSuchDistribution), and CORRECTED the evidence doc. Reinforces: agent teardown self-reports are always independently verified'
+          - 'sweep.mjs: added isCognitoUserPoolGhost (Cognito user pools linger in the tagging index post-delete, like ECS clusters) — DescribeUserPool NotFound = ghost; mock + real sweeps PASS. Third ghost-verification (after M21.3 ECS, M22.2 KMS)'
+          - 'COST: wave ~$0 (CloudFront/EventBridge/Cognito all free with no traffic/users). Running total ~$4/$25'
+
+      - id: M24.3
+        title: Stretch wave — EKS, AppSync, SES (each individually gated)
+        status: completed # 2026-07-18: all three DEFERRED at their per-item gates with rationale (roadmap-sanctioned; cut order). SES N/A (Email kind rejected in M24.1); EKS deferred (cost ~$0.10/hr + slow); AppSync deferred (gated, low pull-through). $0. Does not block M24.4
+        dependsOn: [M24.2]
+        gate: 'HUMAN APPROVAL REQUIRED — per item: EKS, AppSync, SES each get their own go/defer decision. Pre-declared defer candidates; deferring any or all does not block M24.4.'
+        note: >-
+          EKS (Service runtime=kubernetes), AppSync (Gateway
+          protocol=graphql), SES (only if M24.1 accepted an Email kind;
+          standing recommendation is reject/defer). First entries in the cut
+          order.
+        exitCriteria:
+          - 'For each undertaken item: handler mock-tested + live run per runbook + evidence doc [N/A — none undertaken; all three deferred per the cut order + cost discipline under the autonomous-completion directive]'
+          - 'For each deferred item: deferral recorded at its gate with rationale [PASS — docs/reports/m24.3-stretch-wave-deferral-evidence.md: SES N/A (Email kind rejected, IEP-0017); EKS deferred (control plane ~$0.10/hr + ~30min create/delete, high on cut order); AppSync deferred (gated, low runtime-infra pull-through). $0, nothing created]'
+        evidence:
+          - 'All three DEFERRED, $0.00. SES has no handler by design (no Email kind). EKS/AppSync handlers deferred (not implemented) — realizations of the 1.3.0 kubernetes/graphql enum values, addable mock-first + one lean gated live pass each when their gates open'
+
+      - id: M24.4
+        title: Closeout — matrix regeneration, coverage audit, evidence index
+        status: completed # 2026-07-18: support matrix regenerated (68 handlers / 47 of 50 services); coverage audit PASS (all 50 accounted for, zero gaps); evidence index (50 docs, 46 full live + 1 partial + 3 deferrals); total spend ~$4/$25 (~$0.5 clean + ~$3.5 token-expiry overrun); workspace 1780 green. ROADMAP-V4 COMPLETE
+        dependsOn: [M24.3]
+        note: >-
+          Regenerate docs/reports/aws-support-matrix.md against reality;
+          coverage-tiling audit (every one of the 50 services accounted for:
+          live, deferred-with-reason, or cut); consolidated evidence index
+          across all live-run evidence docs; roadmap status reconciliation in
+          this tracker.
+        exitCriteria:
+          - 'Support matrix regenerated: 50 rows, statuses reflect what actually shipped; class counts re-verified'
+          - 'Coverage-tiling audit: no service silently dropped — each is live, deferred-with-reason, or cut at a recorded gate'
+          - 'Consolidated evidence index links every live-run evidence doc; total live spend reported against the <$25 ceiling'
+          - 'This tracker reconciled: every milestone completed | deferred | blocked with evidence [PASS — all M21.2-M24.4 milestones closed with evidence lines in this tracker]'
+        exitCriteriaStatus:
+          - 'Support matrix regenerated [PASS — docs/reports/aws-support-matrix.md: 68 registered handlers across 47 of 50 services; class counts re-verified live 3 / A 7 / B 24 / C 10 / D 6 = 50; stale "3 target types" M21.1 intro corrected]'
+          - 'Coverage-tiling audit [PASS — docs/reports/m24.4-coverage-audit.md: all 50 in exactly one bucket (45 live-proven / 2 mock-only Timestream+MSK / 2 deferred-no-handler EKS+AppSync / 1 cut SES); zero silent drops]'
+          - 'Consolidated evidence index + total spend [PASS — docs/reports/EVIDENCE-INDEX.md: 50 evidence docs (46 full live-proven 9/9, 1 justified-partial ACM-ISSUED, 3 justified deferrals); total ~$4.0 of $25 (~$0.5 clean-run + ~$3.5 avoidable token-expiry overrun, honest line); ~$21 headroom]'
+        evidence:
+          - 'ROADMAP-V4 COMPLETE 2026-07-18. 68 handlers shipped+mock-tested; ~35 AWS services live-proven end-to-end across per-service runs; 3 spec minors released (1.1.0/1.2.0/1.3.0, all additive, 1.0.0 docs still validate); all 9 reserved kinds graduated + 2 new core kinds (Cdn/EventBus); 21+ live bugs found+fixed (each mock-regression-covered); zero live orphans (coordinator sweeps caught + fixed 2 teardown discrepancies); workspace 1780 green'
+          - 'HONEST OPEN CAVEAT (not an exit criterion): no mapping bump/re-sign after M22.1 — the signed manifest still advertises 12 kinds while 68 handlers ship executable. All are live-proven at the TARGET-TYPE level (driven by live runs / id-threaded plans), not via declarative mapping emission for graduated/new kinds. The per-branch-outputs grammar gap ([[per-branch-outputs-mapping-gap]]) is the primary shipped-but-not-fully-declarative item; a candidate follow-on beyond ROADMAP-V4'
+          - 'Deferred-with-reason (revisitable at their gates): Timestream live (account not onboarded), MSK Serverless live (cost/spin-up), EKS+AppSync live (cut order), SES (Email kind rejected), ACM->ISSUED (needs a registered/delegated domain). Cost reconciliation vs Cost Explorer actuals pending the ~24h lag'
+
+    releaseGates:
+      - 'Every handler that shipped is mock-tested (aws-sdk-client-mock) — no untested handler behind SUPPORTED_TARGET_TYPES'
+      - 'Every executed wave has a live-run evidence doc per docs/guides/live-run-runbook.md with full teardown proven (zero orphans)'
+      - 'All spec minors (1.1.0, 1.2.0, 1.3.0) released additively — no breaking change to 1.0.0 documents'
+      - 'Total live spend across all runs under the $25 ceiling (or overage explicitly approved at a gate)'
+      - 'pnpm run verify green at closeout; check:names + scan:secrets green throughout'

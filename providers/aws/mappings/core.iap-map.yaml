@@ -289,7 +289,6 @@ mappings:
         - spec.observability
       values:
         spec.delivery: [at-least-once]
-        spec.deadLetter.enabled: [false]
       relationships: [dependsOn]
     realize:
       - when:
@@ -312,6 +311,8 @@ mappings:
             map:
               required: true
               preferred: true
+          redriveMaxReceiveCount:
+            from: spec.deadLetter.maxReceives
       - targets: [aws:sqs:Queue]
         derive:
           fifoQueue:
@@ -328,6 +329,8 @@ mappings:
             map:
               required: true
               preferred: true
+          redriveMaxReceiveCount:
+            from: spec.deadLetter.maxReceives
     outputs:
       identifier:
         from: aws:sqs:Queue.queueArn
@@ -343,9 +346,32 @@ mappings:
         - spec.resilience
         - spec.observability
       values:
-        spec.exposure: [private]
+        spec.exposure: [private, public]
       relationships: [dependsOn]
     realize:
+      - when:
+          spec.exposure: public
+        targets: [aws:s3:Bucket]
+        derive:
+          versioningStatus:
+            from: spec.versioning
+            map:
+              enabled: Enabled
+              disabled: Suspended
+          blockPublicAccess:
+            constant: false
+          publicReadPolicy:
+            constant: true
+          sseAlgorithm:
+            from: spec.encryption.atRest
+            map:
+              required: aws:kms
+              preferred: AES256
+          enforceTlsOnly:
+            from: spec.encryption.inTransit
+            map:
+              required: true
+              preferred: true
       - targets: [aws:s3:Bucket]
         derive:
           versioningStatus:
@@ -370,6 +396,184 @@ mappings:
         from: aws:s3:Bucket.arn
       endpoint:
         from: aws:s3:Bucket.regionalDomainName
+
+  Function:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.size
+        - spec.timeout
+        - spec.concurrency
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image, archive]
+      relationships:
+        - dependsOn
+        - connectsTo
+        - publishesTo
+        - consumesFrom
+        - storesDataIn
+        - authenticatedBy
+        - monitoredBy
+    realize:
+      - targets:
+          - aws:lambda:Function
+          - aws:iam:Role
+          - aws:logs:LogGroup
+        derive:
+          aws:lambda:Function.packageType:
+            from: spec.artifact.type
+            map:
+              container-image: Image
+              archive: Zip
+          aws:lambda:Function.codeReference:
+            from: spec.artifact.reference
+          aws:lambda:Function.memorySize:
+            from: spec.size
+            map:
+              xs: 128
+              s: 256
+              m: 512
+              l: 1024
+              xl: 2048
+          aws:lambda:Function.timeout:
+            from: spec.timeout
+          aws:lambda:Function.reservedConcurrency:
+            from: spec.concurrency.max
+          # IAM derivation: least-privilege execution role (action-scoped;
+          # resource scoping tightens as the derivation table matures).
+          aws:iam:Role.assumeRoleService:
+            constant: lambda.amazonaws.com
+          aws:iam:Role.inlinePolicy:
+            constant: '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["logs:CreateLogStream","logs:PutLogEvents"],"Resource":"*"}]}'
+          aws:logs:LogGroup.retentionInDays:
+            from: spec.observability.logs
+            map:
+              required: 30
+              preferred: 14
+              none: 7
+    outputs:
+      identifier:
+        from: aws:lambda:Function.functionArn
+      endpoint:
+        from: aws:lambda:Function.functionArn # invoke target; a function URL is opt-in later
+
+  Job:
+    supports:
+      fields:
+        - spec.artifact.type
+        - spec.artifact.reference
+        - spec.schedule
+        - spec.size
+        - spec.timeout
+        - spec.retries
+        - spec.concurrency
+        - spec.observability
+      values:
+        spec.artifact.type: [container-image, archive]
+      relationships: [dependsOn, connectsTo, storesDataIn, authenticatedBy, monitoredBy]
+    realize:
+      - targets:
+          - aws:lambda:Function
+          - aws:iam:Role
+          - aws:scheduler:Schedule
+        derive:
+          aws:lambda:Function.packageType:
+            from: spec.artifact.type
+            map:
+              container-image: Image
+              archive: Zip
+          aws:lambda:Function.codeReference:
+            from: spec.artifact.reference
+          aws:lambda:Function.memorySize:
+            from: spec.size
+            map:
+              xs: 128
+              s: 256
+              m: 512
+              l: 1024
+              xl: 2048
+          aws:lambda:Function.timeout:
+            from: spec.timeout
+          # One role serves both trust surfaces: Lambda execution and the
+          # Scheduler's invoke role (comma-separated services).
+          aws:iam:Role.assumeRoleService:
+            constant: 'lambda.amazonaws.com,scheduler.amazonaws.com'
+          aws:iam:Role.inlinePolicy:
+            constant: '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["logs:CreateLogStream","logs:PutLogEvents","lambda:InvokeFunction"],"Resource":"*"}]}'
+          aws:scheduler:Schedule.scheduleExpression:
+            from: spec.schedule
+          aws:scheduler:Schedule.retries:
+            from: spec.retries
+          aws:scheduler:Schedule.concurrencyPolicy:
+            from: spec.concurrency
+            map:
+              allow: allow
+              forbid: forbid
+              replace: replace
+    outputs:
+      identifier:
+        from: aws:scheduler:Schedule.scheduleArn
+
+  Topic:
+    supports:
+      fields:
+        - spec.delivery
+        - spec.ordering
+        - spec.messageRetention
+        - spec.encryption
+        - spec.observability
+      values:
+        spec.delivery: [at-least-once]
+      relationships: [dependsOn]
+    realize:
+      - when:
+          spec.ordering: ordered
+        targets: [aws:sns:Topic]
+        derive:
+          fifoTopic:
+            constant: true
+          contentBasedDeduplication:
+            constant: true
+          sseEnabled:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+      - targets: [aws:sns:Topic]
+        derive:
+          fifoTopic:
+            constant: false
+          sseEnabled:
+            from: spec.encryption.atRest
+            map:
+              required: true
+              preferred: true
+    outputs:
+      identifier:
+        from: aws:sns:Topic.topicArn
+      endpoint:
+        from: aws:sns:Topic.topicArn # the ARN is the publish endpoint
+
+  Secret:
+    supports:
+      fields:
+        - spec.source
+        - spec.rotation
+      values:
+        spec.source: [generated]
+      relationships: [dependsOn, monitoredBy]
+    realize:
+      - targets: [aws:ssm:Parameter]
+        derive:
+          parameterType:
+            constant: SecureString
+          generateValue:
+            constant: true
+    outputs:
+      identifier:
+        from: aws:ssm:Parameter.parameterArn
 
   Identity:
     supports:

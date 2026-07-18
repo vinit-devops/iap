@@ -3,7 +3,8 @@ import { AwsExecutor, UnsupportedTargetTypeError } from '../src/index.js';
 import { planResource, providerPlan } from './helpers.js';
 
 describe('unsupported target type → fail-closed', () => {
-  const plan = providerPlan([planResource('cluster', 'aws:ecs:Service', { desiredCount: 2 })]);
+  // aws:eks:Cluster has no handler (M24.3 cut-order/deferred) — a genuinely unsupported type.
+  const plan = providerPlan([planResource('k8s', 'aws:eks:Cluster', { version: '1.30' })]);
 
   it('plan() throws UnsupportedTargetTypeError before issuing any call', async () => {
     const executor = new AwsExecutor({ region: 'us-east-1' });
@@ -17,6 +18,6 @@ describe('unsupported target type → fail-closed', () => {
 
     expect(report.items).toHaveLength(0);
     expect(report.errors).toHaveLength(1);
-    expect(report.errors[0]).toContain('aws:ecs:Service');
+    expect(report.errors[0]).toContain('aws:eks:Cluster');
   });
 });

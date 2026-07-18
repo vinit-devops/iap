@@ -58,7 +58,10 @@ function toSecondsString(value: string): string {
 }
 
 export class SqsQueueHandler implements TargetHandler {
-  readonly targetType = 'aws:sqs:Queue' as const;
+  static readonly targetType = 'aws:sqs:Queue' as const;
+  readonly targetType = SqsQueueHandler.targetType;
+  /** FifoQueue cannot change after creation — drift on it means replace (ADR-0006). */
+  readonly immutableProjectionKeys = ['fifoQueue'] as const;
 
   constructor(private readonly client: SQSClient) {}
 
@@ -105,7 +108,25 @@ export class SqsQueueHandler implements TargetHandler {
   desiredProjection(resource: PlanResource): Record<string, string> {
     const raw: Record<string, string> = {};
     for (const [key] of ATTR_MAP) raw[key] = scalarStr(resource.desiredAttributes[key]);
-    return this.normalizeProjection(raw);
+    const projection: Record<string, string> = {
+      ...this.normalizeProjection(raw),
+      // Dead-letter posture (M22.1): compared only when the plan sets it.
+      redriveMaxReceiveCount: scalarStr(resource.desiredAttributes['redriveMaxReceiveCount']),
+    };
+    // SQS defaults managed SSE to ON — an unpinned plan must not read the
+    // AWS default as drift (M22.1 live finding). Desired-gated like redrive.
+    if (resource.desiredAttributes['sqsManagedSseEnabled'] === undefined) {
+      projection['sqsManagedSseEnabled'] = '';
+    }
+    return projection;
+  }
+
+  /** The handler-owned dead-letter queue name (FIFO suffix preserved). */
+  private dlqName(resource: PlanResource): string {
+    const main = this.queueName(resource);
+    return main.endsWith('.fifo')
+      ? `${main.slice(0, -'.fifo'.length)}-dlq.fifo`
+      : `${main}-dlq`;
   }
 
   async read(resource: PlanResource): Promise<ResourceState> {
@@ -132,6 +153,24 @@ export class SqsQueueHandler implements TargetHandler {
     for (const [key, awsKey] of ATTR_MAP) rawProjection[key] = current[awsKey] ?? '';
     const projection = this.normalizeProjection(rawProjection);
 
+    // Redrive posture mirrors only when the plan pins it (absent-equals-empty).
+    let redriveMaxReceiveCount = '';
+    if (scalarStr(resource.desiredAttributes['redriveMaxReceiveCount']) !== '') {
+      try {
+        const policy = JSON.parse(current['RedrivePolicy'] ?? '{}') as {
+          maxReceiveCount?: number;
+        };
+        redriveMaxReceiveCount =
+          policy.maxReceiveCount === undefined ? '' : String(policy.maxReceiveCount);
+      } catch {
+        redriveMaxReceiveCount = '';
+      }
+    }
+    projection['redriveMaxReceiveCount'] = redriveMaxReceiveCount;
+    if (resource.desiredAttributes['sqsManagedSseEnabled'] === undefined) {
+      projection['sqsManagedSseEnabled'] = '';
+    }
+
     const state: ResourceState = { exists: true, managed: isManaged(tags), tags, projection };
     if (QueueUrl !== undefined) state.identifier = QueueUrl;
     return state;
@@ -139,12 +178,41 @@ export class SqsQueueHandler implements TargetHandler {
 
   async create(resource: PlanResource, tags: Record<string, string>): Promise<string> {
     const QueueName = this.queueName(resource);
-    const created = await this.client.send(
-      new CreateQueueCommand({ QueueName, Attributes: this.attributes(resource) }),
-    );
+    const Attributes = this.attributes(resource);
+    const redrive = await this.ensureDlq(resource, tags);
+    if (redrive !== undefined) Attributes['RedrivePolicy'] = redrive;
+    const created = await this.client.send(new CreateQueueCommand({ QueueName, Attributes }));
     const QueueUrl = created.QueueUrl ?? '';
     await this.client.send(new TagQueueCommand({ QueueUrl, Tags: tags }));
     return QueueUrl || `sqs:${QueueName}`;
+  }
+
+  /**
+   * When the plan asks for redrive, the handler owns a `<name>-dlq` sibling:
+   * created (idempotently) before the main queue; returns the RedrivePolicy.
+   */
+  private async ensureDlq(
+    resource: PlanResource,
+    tags: Record<string, string>,
+  ): Promise<string | undefined> {
+    const maxReceive = scalarStr(resource.desiredAttributes['redriveMaxReceiveCount']);
+    if (maxReceive === '') return undefined;
+    const dlqName = this.dlqName(resource);
+    const fifo = dlqName.endsWith('.fifo');
+    const created = await this.client.send(
+      new CreateQueueCommand({
+        QueueName: dlqName,
+        ...(fifo ? { Attributes: { FifoQueue: 'true' } } : {}),
+      }),
+    );
+    const dlqUrl = created.QueueUrl ?? '';
+    await this.client.send(new TagQueueCommand({ QueueUrl: dlqUrl, Tags: tags }));
+    const attrs = await this.client.send(
+      new GetQueueAttributesCommand({ QueueUrl: dlqUrl, AttributeNames: ['QueueArn'] }),
+    );
+    const arn = attrs.Attributes?.['QueueArn'];
+    if (arn === undefined) throw new Error(`dead-letter queue ${dlqName} has no ARN`);
+    return JSON.stringify({ deadLetterTargetArn: arn, maxReceiveCount: Number(maxReceive) });
   }
 
   async update(resource: PlanResource, current: ResourceState): Promise<void> {
@@ -153,10 +221,23 @@ export class SqsQueueHandler implements TargetHandler {
     for (const [awsKey, value] of Object.entries(this.attributes(resource))) {
       if (!IMMUTABLE.has(awsKey)) mutable[awsKey] = value;
     }
+    const redrive = await this.ensureDlq(resource, current.tags);
+    if (redrive !== undefined) mutable['RedrivePolicy'] = redrive;
     await this.client.send(new SetQueueAttributesCommand({ QueueUrl, Attributes: mutable }));
   }
 
-  async delete(_resource: PlanResource, current: ResourceState): Promise<void> {
+  async delete(resource: PlanResource, current: ResourceState): Promise<void> {
     await this.client.send(new DeleteQueueCommand({ QueueUrl: current.identifier ?? '' }));
+    // Remove the handler-owned DLQ sibling if one exists (zero orphans).
+    try {
+      const dlq = await this.client.send(
+        new GetQueueUrlCommand({ QueueName: this.dlqName(resource) }),
+      );
+      if (dlq.QueueUrl !== undefined) {
+        await this.client.send(new DeleteQueueCommand({ QueueUrl: dlq.QueueUrl }));
+      }
+    } catch (err) {
+      if (!nameMatches(err, NOT_FOUND)) throw err;
+    }
   }
 }

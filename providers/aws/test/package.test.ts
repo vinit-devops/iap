@@ -51,11 +51,15 @@ describe('signed package loads (PC-1 happy path)', () => {
       'Application',
       'Cache',
       'Database',
+      'Function',
       'Gateway',
       'Identity',
+      'Job',
       'ObjectStore',
       'Queue',
+      'Secret',
       'Service',
+      'Topic',
     ]);
   });
 

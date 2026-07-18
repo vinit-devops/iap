@@ -1,0 +1,18 @@
+# Conformance case: invalid/29-identity-bad-type
+# expected: schema-invalid
+# reason: Identity.spec.type was widened in 1.3.0 (IEP-0017) from { workload }
+#         to { workload, user-directory }. The enum stays CLOSED: a value
+#         outside it — here "external-user" — is still rejected in phase 1
+#         (schema). This pins the widening's boundary: exactly one new member
+#         was added, and nothing else is admitted.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: identity-bad-type-case
+
+resources:
+  who:
+    kind: Identity
+    spec:
+      type: external-user

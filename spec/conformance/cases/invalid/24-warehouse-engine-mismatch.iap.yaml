@@ -1,0 +1,21 @@
+# Conformance case: invalid/24-warehouse-engine-mismatch
+# expected: IAP104
+# reason: Passes schema validation (class warehouse — since 1.1.0, IEP-0015 —
+#         and engine postgresql are each valid enum values), but no engine
+#         value is consistent with class warehouse in 1.1.0: postgresql
+#         remains consistent only with class relational (chapter 3 §Database).
+#         Engine/class consistency is an IAP104 cross-field semantic
+#         constraint. Requires a full IaP validator — plain JSON Schema
+#         validation MUST report this document as valid.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: warehouse-engine-mismatch-case
+
+resources:
+  analytics-db:
+    kind: Database
+    spec:
+      class: warehouse
+      engine: postgresql

@@ -59,8 +59,14 @@ describe('rename rules DO rename project-specific identifiers', () => {
 });
 
 describe('external Microsoft IIS references are protected at the file level', () => {
-  it('roadmap-v2 still contains the literal "Microsoft IIS"', () => {
-    const text = readFileSync(join(repoRoot, 'roadmap-v2'), 'utf8');
+  // roadmap-v2 (the original carrier of this reference) was removed with the
+  // internal roadmap docs; the migration IEP still carries the protected
+  // literal and is the durable place to assert file-level protection.
+  it('IEP-0014 still contains the literal "Microsoft IIS"', () => {
+    const text = readFileSync(
+      join(repoRoot, 'spec/ieps/IEP-0014-iap-naming-migration.md'),
+      'utf8',
+    );
     expect(text).toContain('Microsoft IIS');
   });
 });

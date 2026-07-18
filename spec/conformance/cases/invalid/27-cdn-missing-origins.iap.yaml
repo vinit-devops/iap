@@ -1,0 +1,19 @@
+# Conformance case: invalid/27-cdn-missing-origins
+# expected: schema-invalid
+# reason: Cdn was introduced as a fully specified kind in 1.3.0 (IEP-0017):
+#         its spec is required and MUST declare origins (min 1). A Cdn with no
+#         origins distributes nothing, so the contract rejects it in phase 1
+#         (schema).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: cdn-missing-origins-case
+
+resources:
+  originless-cdn:
+    kind: Cdn
+    spec:
+      exposure: public
+      caching:
+        mode: aggressive

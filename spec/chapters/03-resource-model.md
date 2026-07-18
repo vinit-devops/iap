@@ -1,8 +1,8 @@
 # 3. Resource Model
 
-**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.0.0 · Status: Draft**
+**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.3.0 (IEP-0017) · Status: Released**
 
-This chapter defines the complete catalog of resource kinds in IaP v1. A *kind* is a named unit of infrastructure intent: it declares WHAT must exist — a request-serving workload, a relational database, a message queue — never HOW any provider realizes it. Thirteen kinds are fully specified in v1 (§3.4–§3.16); nine further kinds are reserved with intentionally loose validation (§3.17). Every field documented here mirrors the machine-readable schema at [`schema/iap-v1.schema.json`](../schema/iap-v1.schema.json), which is the normative source of truth; where prose and schema disagree, the schema governs. RFC 2119 keywords (MUST, SHOULD, MAY) are used as defined in [Chapter 2](02-document-layout.md).
+This chapter defines the complete catalog of resource kinds in IaP v1. A *kind* is a named unit of infrastructure intent: it declares WHAT must exist — a request-serving workload, a relational database, a message queue — never HOW any provider realizes it. Thirteen kinds are fully specified since 1.0.0 (§3.4–§3.16); five further kinds — `Certificate`, `DnsZone`, `Registry`, `Dashboard`, `Alert` — graduated from the reserved registry in 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md); §3.17–§3.21), and the remaining four — `Network`, `Stream`, `Workflow`, `SearchIndex` — graduated in 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md); §3.22–§3.25), emptying the reserved registry (§3.26). Specification 1.3.0 introduces two further kinds *directly* — `Cdn` and `EventBus` ([IEP-0017](../ieps/IEP-0017-new-kinds-cdn-eventbus.md); §3.27–§3.28) — the first kinds added other than by graduation, plus three additive enum widenings (`Identity.type` gains `user-directory`, `Service.runtime` gains `kubernetes`, and a new optional `Gateway.protocol` field offers `graphql`). Every field documented here mirrors the machine-readable schema at [`schema/iap-v1.schema.json`](../schema/iap-v1.schema.json), which is the normative source of truth; where prose and schema disagree, the schema governs. RFC 2119 keywords (MUST, SHOULD, MAY) are used as defined in [Chapter 2](02-document-layout.md).
 
 ## 3.1 Resource Entry Anatomy
 
@@ -12,7 +12,7 @@ A resource entry has exactly these properties (plus `x-` passthrough):
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `kind` | enum (PascalCase kind name) | Yes | Discriminator selecting the kind-specific `spec` schema. MUST be one of the 22 registered kind names (§3.4–§3.17). |
+| `kind` | enum (PascalCase kind name) | Yes | Discriminator selecting the kind-specific `spec` schema. MUST be one of the 22 registered kind names (§3.4–§3.22). |
 | `description` | string | No | Human-readable intent statement. Non-semantic. |
 | `labels` | map\<string, string\> | No | Free-form key/value labels consumed by selectors, policies, and rule edges. Values are always strings, max 256 characters. |
 | `spec` | object | Per kind | Kind-specific intent fields, defined in §3.4–§3.16. Required for `Application`, `Service`, `Job`, `Function`, `Database`, `Cache`, and `Volume`; optional (all fields defaulted) for the remaining kinds. |
@@ -169,6 +169,17 @@ Summary of outputs by kind (details in each kind's **Outputs** subsection):
 | Topic | ✓ | ✓ | — |
 | Identity | ✓ | — | — |
 | Secret | ✓ | — | — |
+| Certificate *(1.1.0)* | ✓ | — | — |
+| DnsZone *(1.1.0)* | ✓ | ✓ | — |
+| Registry *(1.1.0)* | ✓ | ✓ | ✓ |
+| Dashboard *(1.1.0)* | ✓ | ✓ | — |
+| Alert *(1.1.0)* | ✓ | — | — |
+| Network *(1.2.0)* | ✓ | — | — |
+| Stream *(1.2.0)* | ✓ | ✓ | — |
+| Workflow *(1.2.0)* | ✓ | — | — |
+| SearchIndex *(1.2.0)* | ✓ | ✓ | ✓ |
+| Cdn *(1.3.0)* | ✓ | ✓ | — |
+| EventBus *(1.3.0)* | ✓ | ✓ | — |
 
 Provider mappings MUST bind every abstract attribute a kind declares to a concrete provider value, and MUST fail closed if they cannot (see [Chapter 12](12-provider-mapping.md)). Documents MUST NOT export provider identifiers directly.
 
@@ -223,7 +234,7 @@ resources:
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `artifact` | object (§3.2.9) | Yes | — | What to run: `type` + `reference`. |
-| `runtime` | enum | No | `container` | Execution substrate hint: `container`, `vm`, `managed`. Largely a mapping concern. |
+| `runtime` | enum | No | `container` | Execution substrate hint: `container`, `vm`, `managed`, `kubernetes` *(since 1.3.0)*. Largely a mapping concern. |
 | `size` | enum (§3.2.3) | No | `m` | T-shirt compute sizing. |
 | `resources` | object (§3.2.8) | No | — | Exact `cpu` / `memory` quantity override. |
 | `scaling` | object | No | — | Horizontal scaling intent (below). |
@@ -389,6 +400,7 @@ resources:
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `exposure` | enum | No | `public` | `public` or `internal`. Gateways exist to expose traffic; `private` is not a valid gateway exposure. |
+| `protocol` | enum | No | — *(no default)* | *Since 1.3.0.* Application protocol the gateway terminates and routes: `http` or `graphql`. Provider-neutral protocol/query-language names, never provider products. Carries **no default** so existing Gateway documents canonicalize byte-identically. |
 | `domains` | array of hostname | No | — | Served domains; wildcard prefix (`*.`) permitted; entries MUST be unique. |
 | `tls` | object | No | — | TLS termination intent (below). |
 | `tls.minimumVersion` | enum | No | `1.2` | `1.2` or `1.3`. |
@@ -436,8 +448,8 @@ resources:
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `class` | enum | Yes | — | Data model: `relational`, `document`, `key-value`, `graph`, `timeseries`, `vector`. |
-| `engine` | enum | No | — | Wire-protocol/dialect intent: `postgresql`, `mysql`, `mariadb`, `mongodb-compatible`, `cassandra-compatible`. Provider products never appear here. |
+| `class` | enum | Yes | — | Data model: `relational`, `document`, `key-value`, `graph`, `timeseries`, `vector`, `wide-column` *(since 1.1.0)*, `warehouse` *(since 1.1.0)*. |
+| `engine` | enum | No | — | Wire-protocol/dialect intent: `postgresql`, `mysql`, `mariadb`, `mongodb-compatible`, `cassandra-compatible`. Provider products never appear here. No engine value pairs with `class: warehouse` in 1.1.0 — omit `engine` (IEP-0015). |
 | `engineVersion` | string | No | — | Dotted numeric version of the dialect (pattern `^[0-9]+(\.[0-9]+)*$`), e.g. `16`, `8.0`. |
 | `availability` | enum (§3.2.1) | No | `standard` | SLO floor. |
 | `encryption` | object (§3.2.4) | No | both `required` | At-rest / in-transit posture. |
@@ -450,7 +462,7 @@ resources:
 | `observability` | object (§3.2.5) | No | §3.2.5 defaults | Logs / metrics / traces intent. |
 
 **Validation.**
-- `engine` MUST be consistent with `class` (**IAP104**): `postgresql`, `mysql`, `mariadb` are valid only with `class: relational`; `mongodb-compatible` only with `class: document`; `cassandra-compatible` only with `class: key-value` or `class: document`.
+- `engine` MUST be consistent with `class` (**IAP104**): `postgresql`, `mysql`, `mariadb` are valid only with `class: relational`; `mongodb-compatible` only with `class: document`; `cassandra-compatible` only with `class: key-value`, `class: document`, or `class: wide-column` *(the `wide-column` pairing is since 1.1.0)*. No engine value is consistent with `class: warehouse` in 1.1.0: a warehouse Database MUST omit `engine`, and any declared engine is an IAP104 error under the per-engine rules above.
 - `engineVersion` without `engine` is meaningless and MUST be rejected (IAP1xx range).
 - `resilience.backup: none` on a Database violates the normative default and MUST be an explicit, policy-visible act; compliance bundles typically deny it (IAP5xx/IAP7xx at policy time).
 
@@ -468,6 +480,8 @@ resources:
 | document | DocumentDB | Cosmos DB (Mongo API) | Firestore / MongoDB Atlas via marketplace | Operator-managed MongoDB-compatible |
 | key-value | DynamoDB / Keyspaces | Cosmos DB (Cassandra API) | Bigtable | Operator-managed Cassandra-compatible |
 | graph / timeseries / vector | Neptune / Timestream / OpenSearch vector | Cosmos DB Gremlin / Data Explorer / AI Search | Spanner Graph / Bigtable / Vertex Vector Search | Operator-managed engines |
+| wide-column *(1.1.0)* | Keyspaces | Cosmos DB (Cassandra API) | Bigtable | Operator-managed Cassandra-compatible |
+| warehouse *(1.1.0)* | Redshift | Synapse Analytics | BigQuery | Operator-managed columnar warehouse |
 
 **Example**
 
@@ -708,13 +722,13 @@ resources:
 
 ## 3.15 Identity
 
-**Purpose.** `Identity` declares workload identity intent (capability family: *identity*). It carries almost no fields deliberately: concrete permissions are never written by hand — they are **derived** from the `access` attributes of the relationships declared by the workloads that are `authenticatedBy` this Identity (least privilege by construction; see [Chapter 15](15-security-model.md)).
+**Purpose.** `Identity` declares identity intent (capability family: *identity*). For a workload identity it carries almost no fields deliberately: concrete permissions are never written by hand — they are **derived** from the `access` attributes of the relationships declared by the workloads that are `authenticatedBy` this Identity (least privilege by construction; see [Chapter 15](15-security-model.md)).
 
 **Fields.** `spec` is **optional** (all fields have defaults).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `type` | enum | No | `workload` | Identity category. v1 defines only `workload`; future minors may add values. |
+| `type` | enum | No | `workload` | Identity category. `workload`: a machine identity whose permissions derive from edge `access` levels. `user-directory` *(since 1.3.0)*: a directory of human/end-user identities (e.g. an authentication user pool), distinct from workload identity. The enum stays closed; a future minor may add further values. |
 
 **Validation.**
 - An Identity SHOULD be the target of at least one `authenticatedBy` edge; an unreferenced Identity warns (IAP3xx range).
@@ -783,20 +797,497 @@ resources:
       rotation: { policy: required, interval: 30d }
 ```
 
-## 3.17 Reserved Kinds
+## 3.17 Certificate
 
-Nine kind names are **reserved** in v1. They participate in the `kind` enum and the capability registry ([Chapter 5](05-capability-model.md)) but carry an intentionally minimal spec schema (`$defs/kinds/ReservedKind`): validation is loose, and validators MUST accept a reserved-kind resource and SHOULD emit warning **IAP801** noting that its full specification arrives in a future minor version. Mappings MAY support reserved kinds via their fail-closed coverage matrix; documents using them SHOULD expect reduced portability until full specification.
+*Since 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
 
-| Kind | Purpose (one line) |
-|---|---|
-| `Network` | Explicit network segmentation intent beyond what `exposure` derives. |
-| `Certificate` | TLS certificate material and issuance intent, referenced by `Gateway.tls.certificate`. |
-| `DnsZone` | Authoritative DNS zone and record intent. |
-| `Stream` | Ordered, replayable event stream (log-structured messaging, distinct from `Queue`/`Topic`). |
-| `Workflow` | Multi-step orchestration of Jobs/Functions with state transitions. |
-| `SearchIndex` | Full-text / relevance search index intent. |
-| `Registry` | Artifact and image registry intent. |
-| `Dashboard` | Curated observability dashboard derived from `monitoredBy` signals. |
-| `Alert` | Alerting rule and notification-routing intent. |
+**Purpose.** `Certificate` declares TLS certificate material and issuance intent (capability family: *security*). It is the resource referenced by `Gateway.spec.tls.certificate` (§3.8; dangling references are **IAP204**). Values are algorithm and lifecycle intent, never provider products.
 
-Names in this table MUST NOT be reused for any other purpose by documents or extensions; a future minor version specifies each with the full §3.4-style template.
+**Fields.** `spec` is **required**.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `domains` | array of hostname (§3.2 grammar) | Yes (min 1, unique) | — | DNS names the certificate covers; wildcard prefix (`*.`) permitted. |
+| `issuance` | enum | No | `managed` | `managed`: the platform obtains and renews the certificate. `imported`: material is supplied out-of-band (e.g. via a `Secret`); the platform never generates keys. |
+| `keyAlgorithm` | enum | No | `ecdsa-p256` | `rsa-2048`, `rsa-4096`, `ecdsa-p256`, `ecdsa-p384`. |
+
+**Validation.**
+- `domains` entries follow the §3.2 hostname grammar; an empty array is schema-invalid.
+- A `Gateway` whose `tls.certificate` names a resource of any other kind is rejected (IAP2xx range; §3.8).
+
+**Lifecycle.** Certificate material is immutable: `domains`, `issuance`, and `keyAlgorithm` changes are **replacement-eligible**. The kind is stateless, so replacement requires no migration declaration.
+
+**Relationships.** Usually the **target**: referenced by `Gateway.spec.tls.certificate` and by `protectedBy` edges from `Gateway`, `Service`, or `Database`. MAY be the **source** of `dependsOn` → `DnsZone` (DNS-validated issuance) and `monitoredBy` (expiry monitoring).
+
+**Outputs.** `identifier`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| ACM | Key Vault certificates | Certificate Manager | cert-manager Certificate |
+
+**Example**
+
+```yaml
+resources:
+  shop-cert:
+    kind: Certificate
+    spec:
+      domains: [shop.example.com, "*.shop.example.com"]
+      issuance: managed
+    relationships:
+      - { type: dependsOn, target: shop-zone }
+```
+
+## 3.18 DnsZone
+
+*Since 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `DnsZone` declares authoritative DNS zone intent (capability family: *network*). Record-level intent is deliberately not specified in 1.1.0; a record grammar can be added additively in a later minor.
+
+**Fields.** `spec` is **required**.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `zoneName` | string | Yes | — | Fully qualified apex name of the zone (no wildcard, no trailing dot); pattern `^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$`. |
+| `visibility` | enum | No | `public` | `public`: resolvable from the internet. `internal`: resolvable only inside the organization network (split-horizon). Named `visibility`, not `exposure`: it scopes name resolution, not workload reachability. |
+| `dnssec` | enum | No | `none` | `required`: the mapping MUST sign the zone or fail closed; `preferred`: sign where the substrate supports it; `none`: unsigned. |
+
+**Validation.**
+- `zoneName` violating the apex-name pattern is schema-invalid.
+
+**Lifecycle.** `visibility` and `dnssec` changes are in-place. Changing `zoneName` is **replacement-eligible** and delegation-affecting; planners SHOULD surface it as a high-impact change.
+
+**Relationships.** Usually the **target** of `dependsOn` (from `Certificate` for DNS-validated issuance, from `Gateway` for served-domain intent). MAY declare `monitoredBy`.
+
+**Outputs.** `identifier`, `endpoint` (the authoritative name-server set, provider-neutrally).
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| Route 53 hosted zone | Azure DNS zone | Cloud DNS zone | ExternalDNS-managed zone |
+
+**Example**
+
+```yaml
+resources:
+  shop-zone:
+    kind: DnsZone
+    spec:
+      zoneName: shop.example.com
+      visibility: public
+      dnssec: preferred
+```
+
+## 3.19 Registry
+
+*Since 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Registry` declares artifact and container-image registry intent (capability family: *storage*). Push/pull permissions derive from `connectsTo` edge `access` levels, exactly as data-store least privilege does (§3.9, [Chapter 4](04-relationship-model.md)).
+
+**Fields.** `spec` is **optional** (all fields have defaults or are optional).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `format` | enum | No | `container-image` | `container-image` or `archive`; aligns with the §3.2.9 `artifact.type` grammar (minus `source`). |
+| `immutability` | enum | No | `disabled` | `enabled`: a stored artifact version or tag can never be overwritten. |
+| `exposure` | enum | No | `private` | `private` or `internal`. Registries are never `public` in 1.1.0. |
+| `encryption` | object (§3.2.4) | No | both `required` | At-rest / in-transit posture. |
+| `observability` | object (§3.2.5) | No | §3.2.5 defaults | Logs / metrics / traces intent. |
+
+**Validation.**
+- A Registry SHOULD be the target of at least one `connectsTo` edge; `access: read` expresses pull, `write`/`read-write` push.
+
+**Lifecycle.** All fields are in-place updatable except `format`, which is **replacement-eligible**.
+
+**Relationships.** Usually the **target** of `connectsTo` from `Service`, `Job`, or `Function`. MAY declare `protectedBy` and `monitoredBy`.
+
+**Outputs.** `identifier`, `endpoint`, `connectionSecret` (pull/push credential reference — never a literal value).
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| ECR | Container Registry | Artifact Registry | In-cluster OCI registry (e.g. operator-managed) |
+
+**Example**
+
+```yaml
+resources:
+  images:
+    kind: Registry
+    spec:
+      format: container-image
+      immutability: enabled
+```
+
+## 3.20 Dashboard
+
+*Since 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Dashboard` declares a curated observability dashboard (capability family: *observability*) over the telemetry that `monitoredBy` edges deliver ([Chapter 5](05-capability-model.md) §5.4). What is visualized follows from the sources' `observability` blocks; the dashboard declares the consumption side.
+
+**Fields.** `spec` is **optional**. No field carries a default — deliberate ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)): documents that used this kind while it was reserved keep byte-identical canonicalization.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `audience` | string (max 256) | No | — | Intended audience, free-form (e.g. `platform-operations`). |
+| `signals` | array of enum (unique) | No | — | `logs`, `metrics`, `traces`. Omitted: every signal delivered by incident `monitoredBy` edges. |
+
+**Validation.**
+- A Dashboard SHOULD be the target of at least one `monitoredBy` edge; an unreferenced Dashboard is advisory-eligible (IAP3xx range).
+
+**Lifecycle.** All fields are in-place updatable; a Dashboard is never replacement-eligible.
+
+**Relationships.** Exclusively the **target** of `monitoredBy` ([Chapter 4](04-relationship-model.md) §4.3.1). MAY declare `dependsOn`.
+
+**Outputs.** `identifier`, `endpoint` (where the dashboard is served).
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| CloudWatch dashboard | Azure Monitor workbook | Cloud Monitoring dashboard | Grafana dashboard (operator-managed) |
+
+**Example**
+
+```yaml
+resources:
+  ops-dashboard:
+    kind: Dashboard
+    spec:
+      audience: platform-operations
+      signals: [logs, metrics]
+```
+
+## 3.21 Alert
+
+*Since 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Alert` declares a notification rule and its routing intent (capability family: *observability*), evaluated over the telemetry that `monitoredBy` edges deliver. Concrete rule expressions and destinations are mapping/extension territory; the kind declares classification, threshold, and channel-class intent.
+
+**Fields.** `spec` is **optional**. No field carries a default — deliberate ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)): documents that used this kind while it was reserved keep byte-identical canonicalization.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `severity` | enum | No | — | `info`, `low`, `medium`, `high`, `critical`: severity classification of the notifications this alert emits. |
+| `severityFloor` | enum | No | — | Same values: minimum severity of evaluated conditions that triggers notification. Omitted: notify at every severity. |
+| `signals` | array of enum (unique) | No | — | `logs`, `metrics`, `traces`. Omitted: every signal delivered by incident `monitoredBy` edges. |
+| `channels` | array of enum (unique) | No | — | `email`, `chat`, `webhook`, `pager`, `sms`: provider-neutral channel classes; concrete destinations are mapping/extension territory. |
+
+**Validation.**
+- An Alert SHOULD be the target of at least one `monitoredBy` edge; an unreferenced Alert is advisory-eligible (IAP3xx range).
+
+**Lifecycle.** All fields are in-place updatable; an Alert is never replacement-eligible.
+
+**Relationships.** Exclusively the **target** of `monitoredBy` ([Chapter 4](04-relationship-model.md) §4.3.1). MAY declare `dependsOn`.
+
+**Outputs.** `identifier`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| CloudWatch alarm | Azure Monitor alert rule | Cloud Monitoring alerting policy | Prometheus/Alertmanager rule (operator-managed) |
+
+**Example**
+
+```yaml
+resources:
+  data-alerts:
+    kind: Alert
+    spec:
+      severity: high
+      channels: [pager, chat]
+```
+
+## 3.22 Network
+
+*Since 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Network` declares explicit network segmentation and topology intent (capability family: *network*) beyond what per-resource `exposure` and the `connectsTo` graph already derive ([Chapter 15](15-security-model.md)). Values are neutral topology intent, never provider products.
+
+**Fields.** `spec` is **optional** (all fields are optional and carry no default).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `scope` | enum | No | — | `regional` (a single region) or `multi-region` (spans regions; globally routable intent). |
+| `tiers` | array of enum (unique, min 1) | No | — | Reachability tiers the network provides: `public` (internet-facing segments), `private` (internally routable with egress), `isolated` (no egress). |
+| `addressSpace` | string (IPv4 CIDR) | No | — | Optional exact CIDR block intent (e.g. `10.0.0.0/16`); omitted means the platform allocates a non-overlapping range. A neutral IP concept, never a provider product. |
+| `observability` | object (§3.2.5) | No | — | Flow-log / metrics intent. |
+
+**Validation.**
+- `tiers` entries outside the closed enum are schema-invalid; `addressSpace` violating the CIDR grammar is schema-invalid.
+
+**Lifecycle.** `scope` and `addressSpace` are **replacement-eligible** (address-space changes are topology-affecting); `tiers` and `observability` are in-place.
+
+**Relationships.** Usually the **target** of `dependsOn` (from workloads that must be placed within it). MAY declare `monitoredBy`. `Network` carries no closed-list verb of its own; workloads associate with it through the open `dependsOn` verb.
+
+**Outputs.** `identifier`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| VPC + subnets | Virtual Network + subnets | VPC network + subnetworks | NetworkPolicy / CNI network |
+
+**Example**
+
+```yaml
+resources:
+  app-net:
+    kind: Network
+    spec:
+      scope: regional
+      tiers: [public, private]
+      addressSpace: 10.0.0.0/16
+```
+
+## 3.23 Stream
+
+*Since 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Stream` declares an ordered, replayable event stream with consumer-managed offsets (capability family: *messaging*), distinct from `Topic` fan-out delivery: consumers replay from a retained log rather than receiving a delivered copy.
+
+**Fields.** `spec` is **optional**. No field defaults, and no common block with defaulted members (no `encryption`/`observability`), so canonicalization of a reserved-era `Stream` is byte-identical to its authored form — deliberate ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)); the official `data-processing` example declares a `Stream` today. (An `encryption`/`observability` surface can be added additively in a later minor.)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `retention` | string, duration grammar `^[0-9]+(ms\|s\|m\|h\|d)$` | No | — | How long records remain available for replay. Typed inline (not the common duration `$ref`) so the authored spelling is preserved verbatim in canonicalization. |
+| `ordering` | enum | No | — | `none` (no cross-record ordering guarantee) or `partition` (order preserved within a partition key). |
+| `capacity` | object | No | — | `throughput`: sustained ingest capacity intent, grammar `^[0-9]+(rps\|mbps)$`. |
+
+**Validation.**
+- A Stream SHOULD be the target of at least one `consumesFrom` edge.
+
+**Lifecycle.** All fields are in-place updatable; a Stream is never replacement-eligible.
+
+**Relationships.** The **target** of `consumesFrom` (already admitted by the closed verb/target-kind table of [Chapter 4](04-relationship-model.md) §4.3.1). Producers write to a Stream through `connectsTo` with `access: write`/`read-write` (a Stream is network-addressable; `publishesTo` stays scoped to `Topic`/`Queue` for the v1 major). MAY declare `monitoredBy` and `protectedBy`.
+
+**Outputs.** `identifier`, `endpoint`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| Kinesis / Firehose stream | Event Hubs | Pub/Sub Lite / Dataflow | Operator-managed Kafka topic |
+
+**Example**
+
+```yaml
+resources:
+  clicks:
+    kind: Stream
+    spec:
+      retention: 24h
+      ordering: partition
+      capacity:
+        throughput: 1000rps
+```
+
+## 3.24 Workflow
+
+*Since 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `Workflow` declares multi-step orchestration of `Job` and `Function` executions with state transitions (capability family: *compute*). The concrete step graph is defined out-of-band; a declarative step grammar can be added additively in a later minor.
+
+**Fields.** `spec` is **optional**. No field defaults, and no common block with defaulted members, so canonicalization of a reserved-era `Workflow` is byte-identical to its authored form — deliberate ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)). (An `observability` surface can be added additively in a later minor.)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `steps` | integer (min 1) | No | — | Declared number of orchestrated steps (advisory until a step grammar exists). |
+| `execution` | enum | No | — | `standard` (durable, long-running, full execution history) or `express` (high-volume, short-lived, best-effort history). |
+| `timeout` | string, duration grammar `^[0-9]+(ms\|s\|m\|h\|d)$` | No | — | Maximum wall-clock time for a single workflow execution. Typed inline (not the common duration `$ref`) so the authored spelling is preserved verbatim in canonicalization. |
+
+**Validation.**
+- `steps` less than 1 is schema-invalid.
+
+**Lifecycle.** All fields are in-place updatable; a Workflow is never replacement-eligible.
+
+**Relationships.** Usually the **source** of `dependsOn` → `Job` / `Function` (the executions it orchestrates must exist). MAY be the **target** of `dependsOn` and MAY declare `monitoredBy`. `Workflow` participates only through the open `dependsOn` verb (v1 adds no orchestration verb).
+
+**Outputs.** `identifier`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| Step Functions state machine | Logic Apps / Durable Functions | Workflows | Argo Workflows (operator-managed) |
+
+**Example**
+
+```yaml
+resources:
+  order-flow:
+    kind: Workflow
+    spec:
+      steps: 3
+      execution: standard
+      timeout: 1h
+    relationships:
+      - { type: dependsOn, target: settle-job }
+```
+
+## 3.25 SearchIndex
+
+*Since 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — graduated from the reserved registry ([Chapter 5](05-capability-model.md) §5.6).*
+
+**Purpose.** `SearchIndex` declares a full-text or vector search index over application data (capability family: *database*). Query and access permissions derive from `connectsTo` edge `access` levels, as data-store least privilege does (§3.9, [Chapter 4](04-relationship-model.md)).
+
+**Fields.** `spec` is **required**.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `indexType` | enum | Yes | — | `text` (full-text/relevance search) or `vector` (similarity search over embeddings). |
+| `exposure` | enum | No | — | `private` or `internal`. A SearchIndex is never `public`. |
+| `encryption` | object (§3.2.4) | No | — | At-rest / in-transit posture. |
+| `capacity` | object | No | — | `storage`: index storage intent (quantity grammar, §3.2.7). |
+| `observability` | object (§3.2.5) | No | — | Logs / metrics / traces intent. |
+
+**Validation.**
+- A SearchIndex without `indexType` (or without `spec`) is schema-invalid — the promoted contract requires it.
+- A SearchIndex SHOULD be the target of at least one `connectsTo` edge.
+
+**Lifecycle.** `indexType` is **replacement-eligible** (the index model is immutable material); other fields are in-place. A SearchIndex is stateful; replacement is a data-loss-eligible change planners SHOULD surface.
+
+**Relationships.** Usually the **target** of `connectsTo` from `Service`, `Job`, or `Function` (`access: read` for query, `write`/`read-write` for indexing); a SearchIndex is network-addressable, so it is reached via `connectsTo`, not the closed `storesDataIn` list. MAY declare `protectedBy` and `monitoredBy`.
+
+**Outputs.** `identifier`, `endpoint`, `connectionSecret`.
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| OpenSearch domain | Azure AI Search | Vertex AI Vector Search | Operator-managed OpenSearch/Elasticsearch |
+
+**Example**
+
+```yaml
+resources:
+  catalog-index:
+    kind: SearchIndex
+    spec:
+      indexType: text
+      exposure: internal
+      capacity:
+        storage: 50Gi
+```
+
+## 3.26 Reserved Kinds
+
+The reserved registry is **empty** as of 1.2.0. All nine kind names reserved in 1.0.0 have graduated to fully specified kinds: `Certificate`, `DnsZone`, `Registry`, `Dashboard`, and `Alert` in 1.1.0 ([IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md)), and `Network`, `Stream`, `Workflow`, and `SearchIndex` in 1.2.0 ([IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)).
+
+The reserved-kind mechanism is retained deliberately for future use: the `$defs/kinds/ReservedKind` loose-spec template remains in the schema, and validators retain the warning **IAP801** (reserved kind in use). A future minor MAY reserve a new kind name via the process in [Chapter 5](05-capability-model.md) §5.6; from that point until its own graduation, that kind validates loosely and SHOULD warn IAP801. Because the registry is currently empty, **IAP801 applies to no kind in 1.2.0** — a conforming validator emits it for nothing.
+
+Names in this table MUST NOT be reused for any other purpose by documents or extensions; a future minor version specifies each with the full §3.4-style template via the promotion process of [Chapter 5](05-capability-model.md) §5.6.
+
+---
+
+## 3.27 Cdn
+
+*Since 1.3.0 ([IEP-0017](../ieps/IEP-0017-new-kinds-cdn-eventbus.md)) — introduced directly as a new fully specified kind ([Chapter 5](05-capability-model.md) §5.7), not a graduation.*
+
+**Purpose.** `Cdn` declares content delivery / edge distribution intent (capability family: *network*): caching and serving content from edge locations in front of one or more origins. Values are neutral edge-distribution intent, never provider products.
+
+**Fields.** `spec` is **required** (a Cdn with no origin distributes nothing).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `exposure` | enum | No | `public` | Edge reachability: `public` (internet-facing) or `internal` (organization network only). |
+| `origins` | array of object (unique, min 1) | Yes | — | Backend origins the edge distributes. |
+| `origins[].target` | resource ID | Yes (per entry) | — | Names an in-document origin resource (typically a `Service`, `Gateway`, or `ObjectStore`). Referential integrity is advisory in 1.3.0 (no generic spec-field reference check yet); authors SHOULD also declare a `dependsOn` edge to each origin for ordering. |
+| `origins[].pathPattern` | string | No | — | Optional path prefix routed to this origin (e.g. `/static`); omitted means this origin serves all paths. |
+| `tls` | object | No | — | TLS posture at the edge; mirrors `Gateway.spec.tls`. |
+| `tls.minimumVersion` | enum | No | `1.2` | `1.2` or `1.3`. |
+| `tls.certificate` | resource ID | No | — | Reference to a `Certificate` resource; omit for provider-managed certificates. |
+| `caching` | object | No | — | Edge caching behavior intent. |
+| `caching.mode` | enum | No | `standard` | `standard` (per origin/response directives), `aggressive` (broad caching), or `disabled` (pass-through). |
+| `caching.defaultTtl` | string (duration) | No | — | Default edge cache lifetime. |
+| `observability` | object (§3.2.5) | No | §3.2.5 defaults | Logs / metrics / traces intent. |
+
+**Validation.**
+- `spec` and `origins` (min 1) are required; a missing `origins` is schema-invalid.
+- `origins[].target` outside the resource-id grammar is schema-invalid; existence of the referenced resource is advisory in 1.3.0.
+
+**Lifecycle.** `exposure` and `origins` are in-place updatable; `tls`/`caching`/`observability` are in-place. A Cdn is never replacement-eligible.
+
+**Relationships.** Usually the **source** of `dependsOn` (→ its origin `Service`/`Gateway`/`ObjectStore`). MAY declare `protectedBy` (→ `Certificate`) and `monitoredBy` (→ `Dashboard`/`Alert`). `Cdn` carries no closed-list verb of its own; it associates with origins through the open `dependsOn` verb.
+
+**Outputs.** `identifier`, `endpoint` (the edge locator at which distributed content is served).
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| CloudFront distribution | Front Door / CDN | Cloud CDN | Ingress + edge cache (platform-specific) |
+
+**Example**
+
+```yaml
+resources:
+  storefront-cdn:
+    kind: Cdn
+    spec:
+      exposure: public
+      origins:
+        - { target: assets, pathPattern: /static }
+        - { target: storefront-api }
+      tls: { minimumVersion: "1.3", certificate: edge-cert }
+      caching: { mode: standard, defaultTtl: 1h }
+    relationships:
+      - { type: dependsOn, target: assets }
+      - { type: protectedBy, target: edge-cert }
+```
+
+## 3.28 EventBus
+
+*Since 1.3.0 ([IEP-0017](../ieps/IEP-0017-new-kinds-cdn-eventbus.md)) — introduced directly as a new fully specified kind ([Chapter 5](05-capability-model.md) §5.7), not a graduation.*
+
+**Purpose.** `EventBus` declares event-routing intent (capability family: *messaging*): it accepts events from declared source classes and routes them to targets by declarative rules. It is distinct from `Topic` (fan-out delivery to subscribers) and `Stream` (ordered, replayable offsets): an `EventBus` is a router with pattern-matched routing rules. Values are neutral routing intent, never provider products.
+
+**Fields.** `spec` is **optional** (all fields are optional or defaulted).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `sources` | array of enum (unique, min 1) | No | — | Accepted event-source classes: `internal` (in-organization workloads), `partner` (third-party/SaaS integrations), `custom` (application-defined producers). Neutral source classes, never provider products. |
+| `rules` | array of object | No | — | Declarative routing rules. Targets are wired as `routesTo` relationships from the bus (the closed verb set is unchanged); each rule matches events and the bus forwards matches to the routed targets. |
+| `rules[].name` | resource ID | Yes (per entry) | — | Rule name. |
+| `rules[].eventPattern` | object (open) | No | — | Neutral matching object over event attributes; absent means the rule matches every event. |
+| `rules[].enabled` | boolean | No | `true` | Whether the rule is active. |
+| `schemaRegistry` | enum | No | `none` | `none` (no enforcement) or `managed` (events validated against a managed event-schema registry). |
+| `retention` | string (duration) | No | — | How long undelivered/replayable events are retained. |
+| `observability` | object (§3.2.5) | No | §3.2.5 defaults | Logs / metrics / traces intent. |
+
+**Validation.**
+- `sources` entries outside the closed enum are schema-invalid; each `rules[]` entry MUST carry a `name`.
+
+**Lifecycle.** All fields are in-place updatable. An `EventBus` is never replacement-eligible.
+
+**Relationships.** Target of `connectsTo` from producers (`access: write`; the bus is network-addressable and reached through the open `connectsTo` verb, since `publishesTo` stays scoped to `Topic`/`Queue`). Source of `routesTo` (→ `Service`/`Function`/`Gateway`) to deliver matched events to consumers. MAY declare `monitoredBy`/`protectedBy`.
+
+**Outputs.** `identifier`, `endpoint` (the ingest locator producers connect to).
+
+**Provider Mapping** *(informative)*
+
+| AWS | Azure | GCP | Kubernetes |
+|---|---|---|---|
+| EventBridge event bus | Event Grid topic | Eventarc | Knative Eventing broker |
+
+**Example**
+
+```yaml
+resources:
+  events:
+    kind: EventBus
+    spec:
+      sources: [internal, partner]
+      rules:
+        - name: order-events
+          eventPattern: { detailType: [OrderPlaced, OrderShipped] }
+      schemaRegistry: managed
+      retention: 24h
+    relationships:
+      - { type: routesTo, target: order-worker }
+```

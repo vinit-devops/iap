@@ -16,10 +16,13 @@ import {
   GetBucketEncryptionCommand,
   GetBucketTaggingCommand,
   GetBucketVersioningCommand,
+  GetPublicAccessBlockCommand,
   HeadBucketCommand,
   PutBucketEncryptionCommand,
+  PutBucketPolicyCommand,
   PutBucketTaggingCommand,
   PutBucketVersioningCommand,
+  PutPublicAccessBlockCommand,
 } from '@aws-sdk/client-s3';
 import type {
   BucketLocationConstraint,
@@ -42,7 +45,8 @@ function isNotFound(err: unknown): boolean {
 }
 
 export class S3BucketHandler implements TargetHandler {
-  readonly targetType = 'aws:s3:Bucket' as const;
+  static readonly targetType = 'aws:s3:Bucket' as const;
+  readonly targetType = S3BucketHandler.targetType;
 
   constructor(
     private readonly client: S3Client,
@@ -54,6 +58,9 @@ export class S3BucketHandler implements TargetHandler {
     return {
       sseAlgorithm: scalarStr(a['sseAlgorithm']),
       versioningStatus: scalarStr(a['versioningStatus']),
+      // Public-exposure posture (M22.1): compared only when the plan sets it,
+      // so pre-M22.1 documents do not read as drifted.
+      blockPublicAccess: scalarStr(a['blockPublicAccess']),
     };
   }
 
@@ -86,12 +93,36 @@ export class S3BucketHandler implements TargetHandler {
 
     const versioning = await this.client.send(new GetBucketVersioningCommand({ Bucket }));
 
+    // Public-access posture mirrors only when the plan pins it (see
+    // desiredProjection) — absent-equals-empty keeps old documents converged.
+    let blockPublicAccess = '';
+    if (scalarStr(resource.desiredAttributes['blockPublicAccess']) !== '') {
+      try {
+        const pab = await this.client.send(new GetPublicAccessBlockCommand({ Bucket }));
+        const c = pab.PublicAccessBlockConfiguration;
+        blockPublicAccess =
+          c?.BlockPublicAcls === true &&
+          c?.BlockPublicPolicy === true &&
+          c?.IgnorePublicAcls === true &&
+          c?.RestrictPublicBuckets === true
+            ? 'true'
+            : 'false';
+      } catch (err) {
+        if (!nameMatches(err, ['NoSuchPublicAccessBlockConfiguration'])) throw err;
+        blockPublicAccess = 'false';
+      }
+    }
+
     return {
       exists: true,
       managed: isManaged(tags),
       tags,
       identifier: `arn:aws:s3:::${Bucket}`,
-      projection: { sseAlgorithm, versioningStatus: versioning.Status ?? '' },
+      projection: {
+        sseAlgorithm,
+        versioningStatus: versioning.Status ?? '',
+        blockPublicAccess,
+      },
     };
   }
 
@@ -125,6 +156,41 @@ export class S3BucketHandler implements TargetHandler {
   }
 
   private async applyConfig(resource: PlanResource, Bucket: string): Promise<void> {
+    const blockPublic = scalarStr(resource.desiredAttributes['blockPublicAccess']);
+    if (blockPublic !== '') {
+      const block = blockPublic !== 'false';
+      await this.client.send(
+        new PutPublicAccessBlockCommand({
+          Bucket,
+          PublicAccessBlockConfiguration: {
+            BlockPublicAcls: block,
+            BlockPublicPolicy: block,
+            IgnorePublicAcls: block,
+            RestrictPublicBuckets: block,
+          },
+        }),
+      );
+      // Public-read bucket policy only when the mapping's public branch asks.
+      if (!block && scalarStr(resource.desiredAttributes['publicReadPolicy']) === 'true') {
+        await this.client.send(
+          new PutBucketPolicyCommand({
+            Bucket,
+            Policy: JSON.stringify({
+              Version: '2012-10-17',
+              Statement: [
+                {
+                  Sid: 'PublicReadGetObject',
+                  Effect: 'Allow',
+                  Principal: '*',
+                  Action: 's3:GetObject',
+                  Resource: `arn:aws:s3:::${Bucket}/*`,
+                },
+              ],
+            }),
+          }),
+        );
+      }
+    }
     const sse = scalarStr(resource.desiredAttributes['sseAlgorithm']);
     if (sse) {
       await this.client.send(

@@ -133,13 +133,17 @@ describe('computeCompletions', () => {
   it('offers the full closed kind enum at a kind: value position', async () => {
     const position = positionOf(unknownKind, 'kind: VirtualMachine', 'VirtualMachine');
     const items = await computeCompletions(unknownKind, position);
-    expect(items.map((i) => i.label)).toHaveLength(22);
+    // 22 kinds since 1.2.0 plus Cdn and EventBus introduced in 1.3.0 (IEP-0017).
+    expect(items.map((i) => i.label)).toHaveLength(24);
     expect(items.map((i) => i.label)).toContain('Service');
     expect(items.map((i) => i.label)).toContain('Database');
-    // Reserved kinds are labeled as such (ch. 23 §23.2.1).
-    expect(items.filter((i) => i.detail === 'reserved kind').map((i) => i.label)).toContain(
-      'Certificate',
-    );
+    expect(items.map((i) => i.label)).toContain('Cdn');
+    expect(items.map((i) => i.label)).toContain('EventBus');
+    // The reserved registry is empty as of spec 1.2.0 (IEP-0016): all nine
+    // originally reserved kinds have graduated, so no completion item carries
+    // the "reserved kind" detail label (ch. 23 §23.2.1).
+    const reservedLabels = items.filter((i) => i.detail === 'reserved kind').map((i) => i.label);
+    expect(reservedLabels).toEqual([]);
     // Documentation comes from the kind’s schema description.
     expect(items.find((i) => i.label === 'Database')?.documentation).toMatch(/database intent/i);
   });

@@ -1,0 +1,19 @@
+# Conformance case: invalid/23-certificate-missing-domains
+# expected: schema-invalid
+# reason: Certificate graduated to a fully specified kind in 1.1.0 (IEP-0015):
+#         its spec is required and MUST declare domains (array of hostnames,
+#         at least one entry). Under 1.0.0 this document was schema-valid
+#         (reserved kinds validated loosely, warned IAP801); from the
+#         graduating minor onward the promoted contract is enforced, so a
+#         Certificate without domains is rejected in phase 1.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: certificate-missing-domains-case
+
+resources:
+  orphan-cert:
+    kind: Certificate
+    spec:
+      issuance: managed

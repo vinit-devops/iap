@@ -63,3 +63,6 @@ IEP-0001 through IEP-0007 are **retroactive**: they document design decisions al
 | IEP-0012 | Provider conformance            | Draft (authored in M0.5)                                     |
 | IEP-0013 | AI and MCP trust boundaries     | Draft (authored in M0.5)                                     |
 | [IEP-0014](IEP-0014-iap-naming-migration.md) | IaP naming migration (IIS → IaP) | Review (authored in M19.0.2) |
+| [IEP-0015](IEP-0015-reserved-kind-graduation.md) | Spec 1.1.0 — reserved-kind graduation, Database class extension | Released (1.1.0, M23.1) |
+| [IEP-0016](IEP-0016-reserved-registry-graduation.md) | Spec 1.2.0 — reserved-registry graduation (Network, Stream, Workflow, SearchIndex) | Released (1.2.0, M23.3) |
+| [IEP-0017](IEP-0017-new-kinds-cdn-eventbus.md) | Spec 1.3.0 — new kinds (Cdn, EventBus) and enum widenings | Released (1.3.0, M24.1) |

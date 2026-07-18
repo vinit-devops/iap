@@ -19,7 +19,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { API_VERSION, RELATIONSHIP_TYPES, iisDocumentSchema, isCoreKind } from './index.js';
+import { API_VERSION, RELATIONSHIP_TYPES, iisDocumentSchema, isSpecifiedKind } from './index.js';
 import type { Finding, IaPDocument, Kind, Profile, RelationshipType } from './index.js';
 import { canonicalDuration, canonicalQuantity } from './quantity.js';
 import type { CanonicalUnitResult } from './quantity.js';
@@ -451,8 +451,10 @@ function walkResourceSpecs(doc: JsonObject, ctx: WalkContext): void {
     if (!isPlainObject(entry)) continue;
     const kind = typeof entry.kind === 'string' ? entry.kind : '';
     // Reserved kinds resolve to the intentionally minimal ReservedKind
-    // subschema, which declares no defaults.
-    const kindDef = isCoreKind(kind) ? kind : 'ReservedKind';
+    // subschema, which declares no defaults. Fully specified kinds — core
+    // (1.0.0) and graduated (1.1.0, IEP-0015) — resolve to their own
+    // $defs/kinds definitions.
+    const kindDef = isSpecifiedKind(kind) ? kind : 'ReservedKind';
     const specSchema: JsonObject = { $ref: `#/$defs/kinds/${kindDef}` };
     const specPointer = `/resources/${escapePointer(id)}/spec`;
     if (ctx.materialize && !isPlainObject(entry.spec)) {

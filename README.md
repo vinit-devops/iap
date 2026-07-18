@@ -119,4 +119,6 @@ This is **version 1.0.0 (Draft)** of the specification. The specification is ver
 
 ## License
 
-Intended for release under an open specification license (to be selected before 1.0.0 final).
+Copyright 2026 Vinit Kumar.
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See the [NOTICE](NOTICE) file for attribution details.

@@ -1,0 +1,19 @@
+# Conformance case: invalid/25-searchindex-missing-indextype
+# expected: schema-invalid
+# reason: SearchIndex graduated to a fully specified kind in 1.2.0 (IEP-0016):
+#         its spec is required and MUST declare indexType (enum text | vector).
+#         Under 1.0.0/1.1.0 this document was schema-valid (reserved kinds
+#         validated loosely, warned IAP801); from the graduating minor onward
+#         the promoted contract is enforced, so a SearchIndex without
+#         indexType is rejected in phase 1 (schema).
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: searchindex-missing-indextype-case
+
+resources:
+  orphan-index:
+    kind: SearchIndex
+    spec:
+      exposure: internal
