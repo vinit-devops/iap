@@ -23927,7 +23927,7 @@ function walkResourceSpecs(doc, ctx) {
     if (!isPlainObject(entry))
       continue;
     const kind = typeof entry.kind === "string" ? entry.kind : "";
-    const kindDef = isCoreKind(kind) ? kind : "ReservedKind";
+    const kindDef = isSpecifiedKind(kind) ? kind : "ReservedKind";
     const specSchema = { $ref: `#/$defs/kinds/${kindDef}` };
     const specPointer = `/resources/${escapePointer(id)}/spec`;
     if (ctx.materialize && !isPlainObject(entry.spec)) {
@@ -24195,7 +24195,33 @@ var CORE_KINDS = [
   "Identity",
   "Secret"
 ];
-var RESERVED_KINDS = [
+var GRADUATED_KINDS = [
+  "Certificate",
+  "DnsZone",
+  "Registry",
+  "Dashboard",
+  "Alert",
+  "Network",
+  "Stream",
+  "Workflow",
+  "SearchIndex"
+];
+var RESERVED_KINDS = [];
+var NEW_KINDS = ["Cdn", "EventBus"];
+var KINDS = [
+  "Application",
+  "Service",
+  "Job",
+  "Function",
+  "Gateway",
+  "Database",
+  "Cache",
+  "ObjectStore",
+  "Volume",
+  "Queue",
+  "Topic",
+  "Identity",
+  "Secret",
   "Network",
   "Certificate",
   "DnsZone",
@@ -24204,9 +24230,10 @@ var RESERVED_KINDS = [
   "SearchIndex",
   "Registry",
   "Dashboard",
-  "Alert"
+  "Alert",
+  "Cdn",
+  "EventBus"
 ];
-var KINDS = [...CORE_KINDS, ...RESERVED_KINDS];
 var RELATIONSHIP_TYPES = [
   "dependsOn",
   "connectsTo",
@@ -24221,6 +24248,15 @@ var RELATIONSHIP_TYPES = [
 ];
 function isCoreKind(kind) {
   return CORE_KINDS.includes(kind);
+}
+function isGraduatedKind(kind) {
+  return GRADUATED_KINDS.includes(kind);
+}
+function isNewKind(kind) {
+  return NEW_KINDS.includes(kind);
+}
+function isSpecifiedKind(kind) {
+  return isCoreKind(kind) || isGraduatedKind(kind) || isNewKind(kind);
 }
 function isReservedKind(kind) {
   return RESERVED_KINDS.includes(kind);
@@ -25528,7 +25564,8 @@ var SEVERITY = {
   IAP303: "warning",
   IAP401: "error",
   IAP402: "error",
-  IAP403: "error"
+  IAP403: "error",
+  IAP801: "warning"
 };
 function finding(code, path, message) {
   return { code, severity: SEVERITY[code] ?? "error", path, message };
@@ -25552,7 +25589,10 @@ var ENGINE_CLASSES = {
   mysql: ["relational"],
   mariadb: ["relational"],
   "mongodb-compatible": ["document"],
-  "cassandra-compatible": ["key-value", "document"]
+  // wide-column added in spec 1.1.0 (IEP-0015): cassandra-compatible is the
+  // canonical wide-column dialect; the 1.0.0 pairings are retained verbatim.
+  // No engine value pairs with class "warehouse" in 1.1.0.
+  "cassandra-compatible": ["key-value", "document", "wide-column"]
 };
 function crossFieldChecks(doc) {
   const findings = [];
@@ -25584,6 +25624,19 @@ function crossFieldChecks(doc) {
           findings.push(finding("IAP104", `${base}/engine`, `Database engine "${engine}" is consistent only with class ${allowed.map((c) => `"${c}"`).join(" or ")} (found "${cls}"; ch. 3, ch. 8 \xA78.5)`));
         }
       }
+    }
+  }
+  return findings;
+}
+function reservedKindChecks(doc) {
+  const findings = [];
+  const resources = isPlainObject3(doc.resources) ? doc.resources : {};
+  for (const id of Object.keys(resources).sort(compareCodePoints)) {
+    const entry = resources[id];
+    if (!isPlainObject3(entry) || typeof entry.kind !== "string")
+      continue;
+    if (isReservedKind(entry.kind)) {
+      findings.push(finding("IAP801", `/resources/${escapePointer2(id)}/kind`, `kind "${entry.kind}" is reserved in v1; its full field specification arrives in a future minor (ch. 5 \xA75.3; IAP801)`));
     }
   }
   return findings;
@@ -25896,7 +25949,11 @@ function validateDocument(input, options = {}) {
     if (hasErrors(postMerge))
       return finalize(phases);
   }
-  const phase1Semantic = [...crossFieldChecks(merged), ...bannedTermChecks(merged)];
+  const phase1Semantic = [
+    ...crossFieldChecks(merged),
+    ...bannedTermChecks(merged),
+    ...reservedKindChecks(merged)
+  ];
   phases.schema.findings.push(...phase1Semantic);
   if (hasErrors(phase1Semantic))
     return finalize(phases);
