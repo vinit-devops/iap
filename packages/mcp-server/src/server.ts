@@ -38,7 +38,7 @@ export class IaPMcpServer {
   manifest(): ServerManifest {
     return {
       name: '@iap/mcp-server',
-      version: '0.1.0',
+      version: '1.0.0',
       trustBoundary:
         'Authoring and analysis only. This server exposes no deployment, mutation, or provider-API tool; an assistant using it cannot deploy or reach a provider (spec ch. 19). Authoring goes through the intent-compiler gate — an LLM never writes YAML into the source of truth.',
       tools: [...this.tools.values()]

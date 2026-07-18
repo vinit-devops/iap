@@ -9,7 +9,7 @@
  *      the repo (mkdtemp under the OS temp dir — no access to the monorepo
  *      node_modules, so the install must resolve with NO workspace deps),
  *   3. invokes the installed `iap` bin and asserts:
- *        - `iap --version`        → prints 0.1.0
+ *        - `iap --version`        → prints the packaged version
  *        - `iap init`             → writes infrastructure.iap.yaml
  *        - `iap validate`         → exit 0 on a real example doc
  *        - `iap plan … --output json` → exit 0, JSON planId of form sha256:…,
@@ -18,7 +18,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +39,10 @@ function fail(msg) {
 if (!existsSync(join(pkgDir, 'package.json'))) {
   fail(`${pkgDir} not built — run \`pnpm run build:cli-pkg\` first`);
 }
+
+// Expected version is whatever the built package declares — the smoke gate
+// must track the release version, not a hardcoded constant.
+const expectedVersion = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8')).version;
 
 // Temp workspace OUTSIDE the repo (OS temp dir), so nothing resolves against
 // the monorepo node_modules.
@@ -77,7 +81,8 @@ try {
   /* 3a. --version */
   const version = run(['--version']).trim();
   log(`iap --version → ${version}`);
-  if (!/\b0\.1\.0\b/.test(version)) fail(`--version did not report 0.1.0: "${version}"`);
+  if (!version.includes(expectedVersion))
+    fail(`--version did not report ${expectedVersion}: "${version}"`);
 
   /* 3b. init → starter doc */
   run(['init']);

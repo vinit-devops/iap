@@ -1,6 +1,6 @@
 {
   "name": "@iap/mcp-server",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "The IaP MCP server (spec ch. 19/ch. 23; roadmap Phase 13): a read-only tool registry exposing authoring and analysis tools (author, validate, cost, security, compliance) over the reference engines, with NO deployment or mutation tools — assistant tools structurally cannot call provider APIs. Every authoring result carries per-field provenance.",
   "type": "module",
   "main": "./dist/index.js",

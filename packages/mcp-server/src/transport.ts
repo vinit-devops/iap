@@ -23,7 +23,7 @@ import type { IaPMcpServer } from './server.js';
 /** The MCP protocol revision this server implements. */
 export const PROTOCOL_VERSION = '2025-06-18';
 
-const SERVER_INFO = { name: '@iap/mcp-server', version: '0.1.0' } as const;
+const SERVER_INFO = { name: '@iap/mcp-server', version: '1.0.0' } as const;
 
 /** JSON-RPC standard error code for an unknown method. */
 const METHOD_NOT_FOUND = -32601;

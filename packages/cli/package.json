@@ -1,6 +1,6 @@
 {
   "name": "@iap/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Reference command-line interface for the Infrastructure as Prompt: validate, plan, graph, diagram, policy, normalize, fmt, explain, diff, doctor, init (spec ch. 22)",
   "type": "module",
   "bin": {

@@ -9,7 +9,7 @@
       "name": "iap",
       "source": "./",
       "description": "Read-only IaP authoring and analysis: MCP tools (iap_author, iap_validate, iap_cost, iap_security, iap_compliance) and matching /iap-* slash commands. No deploy or mutation capability by construction.",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "author": {
         "name": "IaP Maintainers"
       },

@@ -55,7 +55,7 @@ describe('handleMessage — JSON-RPC dispatch', () => {
       capabilities: { tools: unknown };
     };
     expect(result.protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(result.serverInfo).toEqual({ name: '@iap/mcp-server', version: '0.1.0' });
+    expect(result.serverInfo).toEqual({ name: '@iap/mcp-server', version: '1.0.0' });
     expect(result.capabilities.tools).toBeDefined();
   });
 

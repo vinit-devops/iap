@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-18
+
+First stable release. The developer-preview period is over: the two public
+distributables — `@infraasprompt/cli` and `@infraasprompt/mcp-server` — and the
+`iap` Claude Code plugin/marketplace graduate from `0.1.0` to `1.0.0`. This
+release lands the ROADMAP-V4 body of work (Phases 21–24): 68 shipped and
+mock-tested handlers with ~35 services live-proven, IaP spec minor releases
+1.1.0/1.2.0/1.3.0, all nine reserved kinds graduated plus `Cdn`/`EventBus`
+added, and a passing 50-service coverage audit. The MCP server remains
+read-only by construction — authoring and analysis only, no deploy or mutation.
+
 ### Added
 
 - `@iis/migrate` 0.1.0 — migration importers (roadmap Phase 18, M18.1–M18.4 — **completes Phase 18, and the entire roadmap**): `importKubernetes` translates Kubernetes manifests into IIS **through the operation gate** — Deployment/StatefulSet/ReplicaSet → Service, Job/CronJob → Job, PersistentVolumeClaim → Volume, Ingress → Gateway, Secret → Secret — so the imported result is validated IIS; constructs it cannot faithfully map (ConfigMap, a K8s Service) are reported as `unmapped` with a reason, **never guessed** (precision over recall). Deterministic. Terraform/CloudFormation/Pulumi/Crossplane/live-resource importers implement the same `ImportResult` contract. CI/CD integrations (GitHub Actions/GitLab/Jenkins/Argo/Backstage shelling out to the CLI; the control plane's `prChecks` as the hosted git-app form), signed digest-pinned registries + certification (over the Phase-6 package/trust model), and the open-governance model (implementation-independent spec/conformance, IEP process, TSC, LTS) are documented in `docs/guides/ecosystem.md`

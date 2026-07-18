@@ -1,7 +1,7 @@
 {
   "name": "iap",
   "displayName": "IaP",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "IaP (Infrastructure as Prompt) for Claude Code: read-only authoring and analysis of *.iap.yaml documents via the @infraasprompt/mcp-server MCP tools (iap_author, iap_validate, iap_cost, iap_security, iap_compliance) plus /iap-* slash commands. No deploy or mutation capability by construction.",
   "author": {
     "name": "IaP Maintainers",

@@ -582,7 +582,7 @@ describe('iap doctor', () => {
       document: { present: boolean; ok: boolean; hash: string };
     };
     expect(parsed.formatVersion).toBe(1);
-    expect(parsed.versions['cli']).toBe('0.1.0');
+    expect(parsed.versions['cli']).toBe('1.0.0');
     expect(parsed.versions['specApiVersion']).toBe('iap.dev/v1');
     expect(parsed.document.present).toBe(true);
     expect(parsed.document.ok).toBe(true);
@@ -650,11 +650,11 @@ describe('usage and stubs', () => {
   it('version prints the package version', async () => {
     const human = await exec(['version']);
     expect(human.code).toBe(0);
-    expect(human.stdout).toBe('iap 0.1.0\n');
+    expect(human.stdout).toBe('iap 1.0.0\n');
     const json = await exec(['version', '-o', 'json']);
     const parsed = JSON.parse(json.stdout) as { formatVersion: number; version: string };
     expect(parsed.formatVersion).toBe(1);
-    expect(parsed.version).toBe('0.1.0');
+    expect(parsed.version).toBe('1.0.0');
   });
 
   it('--quiet suppresses human output but keeps the exit code', async () => {
