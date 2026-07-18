@@ -2,6 +2,14 @@
 
 All notable changes to the IaP VS Code extension are documented here.
 
+## 1.0.0 — 2026-07-18
+
+First stable release, aligned with the IaP 1.0.0 line (`@infraasprompt/cli`,
+`@infraasprompt/mcp-server`, and the `iap` Claude Code plugin). The bundled
+language server is rebuilt from the 1.0.0 sources; no configuration changes.
+Published to both the VS Code Marketplace and Open VSX (the registry Cursor and
+other VS Code–compatible editors read from).
+
 ## 0.1.0 — 2026-07-15
 
 Initial release.
