@@ -209,7 +209,9 @@ describe('aws:dynamodb:Table', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(ddb.commandCalls(UpdateTableCommand)[0]?.args[0].input?.DeletionProtectionEnabled).toBe(false);
+    expect(ddb.commandCalls(UpdateTableCommand)[0]?.args[0].input?.DeletionProtectionEnabled).toBe(
+      false,
+    );
     const order = ddb
       .calls()
       .map((c) => c.args[0].constructor.name)

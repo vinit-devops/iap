@@ -58,7 +58,10 @@ export class NeptuneClusterHandler implements TargetHandler {
   /** Engine cannot change in place (ADR-0006). */
   readonly immutableProjectionKeys = ['engine'] as const;
 
-  constructor(private readonly neptune: NeptuneClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly neptune: NeptuneClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   /** The handler-owned DB subnet group (created with, deleted after, the cluster). */
   private subnetGroupName(resource: PlanResource): string {
@@ -108,9 +111,7 @@ export class NeptuneClusterHandler implements TargetHandler {
       projection: {
         engine: cluster.Engine ?? 'neptune',
         backupRetentionPeriod:
-          cluster.BackupRetentionPeriod === undefined
-            ? '1'
-            : String(cluster.BackupRetentionPeriod),
+          cluster.BackupRetentionPeriod === undefined ? '1' : String(cluster.BackupRetentionPeriod),
         deletionProtection: cluster.DeletionProtection === true ? 'true' : 'false',
       },
     };

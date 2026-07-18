@@ -123,7 +123,9 @@ describe('aws:timestream:Table', () => {
 
   it('absent → CreateTable inside the parent database with retention + iap tags', async () => {
     tsw.on(DescribeTableCommand).rejects(serviceError('ResourceNotFoundException', 404));
-    tsw.on(CreateTableCommand).resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
+    tsw
+      .on(CreateTableCommand)
+      .resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
 
     const report = await executor().apply(
       tablePlan({ memoryRetentionHours: 12, magneticRetentionDays: 30 }),
@@ -143,7 +145,9 @@ describe('aws:timestream:Table', () => {
 
   it('unpinned retention falls back to 24h memory / 7d magnetic', async () => {
     tsw.on(DescribeTableCommand).rejects(serviceError('ResourceNotFoundException', 404));
-    tsw.on(CreateTableCommand).resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
+    tsw
+      .on(CreateTableCommand)
+      .resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
 
     await executor().apply(tablePlan(), { apply: true });
     const input = tsw.commandCalls(CreateTableCommand)[0]?.args[0].input;
@@ -177,7 +181,9 @@ describe('aws:timestream:Table', () => {
     tsw.on(UpdateTableCommand).resolves({});
     tsw.on(TagResourceCommand).resolves({});
 
-    const report = await executor().apply(tablePlan({ magneticRetentionDays: 30 }), { apply: true });
+    const report = await executor().apply(tablePlan({ magneticRetentionDays: 30 }), {
+      apply: true,
+    });
 
     expect(report.items[0]?.action).toBe('update');
     expect(report.items[0]?.applied).toBe(true);
@@ -217,7 +223,9 @@ describe('aws:timestream:Table', () => {
 
     // Gate OPEN: delete (from the OLD database, where the table lives) THEN create.
     tsw.on(DeleteTableCommand).resolves({});
-    tsw.on(CreateTableCommand).resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
+    tsw
+      .on(CreateTableCommand)
+      .resolves({ Table: { Arn: 'arn:timestream:table/metrics/readings' } });
 
     const replaced = await executor().apply(tablePlan(), { apply: true, replace: true });
     expect(replaced.items[0]?.applied).toBe(true);
@@ -261,9 +269,7 @@ describe('aws:timestream:Table', () => {
   it('parent database gone → table reads absent (ResourceNotFoundException from the database)', async () => {
     // Timestream raises the SAME ResourceNotFoundException whether the table
     // or its parent database is missing — both converge via create.
-    tsw.on(DescribeTableCommand).rejects(
-      serviceError('ResourceNotFoundException', 404),
-    );
+    tsw.on(DescribeTableCommand).rejects(serviceError('ResourceNotFoundException', 404));
 
     const report = await executor().plan(tablePlan());
     expect(report.items[0]?.action).toBe('create');

@@ -234,9 +234,7 @@ describe('aws:fsx:FileSystem', () => {
     // Same file system without iap:managed=true → the delete is refused.
     fsx.reset();
     fsx.on(DescribeFileSystemsCommand).resolves({
-      FileSystems: [
-        liveFileSystem({ Tags: [{ Key: 'iap:resourceId', Value: LOGICAL_ID }] }),
-      ],
+      FileSystems: [liveFileSystem({ Tags: [{ Key: 'iap:resourceId', Value: LOGICAL_ID }] })],
     });
 
     const refused = await executor().apply(fsPlan(), { apply: true, destroy: true });

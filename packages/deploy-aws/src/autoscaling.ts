@@ -144,7 +144,10 @@ export class AutoScalingGroupHandler implements TargetHandler {
     const d = this.desiredProjection(resource);
     const live = current.projection;
     const changes: Record<string, unknown> = {};
-    if ((d['launchTemplateName'] ?? '') !== '' && d['launchTemplateName'] !== live['launchTemplateName']) {
+    if (
+      (d['launchTemplateName'] ?? '') !== '' &&
+      d['launchTemplateName'] !== live['launchTemplateName']
+    ) {
       changes['LaunchTemplate'] = {
         LaunchTemplateName: d['launchTemplateName'],
         Version: '$Default',

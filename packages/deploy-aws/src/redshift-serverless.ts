@@ -108,9 +108,7 @@ export class RedshiftServerlessNamespaceHandler implements TargetHandler {
     const namespaceName = resourceIdOf(resource);
     let namespace;
     try {
-      const found = await this.redshiftServerless.send(
-        new GetNamespaceCommand({ namespaceName }),
-      );
+      const found = await this.redshiftServerless.send(new GetNamespaceCommand({ namespaceName }));
       namespace = found.namespace;
     } catch (err) {
       if (nameMatches(err, NOT_FOUND)) {
@@ -232,9 +230,7 @@ export class RedshiftServerlessWorkgroupHandler implements TargetHandler {
     const workgroupName = resourceIdOf(resource);
     let workgroup;
     try {
-      const found = await this.redshiftServerless.send(
-        new GetWorkgroupCommand({ workgroupName }),
-      );
+      const found = await this.redshiftServerless.send(new GetWorkgroupCommand({ workgroupName }));
       workgroup = found.workgroup;
     } catch (err) {
       if (nameMatches(err, NOT_FOUND)) {
@@ -275,7 +271,8 @@ export class RedshiftServerlessWorkgroupHandler implements TargetHandler {
   async create(resource: PlanResource, tags: Record<string, string>): Promise<string> {
     const workgroupName = resourceIdOf(resource);
     const d = this.desiredProjection(resource);
-    const enhancedVpcRouting = scalarStr(resource.desiredAttributes['enhancedVpcRouting']) === 'true';
+    const enhancedVpcRouting =
+      scalarStr(resource.desiredAttributes['enhancedVpcRouting']) === 'true';
     const created = await this.redshiftServerless.send(
       new CreateWorkgroupCommand({
         workgroupName,

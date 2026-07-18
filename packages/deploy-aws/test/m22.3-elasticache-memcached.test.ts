@@ -108,7 +108,9 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     const mutationOrder = ec
       .calls()
       .map((call) => call.args[0].constructor.name)
-      .filter((name) => name === 'CreateCacheSubnetGroupCommand' || name === 'CreateCacheClusterCommand');
+      .filter(
+        (name) => name === 'CreateCacheSubnetGroupCommand' || name === 'CreateCacheClusterCommand',
+      );
     expect(mutationOrder).toEqual(['CreateCacheSubnetGroupCommand', 'CreateCacheClusterCommand']);
   });
 
@@ -130,7 +132,7 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     expect(report.items[0]?.action).toBe('create');
   });
 
-  it("creating-window tag read: ListTagsForResource answers NotFound for a cluster Describe just returned → read survives (tags unknown → unmanaged, destroy fails closed) — live M22.3 finding", async () => {
+  it('creating-window tag read: ListTagsForResource answers NotFound for a cluster Describe just returned → read survives (tags unknown → unmanaged, destroy fails closed) — live M22.3 finding', async () => {
     ec.on(DescribeCacheClustersCommand).resolves({
       CacheClusters: [{ ...liveMemcached, CacheClusterStatus: 'creating' }],
     });
@@ -179,7 +181,9 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     ]);
 
     it('classifies as replace, never update', async () => {
-      ec.on(DescribeReplicationGroupsCommand).rejects(serviceError('ReplicationGroupNotFoundFault'));
+      ec.on(DescribeReplicationGroupsCommand).rejects(
+        serviceError('ReplicationGroupNotFoundFault'),
+      );
       ec.on(DescribeCacheClustersCommand).resolves({ CacheClusters: [liveMemcached] });
       ec.on(ListTagsForResourceCommand).resolves({ TagList: MANAGED });
 
@@ -189,7 +193,9 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     });
 
     it('replacement gate closed → refusal, zero mutating calls', async () => {
-      ec.on(DescribeReplicationGroupsCommand).rejects(serviceError('ReplicationGroupNotFoundFault'));
+      ec.on(DescribeReplicationGroupsCommand).rejects(
+        serviceError('ReplicationGroupNotFoundFault'),
+      );
       ec.on(DescribeCacheClustersCommand).resolves({ CacheClusters: [liveMemcached] });
       ec.on(ListTagsForResourceCommand).resolves({ TagList: MANAGED });
 
@@ -203,9 +209,10 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     });
 
     it('gate open → DeleteCacheCluster THEN CreateReplicationGroup (cross-family replace)', async () => {
-      ec.on(DescribeReplicationGroupsCommand).rejects(serviceError('ReplicationGroupNotFoundFault'));
-      ec
-        .on(DescribeCacheClustersCommand)
+      ec.on(DescribeReplicationGroupsCommand).rejects(
+        serviceError('ReplicationGroupNotFoundFault'),
+      );
+      ec.on(DescribeCacheClustersCommand)
         .resolvesOnce({ CacheClusters: [liveMemcached] }) // the read (sibling probe)
         .rejects(serviceError('CacheClusterNotFoundFault')); // the deletion waiter
       ec.on(ListTagsForResourceCommand).resolves({ TagList: MANAGED });
@@ -222,21 +229,27 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
       expect(report.errors).toHaveLength(0);
       expect(report.items[0]?.applied).toBe(true);
       expect(report.items[0]?.identifier).toBe('arn:ec/rg/fragment-cache');
-      expect(ec.commandCalls(DeleteCacheClusterCommand)[0]?.args[0].input?.CacheClusterId).toBe('fragment-cache');
+      expect(ec.commandCalls(DeleteCacheClusterCommand)[0]?.args[0].input?.CacheClusterId).toBe(
+        'fragment-cache',
+      );
       expect(ec.commandCalls(DeleteReplicationGroupCommand)).toHaveLength(0); // live side was memcached
-      expect(ec.commandCalls(CreateReplicationGroupCommand)[0]?.args[0].input?.Engine).toBe('redis');
+      expect(ec.commandCalls(CreateReplicationGroupCommand)[0]?.args[0].input?.Engine).toBe(
+        'redis',
+      );
       expect(ec.commandCalls(CreateCacheClusterCommand)).toHaveLength(0); // new side is redis
       const order = ec
         .calls()
         .map((call) => call.args[0].constructor.name)
-        .filter((name) => name === 'DeleteCacheClusterCommand' || name === 'CreateReplicationGroupCommand');
+        .filter(
+          (name) =>
+            name === 'DeleteCacheClusterCommand' || name === 'CreateReplicationGroupCommand',
+        );
       expect(order).toEqual(['DeleteCacheClusterCommand', 'CreateReplicationGroupCommand']);
     });
   });
 
   it('destroy → DeleteCacheCluster, wait for gone, then delete the handler-owned subnet group', async () => {
-    ec
-      .on(DescribeCacheClustersCommand)
+    ec.on(DescribeCacheClustersCommand)
       .resolvesOnce({ CacheClusters: [liveMemcached] }) // the read
       .rejects(serviceError('CacheClusterNotFoundFault')); // the deletion waiter
     ec.on(ListTagsForResourceCommand).resolves({ TagList: MANAGED });
@@ -246,8 +259,12 @@ describe('aws:elasticache:ReplicationGroup — memcached mode (M22.3)', () => {
     const report = await executor().apply(memcachedPlan(), { apply: true, destroy: true });
 
     expect(report.items[0]?.applied).toBe(true);
-    expect(ec.commandCalls(DeleteCacheClusterCommand)[0]?.args[0].input?.CacheClusterId).toBe('fragment-cache');
-    expect(ec.commandCalls(DeleteCacheSubnetGroupCommand)[0]?.args[0].input?.CacheSubnetGroupName).toBe('fragment-cache-subnets');
+    expect(ec.commandCalls(DeleteCacheClusterCommand)[0]?.args[0].input?.CacheClusterId).toBe(
+      'fragment-cache',
+    );
+    expect(
+      ec.commandCalls(DeleteCacheSubnetGroupCommand)[0]?.args[0].input?.CacheSubnetGroupName,
+    ).toBe('fragment-cache-subnets');
     expect(ec.commandCalls(DeleteReplicationGroupCommand)).toHaveLength(0);
   });
 

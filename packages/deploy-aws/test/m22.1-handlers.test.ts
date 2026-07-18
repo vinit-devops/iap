@@ -28,11 +28,7 @@ import {
   SNSClient,
 } from '@aws-sdk/client-sns';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import {
-  GetParameterCommand,
-  PutParameterCommand,
-  SSMClient,
-} from '@aws-sdk/client-ssm';
+import { GetParameterCommand, PutParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import {
   CreateScheduleCommand,
   CreateScheduleGroupCommand,
@@ -45,11 +41,7 @@ import {
   DescribeLogGroupsCommand,
   PutRetentionPolicyCommand,
 } from '@aws-sdk/client-cloudwatch-logs';
-import {
-  ApiGatewayV2Client,
-  CreateApiCommand,
-  GetApisCommand,
-} from '@aws-sdk/client-apigatewayv2';
+import { ApiGatewayV2Client, CreateApiCommand, GetApisCommand } from '@aws-sdk/client-apigatewayv2';
 import {
   CreateBucketCommand,
   GetBucketEncryptionCommand,
@@ -103,7 +95,15 @@ describe('aws:lambda:Function', () => {
 
   it('absent → CreateFunction resolving the sibling execution role by name', async () => {
     lambda.on(GetFunctionCommand).rejects(serviceError('ResourceNotFoundException'));
-    iam.on(GetRoleCommand).resolves({ Role: { Arn: 'arn:iam::role/resizer', RoleName: 'resizer', Path: '/', RoleId: 'x', CreateDate: new Date(0) } });
+    iam.on(GetRoleCommand).resolves({
+      Role: {
+        Arn: 'arn:iam::role/resizer',
+        RoleName: 'resizer',
+        Path: '/',
+        RoleId: 'x',
+        CreateDate: new Date(0),
+      },
+    });
     lambda.on(CreateFunctionCommand).resolves({ FunctionArn: 'arn:lambda:resizer' });
 
     const report = await executor().apply(plan, { apply: true });
@@ -134,7 +134,12 @@ describe('aws:lambda:Function', () => {
 
   it('destroy → DeleteFunction', async () => {
     lambda.on(GetFunctionCommand).resolves({
-      Configuration: { FunctionArn: 'arn:lambda:resizer', PackageType: 'Zip', MemorySize: 256, Timeout: 10 },
+      Configuration: {
+        FunctionArn: 'arn:lambda:resizer',
+        PackageType: 'Zip',
+        MemorySize: 256,
+        Timeout: 10,
+      },
       Tags: { 'iap:managed': 'true' },
     });
     lambda.on(DeleteFunctionCommand).resolves({});
@@ -153,7 +158,15 @@ describe('aws:iam:Role upgrades', () => {
       }),
     ]);
     iam.on(GetRoleCommand).rejects(serviceError('NoSuchEntity', 404));
-    iam.on(CreateRoleCommand).resolves({ Role: { Arn: 'arn:iam::role/job-role', RoleName: 'job-role', Path: '/', RoleId: 'x', CreateDate: new Date(0) } });
+    iam.on(CreateRoleCommand).resolves({
+      Role: {
+        Arn: 'arn:iam::role/job-role',
+        RoleName: 'job-role',
+        Path: '/',
+        RoleId: 'x',
+        CreateDate: new Date(0),
+      },
+    });
     iam.on(PutRolePolicyCommand).resolves({});
 
     await executor().apply(plan, { apply: true });
@@ -172,7 +185,10 @@ describe('aws:iam:Role upgrades', () => {
     ]);
     iam.on(GetRoleCommand).resolves({
       Role: {
-        Arn: 'arn:iam::role/job-role', RoleName: 'job-role', Path: '/', RoleId: 'x',
+        Arn: 'arn:iam::role/job-role',
+        RoleName: 'job-role',
+        Path: '/',
+        RoleId: 'x',
         CreateDate: new Date(0),
         Tags: [{ Key: 'iap:managed', Value: 'true' }],
         AssumeRolePolicyDocument: encodeURIComponent(
@@ -185,14 +201,20 @@ describe('aws:iam:Role upgrades', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(iam.commandCalls(DeleteRolePolicyCommand)[0]?.args[0].input?.PolicyName).toBe('job-role-inline');
+    expect(iam.commandCalls(DeleteRolePolicyCommand)[0]?.args[0].input?.PolicyName).toBe(
+      'job-role-inline',
+    );
   });
 });
 
 describe('aws:sns:Topic', () => {
   it('ordered topic → FIFO with .fifo suffix; fifoTopic immutable → replace on drift', async () => {
     const plan = providerPlan([
-      planResource('events', 'aws:sns:Topic', { fifoTopic: true, contentBasedDeduplication: true, sseEnabled: true }),
+      planResource('events', 'aws:sns:Topic', {
+        fifoTopic: true,
+        contentBasedDeduplication: true,
+        sseEnabled: true,
+      }),
     ]);
     sts.on(GetCallerIdentityCommand).resolves({ Account: '000000000000' });
     sns.on(GetTopicAttributesCommand).rejects(serviceError('NotFoundException', 404));
@@ -217,7 +239,10 @@ describe('aws:sns:Topic', () => {
 describe('aws:ssm:Parameter', () => {
   it('creates a SecureString with a generated value; never reads it back', async () => {
     const plan = providerPlan([
-      planResource('api-key', 'aws:ssm:Parameter', { parameterType: 'SecureString', generateValue: true }),
+      planResource('api-key', 'aws:ssm:Parameter', {
+        parameterType: 'SecureString',
+        generateValue: true,
+      }),
     ]);
     ssm.on(GetParameterCommand).rejects(serviceError('ParameterNotFound'));
     ssm.on(PutParameterCommand).resolves({ Version: 1 });
@@ -248,8 +273,18 @@ describe('aws:scheduler:Schedule', () => {
     ]);
     scheduler.on(GetScheduleCommand).rejects(serviceError('ResourceNotFoundException'));
     scheduler.on(CreateScheduleGroupCommand).resolves({});
-    lambda.on(GetFunctionCommand).resolves({ Configuration: { FunctionArn: 'arn:lambda:nightly' } });
-    iam.on(GetRoleCommand).resolves({ Role: { Arn: 'arn:iam::role/nightly', RoleName: 'nightly', Path: '/', RoleId: 'x', CreateDate: new Date(0) } });
+    lambda
+      .on(GetFunctionCommand)
+      .resolves({ Configuration: { FunctionArn: 'arn:lambda:nightly' } });
+    iam.on(GetRoleCommand).resolves({
+      Role: {
+        Arn: 'arn:iam::role/nightly',
+        RoleName: 'nightly',
+        Path: '/',
+        RoleId: 'x',
+        CreateDate: new Date(0),
+      },
+    });
     scheduler.on(CreateScheduleCommand).resolves({ ScheduleArn: 'arn:scheduler:nightly' });
 
     const report = await executor().apply(plan, { apply: true });
@@ -278,8 +313,12 @@ describe('aws:logs:LogGroup', () => {
 
     const report = await executor().apply(plan, { apply: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(logs.commandCalls(CreateLogGroupCommand)[0]?.args[0].input?.logGroupName).toBe('/aws/lambda/resizer');
-    expect(logs.commandCalls(PutRetentionPolicyCommand)[0]?.args[0].input?.retentionInDays).toBe(30);
+    expect(logs.commandCalls(CreateLogGroupCommand)[0]?.args[0].input?.logGroupName).toBe(
+      '/aws/lambda/resizer',
+    );
+    expect(logs.commandCalls(PutRetentionPolicyCommand)[0]?.args[0].input?.retentionInDays).toBe(
+      30,
+    );
   });
 });
 
@@ -321,18 +360,25 @@ describe('aws:s3:Bucket public-posture upgrade', () => {
     expect(report.items[0]?.applied).toBe(true);
     const pab = s3.commandCalls(PutPublicAccessBlockCommand)[0]?.args[0].input;
     expect(pab?.PublicAccessBlockConfiguration?.BlockPublicPolicy).toBe(false);
-    const policy = JSON.parse(s3.commandCalls(PutBucketPolicyCommand)[0]?.args[0].input?.Policy ?? '{}');
+    const policy = JSON.parse(
+      s3.commandCalls(PutBucketPolicyCommand)[0]?.args[0].input?.Policy ?? '{}',
+    );
     expect(policy.Statement?.[0]?.Action).toBe('s3:GetObject');
   });
 
   it('pre-M22.1 documents (no posture attribute) still read converged', async () => {
     const plan = providerPlan([
-      planResource('assets', 'aws:s3:Bucket', { sseAlgorithm: 'AES256', versioningStatus: 'Enabled' }),
+      planResource('assets', 'aws:s3:Bucket', {
+        sseAlgorithm: 'AES256',
+        versioningStatus: 'Enabled',
+      }),
     ]);
     s3.on(HeadBucketCommand).resolves({});
     s3.on(GetBucketTaggingCommand).resolves({ TagSet: [{ Key: 'iap:managed', Value: 'true' }] });
     s3.on(GetBucketEncryptionCommand).resolves({
-      ServerSideEncryptionConfiguration: { Rules: [{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' } }] },
+      ServerSideEncryptionConfiguration: {
+        Rules: [{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' } }],
+      },
     });
     s3.on(GetBucketVersioningCommand).resolves({ Status: 'Enabled' });
 
@@ -372,11 +418,14 @@ describe('aws:sqs:Queue dead-letter upgrade', () => {
     const plan = providerPlan([
       planResource('jobs', 'aws:sqs:Queue', { fifoQueue: false, redriveMaxReceiveCount: 5 }),
     ]);
-    sqs.on(GetQueueUrlCommand)
+    sqs
+      .on(GetQueueUrlCommand)
       .resolvesOnce({ QueueUrl: 'https://sqs/q/jobs' }) // the read
       .resolves({ QueueUrl: 'https://sqs/q/jobs-dlq' }); // the DLQ lookup at delete
     sqs.on(GetQueueAttributesCommand).resolves({
-      Attributes: { RedrivePolicy: '{"deadLetterTargetArn":"arn:sqs:jobs-dlq","maxReceiveCount":5}' },
+      Attributes: {
+        RedrivePolicy: '{"deadLetterTargetArn":"arn:sqs:jobs-dlq","maxReceiveCount":5}',
+      },
     });
     sqs.on(ListQueueTagsCommand).resolves({ Tags: { 'iap:managed': 'true' } });
     sqs.on(DeleteQueueCommand).resolves({});

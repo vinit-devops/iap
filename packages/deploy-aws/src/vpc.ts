@@ -114,9 +114,7 @@ export class VpcHandler implements TargetHandler {
       }),
     );
     // Defensive client-side re-filter: a VPC in any non-live state reads absent.
-    const vpcs = (found.Vpcs ?? []).filter((v) =>
-      LIVE_STATES.some((s) => s === (v.State ?? '')),
-    );
+    const vpcs = (found.Vpcs ?? []).filter((v) => LIVE_STATES.some((s) => s === (v.State ?? '')));
     if (vpcs.length > 1) {
       throw new Error(
         `ambiguous VPC identity: ${vpcs.length} VPCs carry ${RESOURCE_TAG_KEY}=` +
@@ -399,7 +397,10 @@ function ruleKey(rule: SgRule): string {
 
 /** Canonicalize a compact rule spec (sorted keys joined by `;`); '' → ''. */
 function canonicalizeSpec(spec: string): string {
-  const tokens = spec.split(';').map((t) => t.trim()).filter((t) => t !== '');
+  const tokens = spec
+    .split(';')
+    .map((t) => t.trim())
+    .filter((t) => t !== '');
   return [...new Set(tokens.map((t) => ruleKey(parseRule(t))))].sort().join(';');
 }
 
@@ -433,7 +434,10 @@ function toIpPermission(rule: SgRule): IpPermission {
 /** Parse a canonical/compact rule string into a keyed rule map. */
 function ruleMap(spec: string): Map<string, SgRule> {
   const map = new Map<string, SgRule>();
-  for (const token of spec.split(';').map((t) => t.trim()).filter((t) => t !== '')) {
+  for (const token of spec
+    .split(';')
+    .map((t) => t.trim())
+    .filter((t) => t !== '')) {
     const rule = parseRule(token);
     map.set(ruleKey(rule), rule);
   }
@@ -504,9 +508,7 @@ export class SecurityGroupHandler implements TargetHandler {
       projection: {
         vpcId: group.VpcId ?? '',
         description: group.Description ?? '',
-        ...(ingressPinned
-          ? { ingress: canonicalizePermissions(group.IpPermissions ?? []) }
-          : {}),
+        ...(ingressPinned ? { ingress: canonicalizePermissions(group.IpPermissions ?? []) } : {}),
         ...(egressPinned
           ? { egress: canonicalizePermissions(group.IpPermissionsEgress ?? []) }
           : {}),
@@ -590,17 +592,25 @@ export class SecurityGroupHandler implements TargetHandler {
     if (toRevoke.length > 0) {
       const IpPermissions = toRevoke.map(toIpPermission);
       if (direction === 'ingress') {
-        await this.ec2.send(new RevokeSecurityGroupIngressCommand({ GroupId: groupId, IpPermissions }));
+        await this.ec2.send(
+          new RevokeSecurityGroupIngressCommand({ GroupId: groupId, IpPermissions }),
+        );
       } else {
-        await this.ec2.send(new RevokeSecurityGroupEgressCommand({ GroupId: groupId, IpPermissions }));
+        await this.ec2.send(
+          new RevokeSecurityGroupEgressCommand({ GroupId: groupId, IpPermissions }),
+        );
       }
     }
     if (toAuthorize.length > 0) {
       const IpPermissions = toAuthorize.map(toIpPermission);
       if (direction === 'ingress') {
-        await this.ec2.send(new AuthorizeSecurityGroupIngressCommand({ GroupId: groupId, IpPermissions }));
+        await this.ec2.send(
+          new AuthorizeSecurityGroupIngressCommand({ GroupId: groupId, IpPermissions }),
+        );
       } else {
-        await this.ec2.send(new AuthorizeSecurityGroupEgressCommand({ GroupId: groupId, IpPermissions }));
+        await this.ec2.send(
+          new AuthorizeSecurityGroupEgressCommand({ GroupId: groupId, IpPermissions }),
+        );
       }
     }
   }

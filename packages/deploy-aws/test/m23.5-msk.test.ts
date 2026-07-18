@@ -33,7 +33,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { AwsExecutor } from '../src/index.js';
 import { MskClusterHandler } from '../src/msk.js';
-import { planResource, providerPlan, serviceError } from './helpers.js';
+import { planResource, providerPlan } from './helpers.js';
 
 const kafka = mockClient(KafkaClient);
 const ec2 = mockClient(EC2Client);
@@ -52,9 +52,7 @@ function mockDefaultNetwork() {
       { SubnetId: 'subnet-c', AvailabilityZone: 'eu-central-1c' },
     ],
   });
-  ec2
-    .on(DescribeSecurityGroupsCommand)
-    .resolves({ SecurityGroups: [{ GroupId: 'sg-default' }] });
+  ec2.on(DescribeSecurityGroupsCommand).resolves({ SecurityGroups: [{ GroupId: 'sg-default' }] });
 }
 
 beforeEach(() => {
@@ -193,7 +191,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
     ).toEqual(['subnet-x', 'subnet-y']);
   });
 
-  it("a cluster in DELETING state reads as absent → create classification", async () => {
+  it('a cluster in DELETING state reads as absent → create classification', async () => {
     kafka.on(ListClustersV2Command).resolves({ ClusterInfoList: [liveServerless] });
     kafka
       .on(DescribeClusterV2Command)

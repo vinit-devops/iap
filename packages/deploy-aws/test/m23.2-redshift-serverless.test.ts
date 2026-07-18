@@ -58,15 +58,16 @@ function liveWorkgroup(overrides: Partial<Workgroup> = {}): Workgroup {
     baseCapacity: 8,
     publiclyAccessible: false,
     status: 'AVAILABLE',
-    endpoint: { address: 'warehouse-wg.000000000000.eu-central-1.redshift-serverless.amazonaws.com', port: 5439 },
+    endpoint: {
+      address: 'warehouse-wg.000000000000.eu-central-1.redshift-serverless.amazonaws.com',
+      port: 5439,
+    },
     ...overrides,
   };
 }
 
 describe('aws:redshiftserverless:Namespace', () => {
-  const plan = providerPlan([
-    planResource('warehouse', 'aws:redshiftserverless:Namespace', {}),
-  ]);
+  const plan = providerPlan([planResource('warehouse', 'aws:redshiftserverless:Namespace', {})]);
 
   it('absent → CreateNamespace: managed admin password, dbName default, tags — and NO plaintext password anywhere', async () => {
     rss.on(GetNamespaceCommand).rejects(serviceError('ResourceNotFoundException'));
@@ -211,7 +212,9 @@ describe('aws:redshiftserverless:Workgroup', () => {
 
     expect(report.errors).toEqual([]);
     expect(report.items[0]?.applied).toBe(true);
-    expect(report.items[0]?.identifier).toBe('arn:aws:redshift-serverless:::workgroup/warehouse-wg');
+    expect(report.items[0]?.identifier).toBe(
+      'arn:aws:redshift-serverless:::workgroup/warehouse-wg',
+    );
     const input = rss.commandCalls(CreateWorkgroupCommand)[0]?.args[0].input;
     expect(input?.workgroupName).toBe('warehouse-wg');
     expect(input?.namespaceName).toBe('warehouse');

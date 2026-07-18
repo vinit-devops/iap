@@ -77,9 +77,7 @@ function parseKeySchema(serialized: string): ParsedKey[] {
   return parts.map((part) => {
     const [name, type] = part.split(':').map((s) => s.trim());
     if (!name || type === undefined || !['S', 'N', 'B'].includes(type.toUpperCase())) {
-      throw new Error(
-        `invalid keySchema element '${part}': expected '<name>:<S|N|B>'`,
-      );
+      throw new Error(`invalid keySchema element '${part}': expected '<name>:<S|N|B>'`);
     }
     return { name, type: type.toUpperCase() as ScalarAttributeType };
   });
@@ -152,9 +150,7 @@ export class DynamoDbTableHandler implements TargetHandler {
     const arn = table.TableArn;
     let tags: Record<string, string> = {};
     if (arn !== undefined) {
-      const tagResult = await this.client.send(
-        new ListTagsOfResourceCommand({ ResourceArn: arn }),
-      );
+      const tagResult = await this.client.send(new ListTagsOfResourceCommand({ ResourceArn: arn }));
       tags = fromTagList(tagResult.Tags ?? []);
     }
 

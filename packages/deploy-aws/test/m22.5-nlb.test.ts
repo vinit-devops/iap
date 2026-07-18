@@ -16,11 +16,7 @@ import {
   ElasticLoadBalancingV2Client,
   ModifyLoadBalancerAttributesCommand,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import {
-  DescribeSubnetsCommand,
-  DescribeVpcsCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
+import { DescribeSubnetsCommand, DescribeVpcsCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { AwsExecutor } from '../src/index.js';
 import { planResource, providerPlan, serviceError } from './helpers.js';
 
@@ -152,7 +148,9 @@ describe('aws:elasticloadbalancing:LoadBalancer — network (NLB) variant', () =
     const report = await executor().apply(nlbPlan, { apply: true, destroy: true });
 
     expect(report.items[0]?.applied).toBe(true);
-    expect(elbv2.commandCalls(DeleteLoadBalancerCommand)[0]?.args[0].input?.LoadBalancerArn).toBe('arn:lb/edge-nlb');
+    expect(elbv2.commandCalls(DeleteLoadBalancerCommand)[0]?.args[0].input?.LoadBalancerArn).toBe(
+      'arn:lb/edge-nlb',
+    );
   });
 
   it('ALB regression canary — application branch still creates with the HTTP attributes', async () => {
@@ -174,8 +172,11 @@ describe('aws:elasticloadbalancing:LoadBalancer — network (NLB) variant', () =
     const report = await executor().apply(albPlan, { apply: true });
 
     expect(report.errors).toEqual([]);
-    expect(elbv2.commandCalls(CreateLoadBalancerCommand)[0]?.args[0].input?.Type).toBe('application');
-    const attrs = elbv2.commandCalls(ModifyLoadBalancerAttributesCommand)[0]?.args[0].input?.Attributes;
+    expect(elbv2.commandCalls(CreateLoadBalancerCommand)[0]?.args[0].input?.Type).toBe(
+      'application',
+    );
+    const attrs = elbv2.commandCalls(ModifyLoadBalancerAttributesCommand)[0]?.args[0].input
+      ?.Attributes;
     expect(attrs).toContainEqual({
       Key: 'routing.http.drop_invalid_header_fields.enabled',
       Value: 'true',

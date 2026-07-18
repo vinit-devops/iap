@@ -26,7 +26,26 @@ status: completed # ROADMAP-V4 COMPLETE 2026-07-18 — all phases 21-24 done. 68
 source: roadmap-v4 # the master execution prompt (committed at repo root this time)
 supersedes: null # extends the retired V1-V3 trackers (removed in e10ebe0); does not replace them
 executionSequence:
-  order: [M21.1, M21.2, M21.3, M22.1, M22.2, M22.3, M22.4, M22.5, M23.1, M23.2, M23.3, M23.4, M23.5, M24.1, M24.2, M24.3, M24.4]
+  order:
+    [
+      M21.1,
+      M21.2,
+      M21.3,
+      M22.1,
+      M22.2,
+      M22.3,
+      M22.4,
+      M22.5,
+      M23.1,
+      M23.2,
+      M23.3,
+      M23.4,
+      M23.5,
+      M24.1,
+      M24.2,
+      M24.3,
+      M24.4,
+    ]
   deferred:
     notInScope: 'Beanstalk, SageMaker, Bedrock, Glue, EMR, Athena, CodePipeline, CloudTrail family — explicitly outside the 50 (reasons in decisionsTaken.deferredServices); requester-directed 2026-07-16'
     M24.3: 'stretch wave (EKS, AppSync, SES) — pre-declared defer candidates, each individually gated; deferring any or all does not block M24.4 closeout'

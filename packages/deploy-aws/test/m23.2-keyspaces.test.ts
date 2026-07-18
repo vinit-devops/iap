@@ -80,7 +80,9 @@ describe('aws:cassandra:Keyspace', () => {
 
     const report = await executor().apply(ksPlan(), { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(keyspaces.commandCalls(DeleteKeyspaceCommand)[0]?.args[0].input?.keyspaceName).toBe('app');
+    expect(keyspaces.commandCalls(DeleteKeyspaceCommand)[0]?.args[0].input?.keyspaceName).toBe(
+      'app',
+    );
 
     // Not tagged iap:managed=true → the delete is refused, nothing issued.
     keyspaces.reset();
@@ -239,10 +241,9 @@ describe('aws:cassandra:Table', () => {
     keyspaces.on(TagResourceCommand).resolves({});
 
     // Only PITR drifts (capacity stays PAY_PER_REQUEST).
-    const report = await executor().apply(
-      tablePlan({ pointInTimeRecovery: 'ENABLED' }),
-      { apply: true },
-    );
+    const report = await executor().apply(tablePlan({ pointInTimeRecovery: 'ENABLED' }), {
+      apply: true,
+    });
 
     expect(report.items[0]?.action).toBe('update');
     expect(report.items[0]?.applied).toBe(true);

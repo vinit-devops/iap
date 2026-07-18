@@ -70,11 +70,13 @@ describe('aws:ec2:InternetGateway', () => {
     expect(report.items[0]?.identifier).toBe('igw-0new');
 
     // Identity read is tag-scoped to the plan logicalId.
-    const filters = ec2.commandCalls(DescribeInternetGatewaysCommand)[0]?.args[0].input?.Filters ?? [];
+    const filters =
+      ec2.commandCalls(DescribeInternetGatewaysCommand)[0]?.args[0].input?.Filters ?? [];
     expect(filters).toContainEqual({ Name: 'tag:iap:resourceId', Values: [IGW_LOGICAL] });
 
     // Tags ride creation as TagSpecifications (incl. console Name).
-    const spec = ec2.commandCalls(CreateInternetGatewayCommand)[0]?.args[0].input?.TagSpecifications?.[0];
+    const spec = ec2.commandCalls(CreateInternetGatewayCommand)[0]?.args[0].input
+      ?.TagSpecifications?.[0];
     expect(spec?.ResourceType).toBe('internet-gateway');
     const tagPairs = (spec?.Tags ?? []).map((t) => `${t.Key}=${t.Value}`);
     expect(tagPairs).toContain('iap:managed=true');
@@ -256,9 +258,13 @@ describe('aws:ec2:RouteTable', () => {
     expect(report.items[0]?.applied).toBe(true);
 
     // The removed route is deleted, the new one created; the local route is untouched.
-    const deleted = ec2.commandCalls(DeleteRouteCommand).map((c) => c.args[0].input?.DestinationCidrBlock);
+    const deleted = ec2
+      .commandCalls(DeleteRouteCommand)
+      .map((c) => c.args[0].input?.DestinationCidrBlock);
     expect(deleted).toEqual(['10.9.0.0/16']);
-    const created = ec2.commandCalls(CreateRouteCommand).map((c) => c.args[0].input?.DestinationCidrBlock);
+    const created = ec2
+      .commandCalls(CreateRouteCommand)
+      .map((c) => c.args[0].input?.DestinationCidrBlock);
     expect(created).toEqual(['0.0.0.0/0']);
     expect(ec2.commandCalls(ReplaceRouteCommand)).toHaveLength(0);
   });
@@ -389,7 +395,9 @@ const natPlan = (attrs: Record<string, string> = {}) =>
 describe('aws:ec2:NatGateway', () => {
   it('absent → AllocateAddress (EIP) THEN CreateNatGateway (order asserted), both tagged', async () => {
     ec2.on(DescribeNatGatewaysCommand).resolves({ NatGateways: [] });
-    ec2.on(AllocateAddressCommand).resolves({ AllocationId: 'eipalloc-0new', PublicIp: '52.1.2.3' });
+    ec2
+      .on(AllocateAddressCommand)
+      .resolves({ AllocationId: 'eipalloc-0new', PublicIp: '52.1.2.3' });
     ec2.on(CreateNatGatewayCommand).resolves({ NatGateway: { NatGatewayId: 'nat-0new' } });
 
     const report = await executor().apply(natPlan({ subnetId: 'subnet-pub' }), { apply: true });
@@ -431,9 +439,9 @@ describe('aws:ec2:NatGateway', () => {
   it('create failure releases the just-allocated EIP (no orphan billing) then fails closed', async () => {
     ec2.on(DescribeNatGatewaysCommand).resolves({ NatGateways: [] });
     ec2.on(AllocateAddressCommand).resolves({ AllocationId: 'eipalloc-0new' });
-    ec2.on(CreateNatGatewayCommand).rejects(
-      Object.assign(new Error('subnet not found'), { name: 'InvalidSubnetID.NotFound' }),
-    );
+    ec2
+      .on(CreateNatGatewayCommand)
+      .rejects(Object.assign(new Error('subnet not found'), { name: 'InvalidSubnetID.NotFound' }));
     ec2.on(ReleaseAddressCommand).resolves({});
 
     const report = await executor().apply(natPlan({ subnetId: 'subnet-pub' }), { apply: true });
@@ -441,7 +449,9 @@ describe('aws:ec2:NatGateway', () => {
     expect(report.items[0]?.applied).toBe(false);
     expect(report.errors[0]).toContain('subnet not found');
     // The orphaned EIP was released.
-    expect(ec2.commandCalls(ReleaseAddressCommand)[0]?.args[0].input?.AllocationId).toBe('eipalloc-0new');
+    expect(ec2.commandCalls(ReleaseAddressCommand)[0]?.args[0].input?.AllocationId).toBe(
+      'eipalloc-0new',
+    );
   });
 
   it('destroy DeleteNatGateway THEN (bounded wait) ReleaseAddress (order asserted)', async () => {
@@ -477,9 +487,13 @@ describe('aws:ec2:NatGateway', () => {
 
     expect(report.errors).toEqual([]);
     expect(report.items[0]?.applied).toBe(true);
-    expect(ec2.commandCalls(DeleteNatGatewayCommand)[0]?.args[0].input?.NatGatewayId).toBe('nat-0live');
+    expect(ec2.commandCalls(DeleteNatGatewayCommand)[0]?.args[0].input?.NatGatewayId).toBe(
+      'nat-0live',
+    );
     // The handler-owned EIP MUST be released, or it bills once orphaned.
-    expect(ec2.commandCalls(ReleaseAddressCommand)[0]?.args[0].input?.AllocationId).toBe('eipalloc-0live');
+    expect(ec2.commandCalls(ReleaseAddressCommand)[0]?.args[0].input?.AllocationId).toBe(
+      'eipalloc-0live',
+    );
     const order = ec2.calls().map((c) => c.args[0].constructor.name);
     expect(order.indexOf('DeleteNatGatewayCommand')).toBeLessThan(
       order.indexOf('ReleaseAddressCommand'),

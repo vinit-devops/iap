@@ -4,7 +4,11 @@
  * exists — the M23.4 Network handlers replace this pragmatism.
  */
 
-import { DescribeSecurityGroupsCommand, DescribeSubnetsCommand, DescribeVpcsCommand } from '@aws-sdk/client-ec2';
+import {
+  DescribeSecurityGroupsCommand,
+  DescribeSubnetsCommand,
+  DescribeVpcsCommand,
+} from '@aws-sdk/client-ec2';
 import type { EC2Client } from '@aws-sdk/client-ec2';
 
 export async function defaultVpcId(ec2: EC2Client): Promise<string> {

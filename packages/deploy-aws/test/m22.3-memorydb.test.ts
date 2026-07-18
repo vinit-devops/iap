@@ -23,11 +23,7 @@ import {
   TagResourceCommand,
   UpdateClusterCommand,
 } from '@aws-sdk/client-memorydb';
-import {
-  DescribeSubnetsCommand,
-  DescribeVpcsCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
+import { DescribeSubnetsCommand, DescribeVpcsCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { AwsExecutor } from '../src/index.js';
 import { planResource, providerPlan, serviceError } from './helpers.js';
 
@@ -102,9 +98,7 @@ describe('aws:memorydb:Cluster', () => {
     expect(input?.ACLName).toBe('open-access');
     expect(input?.EngineVersion).toBeUndefined(); // unpinned — the service picks
     expect(input?.SubnetGroupName).toBe('infraasprompt-cache-subnets');
-    expect(input?.Tags).toEqual(
-      expect.arrayContaining([{ Key: 'iap:managed', Value: 'true' }]),
-    );
+    expect(input?.Tags).toEqual(expect.arrayContaining([{ Key: 'iap:managed', Value: 'true' }]));
   });
 
   it('present + converged → no-op; the unpinned engine version NEVER reads as drift', async () => {
@@ -239,8 +233,8 @@ describe('aws:memorydb:Cluster', () => {
     expect(memorydb.commandCalls(DeleteClusterCommand)[0]?.args[0].input?.ClusterName).toBe(
       'infraasprompt-cache',
     );
-    expect(
-      memorydb.commandCalls(DeleteSubnetGroupCommand)[0]?.args[0].input?.SubnetGroupName,
-    ).toBe('infraasprompt-cache-subnets');
+    expect(memorydb.commandCalls(DeleteSubnetGroupCommand)[0]?.args[0].input?.SubnetGroupName).toBe(
+      'infraasprompt-cache-subnets',
+    );
   });
 });

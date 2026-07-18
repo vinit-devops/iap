@@ -89,9 +89,9 @@ describe('aws:efs:FileSystem — create', () => {
     expect(report.errors).toHaveLength(0);
 
     // Identity read resolves by CreationToken — EFS's native idempotent key.
-    expect(
-      efs.commandCalls(DescribeFileSystemsCommand)[0]?.args[0].input?.CreationToken,
-    ).toBe('shared-files');
+    expect(efs.commandCalls(DescribeFileSystemsCommand)[0]?.args[0].input?.CreationToken).toBe(
+      'shared-files',
+    );
 
     const create = efs.commandCalls(CreateFileSystemCommand)[0]?.args[0].input;
     expect(create?.CreationToken).toBe('shared-files');
@@ -196,9 +196,7 @@ describe('aws:efs:FileSystem — destroy', () => {
       .on(DescribeMountTargetsCommand)
       // teardown listing: one mount target still attached…
       .resolvesOnce({
-        MountTargets: [
-          { MountTargetId: 'fsmt-0a1b2c', FileSystemId: FS_ID, SubnetId: 'subnet-a' },
-        ],
+        MountTargets: [{ MountTargetId: 'fsmt-0a1b2c', FileSystemId: FS_ID, SubnetId: 'subnet-a' }],
       })
       // …waiter poll: gone (live: ~1 min; the waiter is bounded, fail closed).
       .resolves({ MountTargets: [] });

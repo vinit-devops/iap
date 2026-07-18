@@ -63,7 +63,8 @@ function mockLiveGroup(overrides: Record<string, unknown> = {}): void {
     AutoScalingGroups: [
       {
         AutoScalingGroupName: 'a-fleet',
-        AutoScalingGroupARN: 'arn:aws:autoscaling:eu-central-1:0:autoScalingGroup:x:autoScalingGroupName/a-fleet',
+        AutoScalingGroupARN:
+          'arn:aws:autoscaling:eu-central-1:0:autoScalingGroup:x:autoScalingGroupName/a-fleet',
         LaunchTemplate: { LaunchTemplateName: 'b-tmpl', Version: '$Default' },
         MinSize: 0,
         MaxSize: 1,
@@ -74,9 +75,7 @@ function mockLiveGroup(overrides: Record<string, unknown> = {}): void {
         DefaultCooldown: 300,
         HealthCheckType: 'EC2',
         Instances: [],
-        Tags: [
-          { Key: 'iap:managed', Value: 'true', PropagateAtLaunch: true },
-        ],
+        Tags: [{ Key: 'iap:managed', Value: 'true', PropagateAtLaunch: true }],
         ...overrides,
       },
     ],

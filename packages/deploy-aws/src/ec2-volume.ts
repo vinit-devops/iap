@@ -161,9 +161,7 @@ export class Ec2VolumeHandler implements TargetHandler {
   async delete(resource: PlanResource, current: ResourceState): Promise<void> {
     // DeleteVolume requires the volume to be available (unattached) — an
     // in-use volume's failure surfaces honestly from AWS, never masked.
-    await this.ec2.send(
-      new DeleteVolumeCommand({ VolumeId: this.volumeIdOf(resource, current) }),
-    );
+    await this.ec2.send(new DeleteVolumeCommand({ VolumeId: this.volumeIdOf(resource, current) }));
   }
 
   /** The volume id resolved by read — the only handle mutations may use. */

@@ -53,7 +53,10 @@ export class MqBrokerHandler implements TargetHandler {
   /** Engine and deployment topology cannot change in place (ADR-0006). */
   readonly immutableProjectionKeys = ['engineType', 'deploymentMode'] as const;
 
-  constructor(private readonly mq: MqClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly mq: MqClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   desiredProjection(resource: PlanResource): Record<string, string> {
     const a = resource.desiredAttributes;

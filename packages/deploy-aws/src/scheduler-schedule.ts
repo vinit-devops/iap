@@ -121,9 +121,7 @@ export class SchedulerScheduleHandler implements TargetHandler {
     const Name = resourceIdOf(resource);
     const d = this.desiredProjection(resource);
     try {
-      await this.client.send(
-        new CreateScheduleGroupCommand({ Name, Tags: toTagList(tags) }),
-      );
+      await this.client.send(new CreateScheduleGroupCommand({ Name, Tags: toTagList(tags) }));
     } catch (err) {
       if (!nameMatches(err, ALREADY_EXISTS)) throw err;
     }

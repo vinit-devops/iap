@@ -143,5 +143,4 @@ export class TargetGroupHandler implements TargetHandler {
       new DeleteTargetGroupCommand({ TargetGroupArn: current.identifier ?? '' }),
     );
   }
-
 }

@@ -51,11 +51,7 @@ import {
   PutMetricAlarmCommand,
   TagResourceCommand,
 } from '@aws-sdk/client-cloudwatch';
-import type {
-  CloudWatchClient,
-  ComparisonOperator,
-  Statistic,
-} from '@aws-sdk/client-cloudwatch';
+import type { CloudWatchClient, ComparisonOperator, Statistic } from '@aws-sdk/client-cloudwatch';
 import type { PlanResource } from '@iap/provider-sdk';
 import type { ResourceState, TargetHandler } from './types.js';
 import { fromTagList, isManaged, toTagList } from './tags.js';
@@ -85,11 +81,9 @@ export class CloudWatchAlarmHandler implements TargetHandler {
       metricName: scalarStr(a['metricName']) || ALARM_DEFAULTS.metricName,
       namespace: scalarStr(a['namespace']) || ALARM_DEFAULTS.namespace,
       statistic: scalarStr(a['statistic']) || ALARM_DEFAULTS.statistic,
-      comparisonOperator:
-        scalarStr(a['comparisonOperator']) || ALARM_DEFAULTS.comparisonOperator,
+      comparisonOperator: scalarStr(a['comparisonOperator']) || ALARM_DEFAULTS.comparisonOperator,
       threshold: scalarStr(a['threshold']) || ALARM_DEFAULTS.threshold,
-      evaluationPeriods:
-        scalarStr(a['evaluationPeriods']) || ALARM_DEFAULTS.evaluationPeriods,
+      evaluationPeriods: scalarStr(a['evaluationPeriods']) || ALARM_DEFAULTS.evaluationPeriods,
       period: scalarStr(a['period']) || ALARM_DEFAULTS.period,
     };
   }
@@ -134,10 +128,7 @@ export class CloudWatchAlarmHandler implements TargetHandler {
   }
 
   /** Issue the full PutMetricAlarm upsert (shared by create and update). */
-  private async putAlarm(
-    resource: PlanResource,
-    tags?: Record<string, string>,
-  ): Promise<void> {
+  private async putAlarm(resource: PlanResource, tags?: Record<string, string>): Promise<void> {
     const d = this.desiredProjection(resource);
     await this.cloudwatch.send(
       new PutMetricAlarmCommand({
@@ -174,9 +165,7 @@ export class CloudWatchAlarmHandler implements TargetHandler {
   }
 
   async delete(resource: PlanResource): Promise<void> {
-    await this.cloudwatch.send(
-      new DeleteAlarmsCommand({ AlarmNames: [resourceIdOf(resource)] }),
-    );
+    await this.cloudwatch.send(new DeleteAlarmsCommand({ AlarmNames: [resourceIdOf(resource)] }));
   }
 }
 
@@ -218,7 +207,11 @@ export class CloudWatchDashboardHandler implements TargetHandler {
       return [];
     }
     if (Array.isArray(parsed)) return parsed as Widget[];
-    if (parsed !== null && typeof parsed === 'object' && Array.isArray((parsed as { widgets?: unknown }).widgets)) {
+    if (
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      Array.isArray((parsed as { widgets?: unknown }).widgets)
+    ) {
       return (parsed as { widgets: Widget[] }).widgets;
     }
     return [];
@@ -255,9 +248,7 @@ export class CloudWatchDashboardHandler implements TargetHandler {
     let body;
     let arn: string | undefined;
     try {
-      const found = await this.cloudwatch.send(
-        new GetDashboardCommand({ DashboardName }),
-      );
+      const found = await this.cloudwatch.send(new GetDashboardCommand({ DashboardName }));
       body = found.DashboardBody;
       arn = found.DashboardArn;
     } catch (err) {
