@@ -31,7 +31,7 @@ const r53 = mockClient(Route53Client);
 
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
-const ZONE_LOGICAL = 'jarvis.internal.aws:route53:HostedZone';
+const ZONE_LOGICAL = 'infraasprompt.internal.aws:route53:HostedZone';
 
 beforeEach(() => {
   r53.reset();
@@ -39,12 +39,12 @@ beforeEach(() => {
 
 describe('aws:route53:HostedZone', () => {
   const zonePlan = (attrs: Record<string, string | number | boolean> = {}) =>
-    providerPlan([planResource('jarvis.internal', 'aws:route53:HostedZone', attrs)]);
+    providerPlan([planResource('infraasprompt.internal', 'aws:route53:HostedZone', attrs)]);
 
   it('absent → CreateHostedZone (CallerReference=logicalId) then ChangeTagsForResource', async () => {
     r53.on(ListHostedZonesByNameCommand).resolves({ HostedZones: [], IsTruncated: false });
     r53.on(CreateHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z123', Name: 'jarvis.internal.' },
+      HostedZone: { Id: '/hostedzone/Z123', Name: 'infraasprompt.internal.' },
     });
     r53.on(ChangeTagsForResourceCommand).resolves({});
 
@@ -55,7 +55,7 @@ describe('aws:route53:HostedZone', () => {
     expect(report.items[0]?.identifier).toBe('/hostedzone/Z123');
 
     const create = r53.commandCalls(CreateHostedZoneCommand)[0]?.args[0].input;
-    expect(create?.Name).toBe('jarvis.internal');
+    expect(create?.Name).toBe('infraasprompt.internal');
     expect(create?.CallerReference).toBe(ZONE_LOGICAL);
     expect(create?.HostedZoneConfig?.PrivateZone).toBe(false);
 
@@ -72,8 +72,8 @@ describe('aws:route53:HostedZone', () => {
     // Two zones share the name; only one carries THIS plan's resourceId tag.
     r53.on(ListHostedZonesByNameCommand).resolves({
       HostedZones: [
-        { Id: '/hostedzone/ZONEA', Name: 'jarvis.internal.' },
-        { Id: '/hostedzone/ZONEB', Name: 'jarvis.internal.' },
+        { Id: '/hostedzone/ZONEA', Name: 'infraasprompt.internal.' },
+        { Id: '/hostedzone/ZONEB', Name: 'infraasprompt.internal.' },
       ],
       IsTruncated: false,
     });
@@ -89,7 +89,7 @@ describe('aws:route53:HostedZone', () => {
       },
     });
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/ZONEB', Name: 'jarvis.internal.', Config: { PrivateZone: false } },
+      HostedZone: { Id: '/hostedzone/ZONEB', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
     });
 
     // Dry-run apply (gate closed) still resolves identity + populates identifier.
@@ -102,7 +102,7 @@ describe('aws:route53:HostedZone', () => {
   it('visibility private → CreateHostedZone with PrivateZone=true', async () => {
     r53.on(ListHostedZonesByNameCommand).resolves({ HostedZones: [], IsTruncated: false });
     r53.on(CreateHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z9', Name: 'jarvis.internal.' },
+      HostedZone: { Id: '/hostedzone/Z9', Name: 'infraasprompt.internal.' },
     });
     r53.on(ChangeTagsForResourceCommand).resolves({});
 
@@ -114,7 +114,7 @@ describe('aws:route53:HostedZone', () => {
 
   it('visibility drift is IMMUTABLE → replace', async () => {
     r53.on(ListHostedZonesByNameCommand).resolves({
-      HostedZones: [{ Id: '/hostedzone/Z1', Name: 'jarvis.internal.' }],
+      HostedZones: [{ Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.' }],
       IsTruncated: false,
     });
     r53.on(ListTagsForResourceCommand).resolves({
@@ -127,7 +127,7 @@ describe('aws:route53:HostedZone', () => {
     });
     // Live zone is PUBLIC; desired is private → immutable drift.
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z1', Name: 'jarvis.internal.', Config: { PrivateZone: false } },
+      HostedZone: { Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
     });
 
     const report = await executor().plan(zonePlan({ visibility: 'private' }));
@@ -136,7 +136,7 @@ describe('aws:route53:HostedZone', () => {
 
   it('destroy empties non-apex records THEN DeleteHostedZone (apex SOA/NS preserved)', async () => {
     r53.on(ListHostedZonesByNameCommand).resolves({
-      HostedZones: [{ Id: '/hostedzone/Z1', Name: 'jarvis.internal.' }],
+      HostedZones: [{ Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.' }],
       IsTruncated: false,
     });
     r53.on(ListTagsForResourceCommand).resolves({
@@ -148,13 +148,13 @@ describe('aws:route53:HostedZone', () => {
       },
     });
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z1', Name: 'jarvis.internal.', Config: { PrivateZone: false } },
+      HostedZone: { Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
     });
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'jarvis.internal.', Type: 'SOA', TTL: 900, ResourceRecords: [{ Value: 'ns.x. a.x. 1 7200 900 1209600 86400' }] },
-        { Name: 'jarvis.internal.', Type: 'NS', TTL: 172800, ResourceRecords: [{ Value: 'ns-1.awsdns.' }] },
-        { Name: 'api.jarvis.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        { Name: 'infraasprompt.internal.', Type: 'SOA', TTL: 900, ResourceRecords: [{ Value: 'ns.x. a.x. 1 7200 900 1209600 86400' }] },
+        { Name: 'infraasprompt.internal.', Type: 'NS', TTL: 172800, ResourceRecords: [{ Value: 'ns-1.awsdns.' }] },
+        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
       ],
       IsTruncated: false,
     });
@@ -171,7 +171,7 @@ describe('aws:route53:HostedZone', () => {
     // Only the non-apex A record is deleted; the apex SOA + NS are preserved.
     expect(changes).toHaveLength(1);
     expect(changes[0]?.Action).toBe('DELETE');
-    expect(changes[0]?.ResourceRecordSet?.Name).toBe('api.jarvis.internal.');
+    expect(changes[0]?.ResourceRecordSet?.Name).toBe('api.infraasprompt.internal.');
 
     expect(r53.commandCalls(DeleteHostedZoneCommand)[0]?.args[0].input?.Id).toBe('/hostedzone/Z1');
   });
@@ -182,7 +182,7 @@ describe('aws:route53:RecordSet', () => {
     providerPlan([
       planResource('api-record', 'aws:route53:RecordSet', {
         hostedZoneId: '/hostedzone/Z1',
-        recordName: 'api.jarvis.internal',
+        recordName: 'api.infraasprompt.internal',
         recordType: 'A',
         ttl: 60,
         records: '10.0.0.1',
@@ -209,7 +209,7 @@ describe('aws:route53:RecordSet', () => {
     const rrs = change?.ChangeBatch?.Changes?.[0];
     expect(change?.HostedZoneId).toBe('/hostedzone/Z1');
     expect(rrs?.Action).toBe('UPSERT');
-    expect(rrs?.ResourceRecordSet?.Name).toBe('api.jarvis.internal.');
+    expect(rrs?.ResourceRecordSet?.Name).toBe('api.infraasprompt.internal.');
     expect(rrs?.ResourceRecordSet?.Type).toBe('A');
     expect(rrs?.ResourceRecordSet?.TTL).toBe(60);
     expect(rrs?.ResourceRecordSet?.ResourceRecords).toEqual([{ Value: '10.0.0.1' }]);
@@ -218,7 +218,7 @@ describe('aws:route53:RecordSet', () => {
   it('value drift → ChangeResourceRecordSets UPSERT (update in place)', async () => {
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.jarvis.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
       ],
     });
     r53.on(ListTagsForResourceCommand).resolves(managedZoneTags);
@@ -237,7 +237,7 @@ describe('aws:route53:RecordSet', () => {
     // Live record is an A at the name; desired is a CNAME → identity drift.
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.jarvis.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
       ],
     });
     r53.on(ListTagsForResourceCommand).resolves(managedZoneTags);
@@ -251,7 +251,7 @@ describe('aws:route53:RecordSet', () => {
   it('destroy refuses a record whose parent zone is unmanaged (managed-only gate)', async () => {
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.jarvis.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
       ],
     });
     // Parent zone carries no iap:managed tag → the record is not ours to delete.

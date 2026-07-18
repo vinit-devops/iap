@@ -35,7 +35,7 @@ const memorydb = mockClient(MemoryDBClient);
 const ec2 = mockClient(EC2Client);
 
 const MANAGED = [{ Key: 'iap:managed', Value: 'true' }];
-const CLUSTER_ARN = 'arn:aws:memorydb:eu-central-1:000000000000:cluster/jarvis-cache';
+const CLUSTER_ARN = 'arn:aws:memorydb:eu-central-1:000000000000:cluster/infraasprompt-cache';
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
 function mockDefaultNetwork() {
@@ -54,11 +54,11 @@ beforeEach(() => {
   ec2.reset();
 });
 
-const plan = providerPlan([planResource('jarvis-cache', 'aws:memorydb:Cluster')]);
+const plan = providerPlan([planResource('infraasprompt-cache', 'aws:memorydb:Cluster')]);
 
 /** Converged against the all-defaults plan; live engine version UNPINNED by it. */
 const liveCluster = {
-  Name: 'jarvis-cache',
+  Name: 'infraasprompt-cache',
   ARN: CLUSTER_ARN,
   Status: 'available',
   NodeType: 'db.t4g.small',
@@ -90,18 +90,18 @@ describe('aws:memorydb:Cluster', () => {
     );
 
     const subnetInput = memorydb.commandCalls(CreateSubnetGroupCommand)[0]?.args[0].input;
-    expect(subnetInput?.SubnetGroupName).toBe('jarvis-cache-subnets');
+    expect(subnetInput?.SubnetGroupName).toBe('infraasprompt-cache-subnets');
     expect(subnetInput?.SubnetIds).toEqual(['subnet-a', 'subnet-b', 'subnet-c']);
 
     const input = memorydb.commandCalls(CreateClusterCommand)[0]?.args[0].input;
-    expect(input?.ClusterName).toBe('jarvis-cache');
+    expect(input?.ClusterName).toBe('infraasprompt-cache');
     expect(input?.NodeType).toBe('db.t4g.small');
     expect(input?.NumShards).toBe(1);
     expect(input?.NumReplicasPerShard).toBe(0);
     expect(input?.TLSEnabled).toBe(true);
     expect(input?.ACLName).toBe('open-access');
     expect(input?.EngineVersion).toBeUndefined(); // unpinned — the service picks
-    expect(input?.SubnetGroupName).toBe('jarvis-cache-subnets');
+    expect(input?.SubnetGroupName).toBe('infraasprompt-cache-subnets');
     expect(input?.Tags).toEqual(
       expect.arrayContaining([{ Key: 'iap:managed', Value: 'true' }]),
     );
@@ -128,8 +128,8 @@ describe('aws:memorydb:Cluster', () => {
 
   it('aclName + nodeType drift → UpdateCluster in place (never delete+create)', async () => {
     const drifted = providerPlan([
-      planResource('jarvis-cache', 'aws:memorydb:Cluster', {
-        aclName: 'jarvis-acl',
+      planResource('infraasprompt-cache', 'aws:memorydb:Cluster', {
+        aclName: 'infraasprompt-acl',
         nodeType: 'db.r6g.large',
       }),
     ]);
@@ -143,8 +143,8 @@ describe('aws:memorydb:Cluster', () => {
     expect(report.items[0]?.action).toBe('update');
     expect(report.items[0]?.applied).toBe(true);
     const input = memorydb.commandCalls(UpdateClusterCommand)[0]?.args[0].input;
-    expect(input?.ClusterName).toBe('jarvis-cache');
-    expect(input?.ACLName).toBe('jarvis-acl');
+    expect(input?.ClusterName).toBe('infraasprompt-cache');
+    expect(input?.ACLName).toBe('infraasprompt-acl');
     expect(input?.NodeType).toBe('db.r6g.large'); // slow vertical scale live, still in place
     expect(memorydb.commandCalls(DeleteClusterCommand)).toHaveLength(0);
     expect(memorydb.commandCalls(CreateClusterCommand)).toHaveLength(0);
@@ -152,7 +152,7 @@ describe('aws:memorydb:Cluster', () => {
 
   it('replicas drift → UpdateCluster ReplicaConfiguration', async () => {
     const scaled = providerPlan([
-      planResource('jarvis-cache', 'aws:memorydb:Cluster', { replicas: 1 }),
+      planResource('infraasprompt-cache', 'aws:memorydb:Cluster', { replicas: 1 }),
     ]);
     memorydb.on(DescribeClustersCommand).resolves({ Clusters: [liveCluster] });
     memorydb.on(ListTagsCommand).resolves({ TagList: MANAGED });
@@ -168,7 +168,7 @@ describe('aws:memorydb:Cluster', () => {
 
   it('tlsEnabled drift is IMMUTABLE → replace classification; gate closed refuses', async () => {
     const noTls = providerPlan([
-      planResource('jarvis-cache', 'aws:memorydb:Cluster', { tlsEnabled: false }),
+      planResource('infraasprompt-cache', 'aws:memorydb:Cluster', { tlsEnabled: false }),
     ]);
     memorydb.on(DescribeClustersCommand).resolves({ Clusters: [liveCluster] });
     memorydb.on(ListTagsCommand).resolves({ TagList: MANAGED });
@@ -187,7 +187,7 @@ describe('aws:memorydb:Cluster', () => {
 
   it('replacement gate open → delete (cluster gone, subnet group cleaned) THEN create', async () => {
     const noTls = providerPlan([
-      planResource('jarvis-cache', 'aws:memorydb:Cluster', { tlsEnabled: false }),
+      planResource('infraasprompt-cache', 'aws:memorydb:Cluster', { tlsEnabled: false }),
     ]);
     memorydb
       .on(DescribeClustersCommand)
@@ -237,10 +237,10 @@ describe('aws:memorydb:Cluster', () => {
     expect(report.items[0]?.action).toBe('delete');
     expect(report.items[0]?.applied).toBe(true);
     expect(memorydb.commandCalls(DeleteClusterCommand)[0]?.args[0].input?.ClusterName).toBe(
-      'jarvis-cache',
+      'infraasprompt-cache',
     );
     expect(
       memorydb.commandCalls(DeleteSubnetGroupCommand)[0]?.args[0].input?.SubnetGroupName,
-    ).toBe('jarvis-cache-subnets');
+    ).toBe('infraasprompt-cache-subnets');
   });
 });

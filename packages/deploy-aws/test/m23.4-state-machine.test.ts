@@ -33,9 +33,9 @@ const sfn = mockClient(SFNClient);
 
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
-const SM_ARN = 'arn:aws:states:eu-central-1:000000000000:stateMachine:jarvis-flow';
-const ROLE_ARN = 'arn:aws:iam::000000000000:role/jarvis-flow';
-const OTHER_ROLE_ARN = 'arn:aws:iam::000000000000:role/jarvis-flow-v2';
+const SM_ARN = 'arn:aws:states:eu-central-1:000000000000:stateMachine:infraasprompt-flow';
+const ROLE_ARN = 'arn:aws:iam::000000000000:role/infraasprompt-flow';
+const OTHER_ROLE_ARN = 'arn:aws:iam::000000000000:role/infraasprompt-flow-v2';
 /** Handler's canonical (compact, key-sorted) default ASL definition. */
 const CANON_DEFAULT =
   '{"Comment":"iap","StartAt":"Done","States":{"Done":{"End":true,"Type":"Pass"}}}';
@@ -45,7 +45,7 @@ const MANAGED_TAGS = [{ key: 'iap:managed', value: 'true' }];
 function machine(overrides: Record<string, unknown> = {}) {
   return {
     stateMachineArn: SM_ARN,
-    name: 'jarvis-flow',
+    name: 'infraasprompt-flow',
     status: 'ACTIVE',
     type: 'EXPRESS',
     roleArn: ROLE_ARN,
@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('aws:states:StateMachine', () => {
   it('absent → CreateStateMachine EXPRESS with roleArn, default ASL, and mandatory tags', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({ stateMachines: [] });
     sfn.on(CreateStateMachineCommand).resolves({ stateMachineArn: SM_ARN, creationDate: undefined });
@@ -74,18 +74,18 @@ describe('aws:states:StateMachine', () => {
     expect(report.items[0]?.applied).toBe(true);
     expect(report.items[0]?.identifier).toBe(SM_ARN);
     const input = sfn.commandCalls(CreateStateMachineCommand)[0]?.args[0].input;
-    expect(input?.name).toBe('jarvis-flow');
+    expect(input?.name).toBe('infraasprompt-flow');
     expect(input?.type).toBe('EXPRESS');
     expect(input?.roleArn).toBe(ROLE_ARN);
     expect(input?.definition).toBe(CANON_DEFAULT);
     const tags = Object.fromEntries((input?.tags ?? []).map((t) => [t.key, t.value]));
     expect(tags['iap:managed']).toBe('true');
     expect(tags['iap:planId']).toBe('plan-hash-0001');
-    expect(tags['iap:resourceId']).toBe('jarvis-flow.aws:states:StateMachine');
+    expect(tags['iap:resourceId']).toBe('infraasprompt-flow.aws:states:StateMachine');
   });
 
   it('fail-closed: missing roleArn is a recorded error with zero CreateStateMachine calls', async () => {
-    const plan = providerPlan([planResource('jarvis-flow', 'aws:states:StateMachine')]);
+    const plan = providerPlan([planResource('infraasprompt-flow', 'aws:states:StateMachine')]);
     sfn.on(ListStateMachinesCommand).resolves({ stateMachines: [] });
 
     const report = await executor().apply(plan, { apply: true });
@@ -99,7 +99,7 @@ describe('aws:states:StateMachine', () => {
 
   it('resolves the state machine ARN by name across ListStateMachines pages (match on page 2)', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn
       .on(ListStateMachinesCommand)
@@ -111,7 +111,7 @@ describe('aws:states:StateMachine', () => {
       })
       .resolves({
         stateMachines: [
-          { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+          { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
         ],
       });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -132,11 +132,11 @@ describe('aws:states:StateMachine', () => {
 
   it('converged: a whitespace/key-order-different definition is NOT drift (canonical compare)', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     // Live definition is pretty-printed with reordered keys — canonically equal.
@@ -152,14 +152,14 @@ describe('aws:states:StateMachine', () => {
 
   it('definition drift → UpdateStateMachine in place by the resolved ARN (no replace)', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', {
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', {
         roleArn: ROLE_ARN,
         definition: '{"Comment":"changed","StartAt":"Done","States":{"Done":{"Type":"Pass","End":true}}}',
       }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -184,11 +184,11 @@ describe('aws:states:StateMachine', () => {
 
   it('roleArn drift → UpdateStateMachine in place with the new role', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: OTHER_ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: OTHER_ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -212,11 +212,11 @@ describe('aws:states:StateMachine', () => {
     expect(handler.immutableProjectionKeys).toEqual(['type']);
 
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN, type: 'STANDARD' }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN, type: 'STANDARD' }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine()); // live type EXPRESS
@@ -228,11 +228,11 @@ describe('aws:states:StateMachine', () => {
 
   it('destroy → DeleteStateMachine by resolved ARN; unmanaged machine is refused', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -250,7 +250,7 @@ describe('aws:states:StateMachine', () => {
     sfn.reset();
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -264,11 +264,11 @@ describe('aws:states:StateMachine', () => {
 
   it('DELETING reads as absent even while the name lingers in ListStateMachines', async () => {
     const plan = providerPlan([
-      planResource('jarvis-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'jarvis-flow', type: 'EXPRESS', creationDate: undefined },
+        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine({ status: 'DELETING' }));

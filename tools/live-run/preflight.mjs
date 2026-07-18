@@ -4,7 +4,7 @@
  * M21.1). Verifies, before any wave touches AWS:
  *
  *   1. region is explicitly chosen (fail-closed, no default assumed)
- *   2. run id follows the `jarvis-<epoch>` scheme (generated when omitted)
+ *   2. run id follows the `infraasprompt-<epoch>` scheme (generated when omitted)
  *   3. the AWS mapping's integrity digests match the files on disk
  *   4. the provider manifest's ed25519 signature verifies against its keys
  *   5. credentials resolve (STS get-caller-identity)
@@ -15,7 +15,7 @@
  * network. Usage:
  *
  *   node tools/live-run/preflight.mjs --region eu-west-1 [--aws-profile X]
- *        [--run-id jarvis-123] [--budget-ceiling 25] [--mock]
+ *        [--run-id infraasprompt-123] [--budget-ceiling 25] [--mock]
  */
 
 import { createHash } from 'node:crypto';
@@ -37,7 +37,7 @@ const mock = args.mock === true;
 const region = args.region ?? (mock ? 'mock-region-1' : undefined);
 const profile = args['aws-profile'];
 const ceiling = Number(args['budget-ceiling'] ?? '25');
-const runId = args['run-id'] ?? `jarvis-${Math.floor(Date.now() / 1000)}`;
+const runId = args['run-id'] ?? `infraasprompt-${Math.floor(Date.now() / 1000)}`;
 
 // One implementation of the canonical signing form: the built provider-sdk.
 const { verifyManifestSignature } = await import(
@@ -54,8 +54,8 @@ report.step('region explicitly chosen (fail-closed)', () => {
   return region;
 });
 
-report.step('run id follows the jarvis-<epoch> scheme', () => {
-  if (!/^jarvis-\d+$/.test(runId)) throw new Error(`"${runId}" does not match ^jarvis-\\d+$`);
+report.step('run id follows the infraasprompt-<epoch> scheme', () => {
+  if (!/^infraasprompt-\d+$/.test(runId)) throw new Error(`"${runId}" does not match ^infraasprompt-\\d+$`);
   return runId;
 });
 

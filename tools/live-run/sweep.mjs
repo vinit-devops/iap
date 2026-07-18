@@ -4,7 +4,7 @@
  * ROADMAP-V4 M21.1). Proves zero orphans after a wave's teardown:
  *
  *   1. tagging-API sweep for iap:managed=true in the run's region → []
- *   2. IAM name-prefix sweep for jarvis-* roles (IAM is invisible to the tag API)
+ *   2. IAM name-prefix sweep for infraasprompt-* roles (IAM is invisible to the tag API)
  *
  * Exit 0 = zero orphans (record "Zero orphans." in the evidence doc);
  * exit 1 = stragglers listed — delete them and re-sweep.
@@ -12,7 +12,7 @@
  * `--mock` runs the same sequence with canned clean AWS responses. Usage:
  *
  *   node tools/live-run/sweep.mjs --region eu-west-1 [--aws-profile X]
- *        [--run-id jarvis-123] [--mock]
+ *        [--run-id infraasprompt-123] [--mock]
  */
 
 import { awsCli, parseArgs, stepper } from './common.mjs';
@@ -27,7 +27,7 @@ const args = parseArgs(process.argv.slice(2), {
 const mock = args.mock === true;
 const region = args.region ?? (mock ? 'mock-region-1' : undefined);
 const profile = args['aws-profile'];
-const prefix = args['run-id'] ?? 'jarvis-';
+const prefix = args['run-id'] ?? 'infraasprompt-';
 
 const report = stepper(`live-run sweep${mock ? ' (MOCK)' : ''}: prefix ${prefix}, region ${region ?? 'UNSET'}`);
 

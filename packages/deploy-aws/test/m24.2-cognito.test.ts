@@ -44,7 +44,7 @@ beforeEach(() => cognito.reset());
 
 describe('aws:cognito-idp:UserPool', () => {
   const poolPlan = (attrs: Record<string, string> = {}) =>
-    providerPlan([planResource('jarvis-users', 'aws:cognito-idp:UserPool', attrs)]);
+    providerPlan([planResource('infraasprompt-users', 'aws:cognito-idp:UserPool', attrs)]);
 
   it('absent → CreateUserPool with password policy, defaults, and mandatory iap tags', async () => {
     cognito.on(ListUserPoolsCommand).resolves({ UserPools: [] });
@@ -58,7 +58,7 @@ describe('aws:cognito-idp:UserPool', () => {
     expect(report.items[0]?.applied).toBe(true);
     expect(report.items[0]?.identifier).toBe(POOL_ARN);
     const input = cognito.commandCalls(CreateUserPoolCommand)[0]?.args[0].input;
-    expect(input?.PoolName).toBe('jarvis-users');
+    expect(input?.PoolName).toBe('infraasprompt-users');
     expect(input?.Policies?.PasswordPolicy?.MinimumLength).toBe(12);
     expect(input?.Policies?.PasswordPolicy?.RequireUppercase).toBe(true);
     expect(input?.Policies?.PasswordPolicy?.RequireLowercase).toBe(true);
@@ -70,18 +70,18 @@ describe('aws:cognito-idp:UserPool', () => {
     // usernameAttributes is opt-in (immutable) — never set implicitly.
     expect(input?.UsernameAttributes).toBeUndefined();
     expect(input?.UserPoolTags?.['iap:managed']).toBe('true');
-    expect(input?.UserPoolTags?.['iap:resourceId']).toBe('jarvis-users.aws:cognito-idp:UserPool');
+    expect(input?.UserPoolTags?.['iap:resourceId']).toBe('infraasprompt-users.aws:cognito-idp:UserPool');
     expect(input?.UserPoolTags?.['iap:planId']).toBe('plan-hash-0001');
   });
 
   it('present + converged: no-op (name→Id resolved, live policy matches desired)', async () => {
     cognito.on(ListUserPoolsCommand).resolves({
-      UserPools: [{ Id: POOL_ID, Name: 'jarvis-users' }],
+      UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
       UserPool: {
         Id: POOL_ID,
-        Name: 'jarvis-users',
+        Name: 'infraasprompt-users',
         Arn: POOL_ARN,
         Policies: {
           PasswordPolicy: {
@@ -105,12 +105,12 @@ describe('aws:cognito-idp:UserPool', () => {
 
   it('mfa + password drift → UpdateUserPool in place (never delete)', async () => {
     cognito.on(ListUserPoolsCommand).resolves({
-      UserPools: [{ Id: POOL_ID, Name: 'jarvis-users' }],
+      UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
       UserPool: {
         Id: POOL_ID,
-        Name: 'jarvis-users',
+        Name: 'infraasprompt-users',
         Arn: POOL_ARN,
         Policies: {
           PasswordPolicy: {
@@ -150,12 +150,12 @@ describe('aws:cognito-idp:UserPool', () => {
   it('usernameAttributes drift is IMMUTABLE → replace, behind the gate', async () => {
     // Live pool has NO username alias; desired opts in → immutable drift.
     cognito.on(ListUserPoolsCommand).resolves({
-      UserPools: [{ Id: POOL_ID, Name: 'jarvis-users' }],
+      UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
       UserPool: {
         Id: POOL_ID,
-        Name: 'jarvis-users',
+        Name: 'infraasprompt-users',
         Arn: POOL_ARN,
         Policies: {
           PasswordPolicy: {
@@ -202,10 +202,10 @@ describe('aws:cognito-idp:UserPool', () => {
 
   it('destroy with DeletionProtection ACTIVE → UpdateUserPool INACTIVE before DeleteUserPool', async () => {
     cognito.on(ListUserPoolsCommand).resolves({
-      UserPools: [{ Id: POOL_ID, Name: 'jarvis-users' }],
+      UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
-      UserPool: { Id: POOL_ID, Name: 'jarvis-users', Arn: POOL_ARN, DeletionProtection: 'ACTIVE' },
+      UserPool: { Id: POOL_ID, Name: 'infraasprompt-users', Arn: POOL_ARN, DeletionProtection: 'ACTIVE' },
     });
     cognito.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
     cognito.on(UpdateUserPoolCommand).resolves({});
@@ -228,10 +228,10 @@ describe('aws:cognito-idp:UserPool', () => {
 
   it('destroy refuses an unmanaged pool (managed-only gate)', async () => {
     cognito.on(ListUserPoolsCommand).resolves({
-      UserPools: [{ Id: POOL_ID, Name: 'jarvis-users' }],
+      UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
-      UserPool: { Id: POOL_ID, Name: 'jarvis-users', Arn: POOL_ARN },
+      UserPool: { Id: POOL_ID, Name: 'infraasprompt-users', Arn: POOL_ARN },
     });
     cognito.on(ListTagsForResourceCommand).resolves({ Tags: {} });
 
@@ -246,7 +246,7 @@ describe('aws:cognito-idp:UserPoolClient', () => {
   const CLIENT_ID = 'abcd1234efgh5678ijkl';
   const clientPlan = (attrs: Record<string, string> = {}) =>
     providerPlan([
-      planResource('jarvis-web', 'aws:cognito-idp:UserPoolClient', {
+      planResource('infraasprompt-web', 'aws:cognito-idp:UserPoolClient', {
         userPoolId: POOL_ID,
         ...attrs,
       }),
@@ -255,7 +255,7 @@ describe('aws:cognito-idp:UserPoolClient', () => {
   it('absent → CreateUserPoolClient in the parent pool; identifier is the ClientId', async () => {
     cognito.on(ListUserPoolClientsCommand).resolves({ UserPoolClients: [] });
     cognito.on(CreateUserPoolClientCommand).resolves({
-      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'jarvis-web' },
+      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'infraasprompt-web' },
     });
 
     const report = await executor().apply(clientPlan(), { apply: true });
@@ -265,7 +265,7 @@ describe('aws:cognito-idp:UserPoolClient', () => {
     expect(report.items[0]?.identifier).toBe(CLIENT_ID);
     const input = cognito.commandCalls(CreateUserPoolClientCommand)[0]?.args[0].input;
     expect(input?.UserPoolId).toBe(POOL_ID);
-    expect(input?.ClientName).toBe('jarvis-web');
+    expect(input?.ClientName).toBe('infraasprompt-web');
     expect(input?.GenerateSecret).toBe(false);
     // Sane default auth flows.
     expect(input?.ExplicitAuthFlows).toContain('ALLOW_USER_SRP_AUTH');
@@ -273,7 +273,7 @@ describe('aws:cognito-idp:UserPoolClient', () => {
   });
 
   it('missing userPoolId fails closed — no describe issued', async () => {
-    const orphan = providerPlan([planResource('jarvis-web', 'aws:cognito-idp:UserPoolClient')]);
+    const orphan = providerPlan([planResource('infraasprompt-web', 'aws:cognito-idp:UserPoolClient')]);
 
     const report = await executor().apply(orphan, { apply: true });
     expect(report.items[0]?.applied).toBe(false);
@@ -285,12 +285,12 @@ describe('aws:cognito-idp:UserPoolClient', () => {
   it('generateSecret drift is IMMUTABLE → replace; the secret never reaches projection or report', async () => {
     // Live client HAS a secret; desired keeps generateSecret false → immutable drift.
     cognito.on(ListUserPoolClientsCommand).resolves({
-      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'jarvis-web' }],
+      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'infraasprompt-web' }],
     });
     cognito.on(DescribeUserPoolClientCommand).resolves({
       UserPoolClient: {
         ClientId: CLIENT_ID,
-        ClientName: 'jarvis-web',
+        ClientName: 'infraasprompt-web',
         UserPoolId: POOL_ID,
         ClientSecret: 'super-secret-value-do-not-leak',
         ExplicitAuthFlows: ['ALLOW_REFRESH_TOKEN_AUTH', 'ALLOW_USER_SRP_AUTH'],
@@ -311,12 +311,12 @@ describe('aws:cognito-idp:UserPoolClient', () => {
 
   it('authFlow drift → UpdateUserPoolClient in place (no delete)', async () => {
     cognito.on(ListUserPoolClientsCommand).resolves({
-      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'jarvis-web' }],
+      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'infraasprompt-web' }],
     });
     cognito.on(DescribeUserPoolClientCommand).resolves({
       UserPoolClient: {
         ClientId: CLIENT_ID,
-        ClientName: 'jarvis-web',
+        ClientName: 'infraasprompt-web',
         UserPoolId: POOL_ID,
         ExplicitAuthFlows: ['ALLOW_REFRESH_TOKEN_AUTH', 'ALLOW_USER_SRP_AUTH'],
       },
@@ -341,10 +341,10 @@ describe('aws:cognito-idp:UserPoolClient', () => {
 
   it('destroy → DeleteUserPoolClient when the pool is managed; refuses when unmanaged', async () => {
     cognito.on(ListUserPoolClientsCommand).resolves({
-      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'jarvis-web' }],
+      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'infraasprompt-web' }],
     });
     cognito.on(DescribeUserPoolClientCommand).resolves({
-      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'jarvis-web', UserPoolId: POOL_ID },
+      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'infraasprompt-web', UserPoolId: POOL_ID },
     });
     cognito.on(DescribeUserPoolCommand).resolves({ UserPool: { Id: POOL_ID, Arn: POOL_ARN } });
     cognito.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -359,10 +359,10 @@ describe('aws:cognito-idp:UserPoolClient', () => {
     // Parent pool NOT managed → the client destroy is refused (inherited gate).
     cognito.reset();
     cognito.on(ListUserPoolClientsCommand).resolves({
-      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'jarvis-web' }],
+      UserPoolClients: [{ ClientId: CLIENT_ID, ClientName: 'infraasprompt-web' }],
     });
     cognito.on(DescribeUserPoolClientCommand).resolves({
-      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'jarvis-web', UserPoolId: POOL_ID },
+      UserPoolClient: { ClientId: CLIENT_ID, ClientName: 'infraasprompt-web', UserPoolId: POOL_ID },
     });
     cognito.on(DescribeUserPoolCommand).resolves({ UserPool: { Id: POOL_ID, Arn: POOL_ARN } });
     cognito.on(ListTagsForResourceCommand).resolves({ Tags: {} });

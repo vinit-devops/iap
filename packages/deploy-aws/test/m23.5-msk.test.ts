@@ -40,7 +40,7 @@ const ec2 = mockClient(EC2Client);
 
 const MANAGED = { 'iap:managed': 'true' };
 const CLUSTER_ARN =
-  'arn:aws:kafka:eu-central-1:000000000000:cluster/jarvis-events/8f1a2b3c-4d5e-6789-abcd-1234567890ab-s2';
+  'arn:aws:kafka:eu-central-1:000000000000:cluster/infraasprompt-events/8f1a2b3c-4d5e-6789-abcd-1234567890ab-s2';
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
 function mockDefaultNetwork() {
@@ -62,11 +62,11 @@ beforeEach(() => {
   ec2.reset();
 });
 
-const plan = providerPlan([planResource('jarvis-events', 'aws:kafka:Cluster')]);
+const plan = providerPlan([planResource('infraasprompt-events', 'aws:kafka:Cluster')]);
 
 /** Converged against the all-defaults plan (VPC wiring left to the resolver). */
 const liveServerless = {
-  ClusterName: 'jarvis-events',
+  ClusterName: 'infraasprompt-events',
   ClusterArn: CLUSTER_ARN,
   ClusterType: 'SERVERLESS',
   State: 'ACTIVE',
@@ -89,7 +89,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
     expect(report.items[0]?.identifier).toBe(CLUSTER_ARN);
 
     const input = kafka.commandCalls(CreateClusterV2Command)[0]?.args[0].input;
-    expect(input?.ClusterName).toBe('jarvis-events');
+    expect(input?.ClusterName).toBe('infraasprompt-events');
     // No Provisioned block — this is the SERVERLESS product.
     expect(input?.Provisioned).toBeUndefined();
     expect(input?.Serverless?.VpcConfigs?.[0]?.SubnetIds).toEqual([
@@ -107,7 +107,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
     kafka
       .on(ListClustersV2Command)
       .resolvesOnce({
-        ClusterInfoList: [{ ClusterName: 'jarvis-other', ClusterArn: 'arn:other' }],
+        ClusterInfoList: [{ ClusterName: 'infraasprompt-other', ClusterArn: 'arn:other' }],
         NextToken: 'page-2',
       })
       .resolves({ ClusterInfoList: [liveServerless] });
@@ -135,7 +135,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
 
   it('clusterType flip (live PROVISIONED) is IMMUTABLE → replace; gate closed refuses', async () => {
     const provisioned = {
-      ClusterName: 'jarvis-events',
+      ClusterName: 'infraasprompt-events',
       ClusterArn: CLUSTER_ARN,
       ClusterType: 'PROVISIONED',
       State: 'ACTIVE',
@@ -158,7 +158,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
 
   it('pinned subnet drift is IMMUTABLE → replace; gate open → delete (resolved ARN) THEN create', async () => {
     const rehomed = providerPlan([
-      planResource('jarvis-events', 'aws:kafka:Cluster', {
+      planResource('infraasprompt-events', 'aws:kafka:Cluster', {
         subnetIds: 'subnet-x,subnet-y',
       }),
     ]);
@@ -238,7 +238,7 @@ describe('aws:kafka:Cluster (MSK Serverless)', () => {
       new EC2Client({ region: 'eu-central-1' }),
     );
 
-    await handler.update(planResource('jarvis-events', 'aws:kafka:Cluster'), {
+    await handler.update(planResource('infraasprompt-events', 'aws:kafka:Cluster'), {
       exists: true,
       managed: true,
       tags: MANAGED,

@@ -30,7 +30,7 @@ const apprunner = mockClient(AppRunnerClient);
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
 const SERVICE_ARN =
-  'arn:aws:apprunner:eu-central-1:000000000000:service/jarvis-svc/8fe1e10304f84fd2b0df550fe98a71fa';
+  'arn:aws:apprunner:eu-central-1:000000000000:service/infraasprompt-svc/8fe1e10304f84fd2b0df550fe98a71fa';
 const HELLO_IMAGE = 'public.ecr.aws/aws-containers/hello-app-runner:latest';
 const MANAGED_TAGS = [{ Key: 'iap:managed', Value: 'true' }];
 
@@ -38,7 +38,7 @@ const MANAGED_TAGS = [{ Key: 'iap:managed', Value: 'true' }];
 function runningService(status: 'RUNNING' | 'OPERATION_IN_PROGRESS' | 'DELETED' = 'RUNNING') {
   return {
     Service: {
-      ServiceName: 'jarvis-svc',
+      ServiceName: 'infraasprompt-svc',
       ServiceId: '8fe1e10304f84fd2b0df550fe98a71fa',
       ServiceArn: SERVICE_ARN,
       CreatedAt: undefined,
@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 
 describe('aws:apprunner:Service', () => {
-  const svcPlan = providerPlan([planResource('jarvis-svc', 'aws:apprunner:Service')]);
+  const svcPlan = providerPlan([planResource('infraasprompt-svc', 'aws:apprunner:Service')]);
 
   it('resolves the service ARN by name across ListServices pages (match on page 2)', async () => {
     apprunner
@@ -74,7 +74,7 @@ describe('aws:apprunner:Service', () => {
         ServiceSummaryList: [{ ServiceName: 'other-svc', ServiceArn: 'arn:other', Status: 'RUNNING' }],
       })
       .resolves({
-        ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+        ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
       });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -104,7 +104,7 @@ describe('aws:apprunner:Service', () => {
     expect(report.items[0]?.applied).toBe(true);
     expect(report.items[0]?.identifier).toBe(SERVICE_ARN);
     const input = apprunner.commandCalls(CreateServiceCommand)[0]?.args[0].input;
-    expect(input?.ServiceName).toBe('jarvis-svc');
+    expect(input?.ServiceName).toBe('infraasprompt-svc');
     const repo = input?.SourceConfiguration?.ImageRepository;
     expect(repo?.ImageIdentifier).toBe(HELLO_IMAGE);
     expect(repo?.ImageRepositoryType).toBe('ECR_PUBLIC');
@@ -115,15 +115,15 @@ describe('aws:apprunner:Service', () => {
     const tags = Object.fromEntries((input?.Tags ?? []).map((t) => [t.Key, t.Value]));
     expect(tags['iap:managed']).toBe('true');
     expect(tags['iap:planId']).toBe('plan-hash-0001');
-    expect(tags['iap:resourceId']).toBe('jarvis-svc.aws:apprunner:Service');
+    expect(tags['iap:resourceId']).toBe('infraasprompt-svc.aws:apprunner:Service');
   });
 
   it('cpu drift → UpdateService in place by the resolved ARN', async () => {
     const plan = providerPlan([
-      planResource('jarvis-svc', 'aws:apprunner:Service', { cpu: '1024', memory: '2048' }),
+      planResource('infraasprompt-svc', 'aws:apprunner:Service', { cpu: '1024', memory: '2048' }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -144,10 +144,10 @@ describe('aws:apprunner:Service', () => {
 
   it('update rejected while OPERATION_IN_PROGRESS surfaces honestly (no retry loop)', async () => {
     const plan = providerPlan([
-      planResource('jarvis-svc', 'aws:apprunner:Service', { cpu: '1024' }),
+      planResource('infraasprompt-svc', 'aws:apprunner:Service', { cpu: '1024' }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'OPERATION_IN_PROGRESS' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'OPERATION_IN_PROGRESS' }],
     });
     // Honest read: OPERATION_IN_PROGRESS still EXISTS (drift → update attempt).
     apprunner.on(DescribeServiceCommand).resolves(runningService('OPERATION_IN_PROGRESS'));
@@ -166,7 +166,7 @@ describe('aws:apprunner:Service', () => {
 
   it('destroy → DeleteService by resolved ARN; unmanaged service is refused', async () => {
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -182,7 +182,7 @@ describe('aws:apprunner:Service', () => {
     // Same service WITHOUT iap:managed=true → managed-only gate refuses.
     apprunner.reset();
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: [] });
@@ -195,7 +195,7 @@ describe('aws:apprunner:Service', () => {
 
   it('Status DELETED reads as absent even while the name lingers in ListServices', async () => {
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'DELETED' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'DELETED' }],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService('DELETED'));
 
@@ -213,10 +213,10 @@ describe('aws:apprunner:Service', () => {
     expect(handler.immutableProjectionKeys).toBeUndefined();
 
     const plan = providerPlan([
-      planResource('jarvis-svc', 'aws:apprunner:Service', { image: 'public.ecr.aws/other/image:1' }),
+      planResource('infraasprompt-svc', 'aws:apprunner:Service', { image: 'public.ecr.aws/other/image:1' }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'jarvis-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });

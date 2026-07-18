@@ -14,7 +14,7 @@ failed service run stops the wave. The template generalizes the M19.3 golden-pat
 The pre-flight is executable (M21.1 harness):
 
 ```sh
-pnpm run live:preflight -- --region <region> --aws-profile <profile> [--run-id jarvis-<epoch>]
+pnpm run live:preflight -- --region <region> --aws-profile <profile> [--run-id infraasprompt-<epoch>]
 # dry-run against mock (no credentials, no network; mapping checks still real):
 pnpm run live:preflight -- --mock
 ```
@@ -31,7 +31,7 @@ ed25519 signature, credentials, and the budget alarm. All steps must PASS before
    as `REDACTED`.
 3. **Region.** One region per wave, recorded in the evidence doc; default to the region chosen
    at M21.2 unless a service forces otherwise.
-4. **Run id.** `jarvis-<epoch-seconds>` (jarvis naming, requester-directed 2026-07-16; the
+4. **Run id.** `infraasprompt-<epoch-seconds>` (infraasprompt naming, requester-directed 2026-07-16; the
    first Resource Groups run pre-dates it with `iapg-…`). Every resource is named with the run
    id and tagged `iap:managed=true` / `iap:planId` / `iap:resourceId` — the `iap:*` tag keys
    are product contract, not resource names, and stay unchanged.
@@ -72,7 +72,7 @@ One doc per **service run** at `docs/reports/<milestone-id>-<service>-live-run-e
 
 **Date:** YYYY-MM-DD · **Status:** COMPLETE — executed against **real AWS** and fully torn down.
 **Account:** REDACTED · **Region:** <region> · **Profile:** `REDACTED`
-· **Run id:** `jarvis-<epoch>`.
+· **Run id:** `infraasprompt-<epoch>`.
 
 This is genuine live evidence, not a mock. <one sentence: what the CLI drove end to end.>
 
@@ -120,13 +120,13 @@ in the evidence doc's Cost section AND in the session report — before the next
 The sweep is executable (M21.1 harness):
 
 ```sh
-pnpm run live:sweep -- --region <region> --aws-profile <profile> [--run-id jarvis-<epoch>]
+pnpm run live:sweep -- --region <region> --aws-profile <profile> [--run-id infraasprompt-<epoch>]
 # dry-run against mock:
 pnpm run live:sweep -- --mock
 ```
 
 1. Tagging-API sweep for `iap:managed=true` in the run's region → must return `[]`.
-2. Name-prefix sweep for `jarvis-<runid>-*` on every service the wave touched (including IAM,
+2. Name-prefix sweep for `infraasprompt-<runid>-*` on every service the wave touched (including IAM,
    which the tag API misses) → zero matches.
 3. Record **"Zero orphans."** in the evidence doc, or list and delete the stragglers and
    re-sweep.

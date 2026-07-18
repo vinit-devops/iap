@@ -35,7 +35,7 @@ import { planResource, providerPlan } from './helpers.js';
 const mq = mockClient(MqClient);
 const ec2 = mockClient(EC2Client);
 
-const BROKER_ARN = 'arn:aws:mq:eu-central-1:000000000000:broker:jarvis-broker:b-1234';
+const BROKER_ARN = 'arn:aws:mq:eu-central-1:000000000000:broker:infraasprompt-broker:b-1234';
 const executor = () => new AwsExecutor({ region: 'eu-central-1' });
 
 function mockDefaultNetwork() {
@@ -54,12 +54,12 @@ beforeEach(() => {
   ec2.reset();
 });
 
-const plan = providerPlan([planResource('jarvis-broker', 'aws:mq:Broker')]);
+const plan = providerPlan([planResource('infraasprompt-broker', 'aws:mq:Broker')]);
 
 const summary = {
   BrokerId: 'b-1234',
   BrokerArn: BROKER_ARN,
-  BrokerName: 'jarvis-broker',
+  BrokerName: 'infraasprompt-broker',
   BrokerState: 'RUNNING',
   DeploymentMode: 'SINGLE_INSTANCE',
 } as const;
@@ -74,7 +74,7 @@ const summary = {
 const liveBroker = {
   BrokerId: 'b-1234',
   BrokerArn: BROKER_ARN,
-  BrokerName: 'jarvis-broker',
+  BrokerName: 'infraasprompt-broker',
   BrokerState: 'RUNNING',
   EngineType: 'ActiveMQ',
   DeploymentMode: 'SINGLE_INSTANCE',
@@ -96,7 +96,7 @@ describe('aws:mq:Broker', () => {
     expect(report.items[0]?.identifier).toBe(BROKER_ARN);
 
     const input = mq.commandCalls(CreateBrokerCommand)[0]?.args[0].input;
-    expect(input?.BrokerName).toBe('jarvis-broker');
+    expect(input?.BrokerName).toBe('infraasprompt-broker');
     expect(input?.EngineType).toBe('ACTIVEMQ');
     expect(input?.HostInstanceType).toBe('mq.t3.micro');
     expect(input?.DeploymentMode).toBe('SINGLE_INSTANCE');
@@ -203,7 +203,7 @@ describe('aws:mq:Broker', () => {
 
   it('instanceType drift → UpdateBroker HostInstanceType (in place, no replacement)', async () => {
     const sized = providerPlan([
-      planResource('jarvis-broker', 'aws:mq:Broker', { instanceType: 'mq.m5.large' }),
+      planResource('infraasprompt-broker', 'aws:mq:Broker', { instanceType: 'mq.m5.large' }),
     ]);
     mq.on(ListBrokersCommand).resolves({ BrokerSummaries: [summary] });
     mq.on(DescribeBrokerCommand).resolves(liveBroker);
@@ -225,7 +225,7 @@ describe('aws:mq:Broker', () => {
     // projection must read the pending (accepted) value so a converged plan is
     // no-op — otherwise it re-issues UpdateBroker on every run until the window.
     const sized = providerPlan([
-      planResource('jarvis-broker', 'aws:mq:Broker', { instanceType: 'mq.m5.large' }),
+      planResource('infraasprompt-broker', 'aws:mq:Broker', { instanceType: 'mq.m5.large' }),
     ]);
     mq.on(ListBrokersCommand).resolves({ BrokerSummaries: [summary] });
     mq.on(DescribeBrokerCommand).resolves({
@@ -278,7 +278,7 @@ describe('aws:mq:Broker', () => {
     );
 
     await expect(
-      handler.delete(planResource('jarvis-broker', 'aws:mq:Broker'), {
+      handler.delete(planResource('infraasprompt-broker', 'aws:mq:Broker'), {
         exists: true,
         managed: true,
         tags: { 'iap:managed': 'true' },
