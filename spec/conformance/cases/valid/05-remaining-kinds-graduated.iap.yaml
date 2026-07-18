@@ -1,0 +1,102 @@
+# Conformance case: valid/05-remaining-kinds-graduated
+# expected: pass
+# reason: Exercises the four kinds graduated from the reserved registry in
+#         specification 1.2.0 (IEP-0016): Network (dependsOn target),
+#         Stream (consumesFrom target — the closed ch. 4 §4.3.1 list already
+#         admits Stream — and monitoredBy source), Workflow (dependsOn source
+#         orchestrating a Job), and SearchIndex (connectsTo target, since it
+#         is network-addressable and not on the connectsTo exclusion list).
+#         After 1.2.0 the reserved registry is empty, so a conforming
+#         validator MUST NOT emit IAP801 for any resource in this document.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: remaining-kinds-graduated
+  owner: platform-team
+
+resources:
+  api:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/shop-api:5.2.0
+      exposure: internal
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+    relationships:
+      # SearchIndex is network-addressable: reached via connectsTo (read).
+      - type: connectsTo
+        target: catalog-index
+        port: 443
+        protocol: https
+        access: read
+      # Stream is already a legal consumesFrom target (ch. 4 §4.3.1);
+      # consumesFrom carries no edge attributes in v1.
+      - type: consumesFrom
+        target: clicks
+      # Network participates through the open dependsOn verb.
+      - type: dependsOn
+        target: app-net
+
+  app-net:
+    kind: Network
+    description: Explicit segmentation intent beyond what exposure derives.
+    spec:
+      scope: regional
+      tiers: [public, private]
+      addressSpace: 10.0.0.0/16
+
+  clicks:
+    kind: Stream
+    description: Ordered, replayable click event stream.
+    labels:
+      tier: data
+    spec:
+      retention: 24h
+      ordering: partition
+      capacity:
+        throughput: 1000rps
+    relationships:
+      - type: monitoredBy
+        target: stream-alert
+
+  order-flow:
+    kind: Workflow
+    description: Multi-step order orchestration over a settlement Job.
+    spec:
+      steps: 3
+      execution: standard
+      timeout: 1h
+    relationships:
+      - type: dependsOn
+        target: settle-job
+
+  settle-job:
+    kind: Job
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/settle:2.0.0
+
+  catalog-index:
+    kind: SearchIndex
+    description: Full-text catalog search index.
+    labels:
+      tier: data
+    spec:
+      indexType: text
+      exposure: internal
+      capacity:
+        storage: 50Gi
+
+  stream-alert:
+    kind: Alert
+    spec:
+      severity: high
+      channels: [pager]

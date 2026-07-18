@@ -19,7 +19,7 @@ import type { ProviderPlan } from '@iap/provider-sdk';
 import { FileStateBackend, stateIntegrity } from '@iap/state';
 import type { StateBackend, StateDocument, StateObject, StateRef } from '@iap/state';
 
-/** Read-only plan classification for a provider plan (`create|no-op|update|delete`). */
+/** Read-only plan classification for a provider plan (`create|no-op|update|replace|delete`). */
 export interface ExecutorPlanOptions {
   destroy?: boolean;
 }
@@ -27,6 +27,8 @@ export interface ExecutorPlanOptions {
 /** Apply options — `apply` is THE LIVE GATE; mutations happen only when it is true. */
 export interface ExecutorApplyOptions {
   apply?: boolean;
+  /** THE REPLACEMENT GATE: destructive delete+create for immutable-attr drift. */
+  replace?: boolean;
   destroy?: boolean;
   tags?: Record<string, string>;
 }

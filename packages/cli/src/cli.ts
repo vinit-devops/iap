@@ -220,6 +220,7 @@ const COMMANDS: CommandDef[] = [
       { name: 'region', takesValue: true },
       { name: 'aws-profile', takesValue: true },
       { name: 'confirm', takesValue: false },
+      { name: 'confirm-replace', takesValue: false },
       { name: 'actor', takesValue: true },
       { name: 'timestamp', takesValue: true },
     ],

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://iap.dev/schema/iap-v1.schema.json",
   "title": "Infrastructure as Prompt (IaP) v1",
-  "description": "Machine-readable schema for IaP documents. IaP describes what infrastructure should exist (intent), never how a provider implements it. Specification version 1.0.0. Fields without an x-iap-since annotation have been present since 1.0.0.",
+  "description": "Machine-readable schema for IaP documents. IaP describes what infrastructure should exist (intent), never how a provider implements it. Specification version 1.3.0. Fields without an x-iap-since annotation have been present since 1.0.0.",
   "type": "object",
   "required": [
     "apiVersion",
@@ -731,7 +731,9 @@
         "SearchIndex",
         "Registry",
         "Dashboard",
-        "Alert"
+        "Alert",
+        "Cdn",
+        "EventBus"
       ]
     },
     "resource": {
@@ -1039,17 +1041,51 @@
           "if": {
             "properties": {
               "kind": {
-                "enum": [
-                  "Network",
-                  "Certificate",
-                  "DnsZone",
-                  "Stream",
-                  "Workflow",
-                  "SearchIndex",
-                  "Registry",
-                  "Dashboard",
-                  "Alert"
-                ]
+                "const": "Certificate"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Certificate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "DnsZone"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/DnsZone"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Registry"
               }
             },
             "required": [
@@ -1059,7 +1095,165 @@
           "then": {
             "properties": {
               "spec": {
-                "$ref": "#/$defs/kinds/ReservedKind"
+                "$ref": "#/$defs/kinds/Registry"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Dashboard"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Dashboard"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Alert"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Alert"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Network"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Network"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Stream"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Stream"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Workflow"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Workflow"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "SearchIndex"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/SearchIndex"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "Cdn"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "spec"
+            ],
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/Cdn"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "EventBus"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/$defs/kinds/EventBus"
               }
             }
           }
@@ -1103,11 +1297,12 @@
             "$ref": "#/$defs/common/artifact"
           },
           "runtime": {
-            "description": "Execution substrate hint; largely a mapping concern.",
+            "description": "Execution substrate hint; largely a mapping concern. Value \"kubernetes\" is available since 1.3.0 (x-iap-since; JSON Schema cannot annotate individual enum values).",
             "enum": [
               "container",
               "vm",
-              "managed"
+              "managed",
+              "kubernetes"
             ],
             "default": "container"
           },
@@ -1326,6 +1521,14 @@
             "default": "public",
             "description": "Gateways exist to expose traffic; private is not a valid gateway exposure."
           },
+          "protocol": {
+            "description": "Application protocol the gateway terminates and routes. Provider-neutral protocol/query-language names, never provider products. Optional and carries NO default, so existing Gateway documents canonicalize byte-identically.",
+            "x-iap-since": "1.3.0",
+            "enum": [
+              "http",
+              "graphql"
+            ]
+          },
           "domains": {
             "type": "array",
             "items": {
@@ -1370,13 +1573,16 @@
         ],
         "properties": {
           "class": {
+            "description": "Data model the application depends on. Values \"wide-column\" and \"warehouse\" are available since 1.1.0 (x-iap-since; JSON Schema cannot annotate individual enum values).",
             "enum": [
               "relational",
               "document",
               "key-value",
               "graph",
               "timeseries",
-              "vector"
+              "vector",
+              "wide-column",
+              "warehouse"
             ]
           },
           "engine": {
@@ -1686,12 +1892,14 @@
         "additionalProperties": false
       },
       "Identity": {
-        "description": "Workload identity intent; concrete permissions derive from relationship access levels. x-iap-capability: identity",
+        "description": "Identity intent; for workload identities concrete permissions derive from relationship access levels. x-iap-capability: identity",
         "type": "object",
         "properties": {
           "type": {
+            "description": "Identity category. workload: a machine identity whose permissions derive from edge access levels. user-directory: a directory of human/end-user identities (e.g. an authentication user pool), distinct from workload identity. Value \"user-directory\" is available since 1.3.0 (x-iap-since; JSON Schema cannot annotate individual enum values).",
             "enum": [
-              "workload"
+              "workload",
+              "user-directory"
             ],
             "default": "workload"
           }
@@ -1741,8 +1949,518 @@
         },
         "additionalProperties": false
       },
+      "Certificate": {
+        "description": "TLS certificate material and issuance intent; referenced by Gateway.spec.tls.certificate. x-iap-capability: security",
+        "x-iap-since": "1.1.0",
+        "type": "object",
+        "required": [
+          "domains"
+        ],
+        "properties": {
+          "domains": {
+            "description": "DNS names the certificate covers; wildcard prefix (*.) permitted; entries MUST be unique.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/common/hostname"
+            }
+          },
+          "issuance": {
+            "description": "managed: the platform obtains and renews the certificate. imported: material is supplied out-of-band (e.g. via a Secret); the platform never generates keys.",
+            "enum": [
+              "managed",
+              "imported"
+            ],
+            "default": "managed"
+          },
+          "keyAlgorithm": {
+            "description": "Key algorithm intent; algorithm names, never provider products.",
+            "enum": [
+              "rsa-2048",
+              "rsa-4096",
+              "ecdsa-p256",
+              "ecdsa-p384"
+            ],
+            "default": "ecdsa-p256"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "DnsZone": {
+        "description": "Authoritative DNS zone intent; record-level intent is reserved for a future minor. x-iap-capability: network",
+        "x-iap-since": "1.1.0",
+        "type": "object",
+        "required": [
+          "zoneName"
+        ],
+        "properties": {
+          "zoneName": {
+            "description": "Fully qualified apex name of the zone (no wildcard, no trailing dot).",
+            "type": "string",
+            "pattern": "^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,}$"
+          },
+          "visibility": {
+            "description": "public: resolvable from the internet. internal: resolvable only inside the organization network (split-horizon). Scopes name resolution, not workload reachability (contrast exposure).",
+            "enum": [
+              "public",
+              "internal"
+            ],
+            "default": "public"
+          },
+          "dnssec": {
+            "description": "DNSSEC signing intent. required: the mapping MUST sign the zone or fail closed; preferred: sign where the substrate supports it; none: unsigned.",
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "default": "none"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Registry": {
+        "description": "Artifact and container-image registry intent; push/pull access derives from connectsTo edge access levels. x-iap-capability: storage",
+        "x-iap-since": "1.1.0",
+        "type": "object",
+        "properties": {
+          "format": {
+            "description": "Artifact format the registry stores; aligns with the artifact.type grammar (minus source).",
+            "enum": [
+              "container-image",
+              "archive"
+            ],
+            "default": "container-image"
+          },
+          "immutability": {
+            "description": "enabled: a stored artifact version or tag can never be overwritten.",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "disabled"
+          },
+          "exposure": {
+            "enum": [
+              "private",
+              "internal"
+            ],
+            "default": "private"
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Dashboard": {
+        "description": "Curated observability dashboard over telemetry delivered by monitoredBy edges. Fields deliberately carry no defaults: canonicalization of pre-1.1.0 documents is unchanged. x-iap-capability: observability",
+        "x-iap-since": "1.1.0",
+        "type": "object",
+        "properties": {
+          "audience": {
+            "description": "Intended audience, free-form (e.g. platform-operations).",
+            "type": "string",
+            "maxLength": 256
+          },
+          "signals": {
+            "description": "Telemetry signal classes; omitted means every signal delivered by incident monitoredBy edges.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "logs",
+                "metrics",
+                "traces"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Alert": {
+        "description": "Notification rule and routing intent evaluated over telemetry delivered by monitoredBy edges. Fields deliberately carry no defaults: canonicalization of pre-1.1.0 documents is unchanged. x-iap-capability: observability",
+        "x-iap-since": "1.1.0",
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "Severity classification of the notifications this alert emits.",
+            "enum": [
+              "info",
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "severityFloor": {
+            "description": "Minimum severity of evaluated conditions that triggers notification; omitted means notify at every severity.",
+            "enum": [
+              "info",
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "signals": {
+            "description": "Telemetry signal classes; omitted means every signal delivered by incident monitoredBy edges.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "logs",
+                "metrics",
+                "traces"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "channels": {
+            "description": "Provider-neutral notification channel classes; concrete destinations are mapping/extension territory.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "email",
+                "chat",
+                "webhook",
+                "pager",
+                "sms"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Network": {
+        "description": "Explicit network segmentation and topology intent beyond what exposure and connectsTo edges derive. x-iap-capability: network",
+        "x-iap-since": "1.2.0",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "description": "Geographic span of the network's address space. regional: a single region; multi-region: spans regions (globally routable intent).",
+            "enum": [
+              "regional",
+              "multi-region"
+            ]
+          },
+          "tiers": {
+            "description": "Reachability tiers the network provides. public: internet-facing segments; private: internally routable with egress; isolated: no egress.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "public",
+                "private",
+                "isolated"
+              ]
+            }
+          },
+          "addressSpace": {
+            "description": "Optional exact IPv4 CIDR block intent (e.g. 10.0.0.0/16); omitted means the platform allocates a non-overlapping range. A neutral IP concept, never a provider product.",
+            "type": "string",
+            "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/(3[0-2]|[12]?[0-9])$"
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Stream": {
+        "description": "Ordered, replayable event stream with consumer-managed offsets; distinct from Topic fan-out delivery. x-iap-capability: messaging",
+        "x-iap-since": "1.2.0",
+        "type": "object",
+        "properties": {
+          "retention": {
+            "type": "string",
+            "pattern": "^[0-9]+(ms|s|m|h|d)$",
+            "description": "How long records remain available for replay (duration grammar). Typed inline, not via the common duration $ref, so a reserved-era Stream's authored spelling is preserved byte-for-byte in canonicalization (no defaults or unit re-spelling)."
+          },
+          "ordering": {
+            "description": "none: no cross-record ordering guarantee; partition: order preserved within a partition key.",
+            "enum": [
+              "none",
+              "partition"
+            ]
+          },
+          "capacity": {
+            "type": "object",
+            "properties": {
+              "throughput": {
+                "type": "string",
+                "pattern": "^[0-9]+(rps|mbps)$",
+                "description": "Sustained ingest capacity intent (records per second or megabits per second)."
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Workflow": {
+        "description": "Multi-step orchestration of Job and Function executions with state transitions. x-iap-capability: compute",
+        "x-iap-since": "1.2.0",
+        "type": "object",
+        "properties": {
+          "steps": {
+            "description": "Declared number of orchestrated steps (advisory); the concrete step graph is defined out-of-band, and a step grammar may be added additively in a later minor.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "execution": {
+            "description": "standard: durable, long-running, full execution history; express: high-volume, short-lived, best-effort history.",
+            "enum": [
+              "standard",
+              "express"
+            ]
+          },
+          "timeout": {
+            "type": "string",
+            "pattern": "^[0-9]+(ms|s|m|h|d)$",
+            "description": "Maximum wall-clock time for a single workflow execution (duration grammar). Typed inline, not via the common duration $ref, so a reserved-era Workflow's authored spec is preserved byte-for-byte in canonicalization."
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "SearchIndex": {
+        "description": "Full-text or vector search index over application data. x-iap-capability: database",
+        "x-iap-since": "1.2.0",
+        "type": "object",
+        "required": [
+          "indexType"
+        ],
+        "properties": {
+          "indexType": {
+            "description": "text: full-text/relevance search; vector: similarity search over embeddings.",
+            "enum": [
+              "text",
+              "vector"
+            ]
+          },
+          "exposure": {
+            "enum": [
+              "private",
+              "internal"
+            ]
+          },
+          "encryption": {
+            "$ref": "#/$defs/common/encryption"
+          },
+          "capacity": {
+            "type": "object",
+            "properties": {
+              "storage": {
+                "$ref": "#/$defs/common/quantity"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "Cdn": {
+        "description": "Content delivery / edge distribution intent: caches and serves content from edge locations in front of one or more origins. Provider-neutral; realized later by an edge/CDN service. x-iap-capability: network",
+        "x-iap-since": "1.3.0",
+        "type": "object",
+        "required": [
+          "origins"
+        ],
+        "properties": {
+          "exposure": {
+            "description": "Edge reachability. public: internet-facing distribution. internal: reachable only within the organization network.",
+            "enum": [
+              "public",
+              "internal"
+            ],
+            "default": "public"
+          },
+          "origins": {
+            "description": "Backend origins the edge distributes. Each target names an in-document resource (typically a Service, Gateway, or ObjectStore). Referential integrity of target is advisory in 1.3.0 (no generic spec-field reference check yet); authors SHOULD also declare a dependsOn edge to each origin for ordering.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "required": [
+                "target"
+              ],
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/common/resourceId"
+                },
+                "pathPattern": {
+                  "description": "Optional path prefix routed to this origin (e.g. /static). Omitted: this origin serves all paths.",
+                  "type": "string"
+                }
+              },
+              "patternProperties": {
+                "^x-": true
+              },
+              "additionalProperties": false
+            }
+          },
+          "tls": {
+            "description": "TLS posture at the edge; mirrors Gateway.spec.tls.",
+            "type": "object",
+            "properties": {
+              "minimumVersion": {
+                "enum": [
+                  "1.2",
+                  "1.3"
+                ],
+                "default": "1.2"
+              },
+              "certificate": {
+                "$ref": "#/$defs/common/resourceId",
+                "description": "Reference to a Certificate resource; omit for provider-managed certificates."
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "caching": {
+            "description": "Edge caching behavior intent.",
+            "type": "object",
+            "properties": {
+              "mode": {
+                "description": "standard: cache per origin/response directives. aggressive: cache broadly, favoring hit rate. disabled: pass through to the origin, no edge caching.",
+                "enum": [
+                  "standard",
+                  "aggressive",
+                  "disabled"
+                ],
+                "default": "standard"
+              },
+              "defaultTtl": {
+                "$ref": "#/$defs/common/duration"
+              }
+            },
+            "patternProperties": {
+              "^x-": true
+            },
+            "additionalProperties": false
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
+      "EventBus": {
+        "description": "Event routing intent: accepts events from sources and routes them to targets by declarative rules. Provider-neutral; realized later by an event-routing service. x-iap-capability: messaging",
+        "x-iap-since": "1.3.0",
+        "type": "object",
+        "properties": {
+          "sources": {
+            "description": "Classes of event sources the bus accepts. internal: in-organization workloads. partner: third-party/SaaS integrations. custom: application-defined event producers. Neutral source classes, never provider products.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "internal",
+                "partner",
+                "custom"
+              ]
+            }
+          },
+          "rules": {
+            "description": "Declarative routing rules. Targets are wired as routesTo relationships from the bus (the closed verb set is unchanged); each rule matches events and the bus forwards matches to the routed targets.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "$ref": "#/$defs/common/resourceId"
+                },
+                "eventPattern": {
+                  "description": "Open matching object over event attributes; neutral and provider-agnostic. Absent: the rule matches every event.",
+                  "type": "object"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                }
+              },
+              "patternProperties": {
+                "^x-": true
+              },
+              "additionalProperties": false
+            }
+          },
+          "schemaRegistry": {
+            "description": "Whether the bus enforces a managed event-schema registry. none: no enforcement. managed: events are validated against a managed schema registry.",
+            "enum": [
+              "none",
+              "managed"
+            ],
+            "default": "none"
+          },
+          "retention": {
+            "$ref": "#/$defs/common/duration",
+            "description": "How long undelivered/replayable events are retained."
+          },
+          "observability": {
+            "$ref": "#/$defs/common/observability"
+          }
+        },
+        "patternProperties": {
+          "^x-": true
+        },
+        "additionalProperties": false
+      },
       "ReservedKind": {
-        "description": "Reserved registry kind (Network, Certificate, DnsZone, Stream, Workflow, SearchIndex, Registry, Dashboard, Alert). Schema intentionally minimal in v1; full specification arrives in a future minor. Validators MUST accept and SHOULD warn (IAP801).",
+        "description": "Reserved registry kind. The reserved registry is EMPTY as of 1.2.0: all nine kinds reserved in 1.0.0 have graduated to fully specified kinds — Certificate, DnsZone, Registry, Dashboard, Alert in 1.1.0 (IEP-0015), and Network, Stream, Workflow, SearchIndex in 1.2.0 (IEP-0016). This definition is retained as the reusable loose-spec template so a future minor MAY reserve new kind names; the reserved-fallback dispatch branch in $defs/resource.allOf was removed (JSON Schema forbids an empty enum, and every kindName now has its own dispatch branch) and is re-added when a future minor reserves a new name. When it does, validators MUST accept the reserved kind and SHOULD warn (IAP801).",
         "type": "object",
         "x-iap-reserved": true
       }

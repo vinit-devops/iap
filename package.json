@@ -21,6 +21,8 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --filter './packages/**' --filter './providers/**' exec tsc --noEmit",
     "check:names": "node tools/check-legacy-names.mjs",
+    "live:preflight": "node tools/live-run/preflight.mjs",
+    "live:sweep": "node tools/live-run/sweep.mjs",
     "scan:secrets": "node tools/security/scan-secrets.mjs",
     "sbom": "node tools/security/gen-sbom.mjs",
     "smoke:designer": "pnpm --filter @iap/designer-app run build && node apps/designer/smoke.mjs",

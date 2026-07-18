@@ -1,6 +1,6 @@
 # 8. Validation
 
-**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.0.0 · Status: Draft**
+**Part of the [Infrastructure as Prompt](../../README.md) · Version 1.3.0 (IEP-0017) · Status: Released**
 
 ## 8.1 Overview
 
@@ -110,7 +110,7 @@ Frameworks listed in `compliance.frameworks` activate their registered policy bu
 
 ### Phase 8 — Version/Extension (IAP8xx)
 
-- **IAP801** — reserved kind (warning): the document uses a registry kind (`Network`, `Certificate`, `DnsZone`, `Stream`, `Workflow`, `SearchIndex`, `Registry`, `Dashboard`, `Alert`) whose full specification arrives in a future minor ([Chapter 5](05-capability-model.md)). Validators MUST accept it.
+- **IAP801** — reserved kind (warning): the document uses a registry kind that is still reserved in the validator's specification minor, whose full specification arrives in a future minor ([Chapter 5](05-capability-model.md)). Validators MUST accept it. **The reserved registry has been empty since 1.2.0 — all nine originally reserved kinds have graduated (five in 1.1.0 via [IEP-0015](../ieps/IEP-0015-reserved-kind-graduation.md), four in 1.2.0 via [IEP-0016](../ieps/IEP-0016-reserved-registry-graduation.md)) — so a 1.2.0-or-later validator emits IAP801 for no kind.** The `Cdn` and `EventBus` kinds introduced in 1.3.0 ([IEP-0017](../ieps/IEP-0017-new-kinds-cdn-eventbus.md)) were specified *directly* (ch. 5 §5.7), never reserved, so IAP801 MUST NOT be emitted for them either. The code and its emission are retained so that if a future minor reserves a new kind name, the warning applies to it from that point until its own graduation (ch. 5 §5.6 rule 5). The warning MUST NOT be emitted for any fully specified kind.
 - **IAP802** — unknown extension namespace (warning): an `extensions` namespace not registered with the validator. Unknown namespaces warn, **never fail** ([Chapter 11](11-extension-framework.md)).
 - **IAP803** — extension non-interference violation (error): the check is mechanical — strip every `extensions` block from the canonical document and re-run phases 1–7; the stripped document MUST be valid and semantically identical (same normalized graph, same findings). Any divergence is IAP803.
 - **IAP804** — unknown field from a newer minor (warning): a field unknown to this validator but defined by a later published minor of the specification that the validator ships knowledge of. Reported as IAP804 instead of a Phase 1 error, preserving forward compatibility within the major ([Chapter 10](10-versioning.md)).
@@ -153,10 +153,10 @@ Additional tool-specific fields MUST be prefixed `x-`. Finding order is determin
       "policyId": "backup-required-critical"
     },
     {
-      "code": "IAP801",
+      "code": "IAP804",
       "severity": "warning",
-      "path": "resources.edge-cert",
-      "message": "Kind \"Certificate\" is reserved in v1; its full field specification arrives in a future minor."
+      "path": "resources.orders-db.spec.tieredStorage",
+      "message": "Field \"tieredStorage\" is defined by a newer specification minor than this validator implements; processed but not fully validated."
     }
   ]
 }

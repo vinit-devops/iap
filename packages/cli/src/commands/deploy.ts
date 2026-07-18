@@ -38,17 +38,19 @@ import type { ExecutorEnv } from './execution.js';
 const ACTION_GLYPH: Record<PlanReport['items'][number]['action'], string> = {
   create: '+',
   update: '~',
+  replace: '±',
   delete: '-',
   'no-op': '=',
 };
 
 function renderPlan(io: CliIO, report: PlanReport): void {
-  const counts = { create: 0, update: 0, delete: 0, 'no-op': 0 };
+  const counts = { create: 0, update: 0, replace: 0, delete: 0, 'no-op': 0 };
   for (const item of report.items) counts[item.action] += 1;
+  const replaceSegment = counts.replace > 0 ? `${counts.replace} to replace, ` : '';
   io.stdout.write(
     `Plan (${report.mode}${report.destroy ? ', destroy' : ''}) in ${report.region}: ` +
-      `${counts.create} to create, ${counts.update} to update, ${counts.delete} to delete, ` +
-      `${counts['no-op']} unchanged\n`,
+      `${counts.create} to create, ${counts.update} to update, ${replaceSegment}` +
+      `${counts.delete} to delete, ${counts['no-op']} unchanged\n`,
   );
   for (const item of report.items) {
     io.stdout.write(
@@ -126,7 +128,13 @@ export async function runDeployment(
     return EXIT_OK;
   }
 
-  const applyReport = await executor.apply(loaded.plan, { apply: true, destroy });
+  // THE REPLACEMENT GATE: immutable-attr drift executes delete+create only
+  // when the caller also passes --confirm-replace (destructive; ADR-0006).
+  const applyReport = await executor.apply(loaded.plan, {
+    apply: true,
+    destroy,
+    replace: booleanFlag(args, 'confirm-replace'),
+  });
 
   const stateDir = stringFlag(args, 'state') ?? DEFAULT_STATE_DIR;
   const backend = openStateBackend(stateDir);

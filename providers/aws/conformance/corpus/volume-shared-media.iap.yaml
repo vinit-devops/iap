@@ -1,0 +1,16 @@
+# Conformance corpus: schema-valid document declaring a kind (Volume) the
+# AWS core mapping does not cover (until M22.4). The mapping MUST fail closed
+# with an unsupported-kind diagnostic naming the kind — a plan is complete or
+# absent, never partial (ch. 12 §12.3).
+apiVersion: iap.dev/v1
+
+metadata:
+  name: aws-volume-shared-media
+
+resources:
+  shared-media:
+    kind: Volume
+    description: Shared media storage volume
+    spec:
+      capacity:
+        storage: 100Gi

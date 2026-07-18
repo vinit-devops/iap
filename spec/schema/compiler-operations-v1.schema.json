@@ -53,7 +53,9 @@
         "SearchIndex",
         "Registry",
         "Dashboard",
-        "Alert"
+        "Alert",
+        "Cdn",
+        "EventBus"
       ]
     },
     "dotPath": {

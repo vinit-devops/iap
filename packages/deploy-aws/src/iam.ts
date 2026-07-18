@@ -13,6 +13,7 @@
 import {
   CreateRoleCommand,
   DeleteRoleCommand,
+  DeleteRolePolicyCommand,
   GetRoleCommand,
   PutRolePolicyCommand,
   TagRoleCommand,
@@ -25,10 +26,18 @@ import { httpStatus, nameMatches, resourceIdOf, scalarStr } from './util.js';
 
 const NOT_FOUND = ['NoSuchEntity'] as const;
 
-function assumeRolePolicyDocument(service: string): string {
+/** Normalize a (possibly comma-separated) service list: sorted, deduped. */
+function normalizeServices(value: string): string {
+  return [...new Set(value.split(',').map((s) => s.trim()).filter(Boolean))].sort().join(',');
+}
+
+function assumeRolePolicyDocument(services: string): string {
+  const list = normalizeServices(services).split(',').filter(Boolean);
+  // One role can serve several trust surfaces (e.g. lambda + scheduler, M22.1).
+  const Service: string | string[] = list.length === 1 ? (list[0] as string) : list;
   return JSON.stringify({
     Version: '2012-10-17',
-    Statement: [{ Effect: 'Allow', Principal: { Service: service }, Action: 'sts:AssumeRole' }],
+    Statement: [{ Effect: 'Allow', Principal: { Service }, Action: 'sts:AssumeRole' }],
   });
 }
 
@@ -36,23 +45,25 @@ function serviceFromDocument(document: string | undefined): string {
   if (!document) return '';
   try {
     const parsed = JSON.parse(decodeURIComponent(document)) as {
-      Statement?: Array<{ Principal?: { Service?: string } }>;
+      Statement?: Array<{ Principal?: { Service?: string | string[] } }>;
     };
-    return parsed.Statement?.[0]?.Principal?.Service ?? '';
+    const service = parsed.Statement?.[0]?.Principal?.Service ?? '';
+    return normalizeServices(Array.isArray(service) ? service.join(',') : service);
   } catch {
     return '';
   }
 }
 
 export class IamRoleHandler implements TargetHandler {
-  readonly targetType = 'aws:iam:Role' as const;
+  static readonly targetType = 'aws:iam:Role' as const;
+  readonly targetType = IamRoleHandler.targetType;
 
   constructor(private readonly client: IAMClient) {}
 
   desiredProjection(resource: PlanResource): Record<string, string> {
     const a = resource.desiredAttributes;
     return {
-      assumeRoleService: scalarStr(a['assumeRoleService']),
+      assumeRoleService: normalizeServices(scalarStr(a['assumeRoleService'])),
       inlinePolicy: scalarStr(a['inlinePolicy']),
     };
   }
@@ -105,7 +116,16 @@ export class IamRoleHandler implements TargetHandler {
   }
 
   async delete(resource: PlanResource): Promise<void> {
-    await this.client.send(new DeleteRoleCommand({ RoleName: resourceIdOf(resource) }));
+    const RoleName = resourceIdOf(resource);
+    // A role with an inline policy refuses DeleteRole — remove it first.
+    try {
+      await this.client.send(
+        new DeleteRolePolicyCommand({ RoleName, PolicyName: `${RoleName}-inline` }),
+      );
+    } catch (err) {
+      if (!nameMatches(err, NOT_FOUND)) throw err;
+    }
+    await this.client.send(new DeleteRoleCommand({ RoleName }));
   }
 
   private async putInlinePolicy(resource: PlanResource, RoleName: string): Promise<void> {

@@ -8,8 +8,10 @@
  *   (delegated to `@iap/parser`), the apiVersion gate, a post-merge re-run of
  *   schema validation on the profile-merged document (ch. 8 §8.3: a merge
  *   patch can delete required fields), the IAP104 cross-field checks the
- *   schema cannot express (ch. 8 §8.5), and the IAP105 banned provider-term
- *   scan over free-string core positions (ch. 24 §24.3).
+ *   schema cannot express (ch. 8 §8.5), the IAP105 banned provider-term
+ *   scan over free-string core positions (ch. 24 §24.3), and the eagerly
+ *   emitted IAP801 reserved-kind warning (ch. 5 §5.3; phase-8 code, ch. 24
+ *   CV-4 — never gates).
  * - **Phase 2 — reference (IAP2xx).** Dangling edge targets (IAP201),
  *   Application components (IAP202), output resources (IAP203), Gateway
  *   certificates (IAP204), and profile reference errors (IAP205).
@@ -31,7 +33,13 @@
  * later milestones; their conformance cases stay deferred in the harness.
  */
 
-import { API_VERSION, compareCodePoints, flattenEdges, mergeProfile } from '@iap/model';
+import {
+  API_VERSION,
+  compareCodePoints,
+  flattenEdges,
+  isReservedKind,
+  mergeProfile,
+} from '@iap/model';
 import type { Finding, IaPDocument } from '@iap/model';
 import { createValidator, loadDocument, validateSchema } from '@iap/parser';
 import {
@@ -79,6 +87,7 @@ const SEVERITY: Readonly<Record<string, Finding['severity']>> = {
   IAP401: 'error',
   IAP402: 'error',
   IAP403: 'error',
+  IAP801: 'warning',
 };
 
 function finding(code: string, path: string, message: string): Finding {
@@ -116,7 +125,10 @@ const ENGINE_CLASSES: Readonly<Record<string, readonly string[]>> = {
   mysql: ['relational'],
   mariadb: ['relational'],
   'mongodb-compatible': ['document'],
-  'cassandra-compatible': ['key-value', 'document'],
+  // wide-column added in spec 1.1.0 (IEP-0015): cassandra-compatible is the
+  // canonical wide-column dialect; the 1.0.0 pairings are retained verbatim.
+  // No engine value pairs with class "warehouse" in 1.1.0.
+  'cassandra-compatible': ['key-value', 'document', 'wide-column'],
 };
 
 /**
@@ -184,6 +196,44 @@ function crossFieldChecks(doc: IaPDocument): Finding[] {
           );
         }
       }
+    }
+  }
+  return findings;
+}
+
+/* ------------------------------------------------------------------ */
+/* IAP801 — reserved kind in use (ch. 5 §5.3, ch. 10 §10.3)            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * IAP801 (warning, never gating): the document uses a kind that is reserved
+ * in the current specification minor. As of spec 1.2.0 (IEP-0016) the
+ * reserved registry is EMPTY — all nine originally reserved kinds have
+ * graduated (five in 1.1.0 via IEP-0015, four in 1.2.0 via IEP-0016) — so
+ * `RESERVED_KINDS` is empty and this check emits IAP801 for nothing. The
+ * mechanism is retained deliberately (ch. 5 §5.3 note): if a future minor
+ * reserves a new kind name, adding it to `RESERVED_KINDS` re-enables the
+ * warning here with no other change.
+ *
+ * The code belongs to the phase-8 range (version/extension); the full phase-8
+ * engine is a later milestone, but ch. 24 CV-4 makes silent acceptance of a
+ * reserved kind a conformance failure, so the warning is emitted eagerly with
+ * the phase-1 semantic checks. Warnings never gate later phases (ch. 8 §8.2).
+ */
+function reservedKindChecks(doc: IaPDocument): Finding[] {
+  const findings: Finding[] = [];
+  const resources = isPlainObject(doc.resources) ? doc.resources : {};
+  for (const id of Object.keys(resources).sort(compareCodePoints)) {
+    const entry = resources[id];
+    if (!isPlainObject(entry) || typeof entry.kind !== 'string') continue;
+    if (isReservedKind(entry.kind)) {
+      findings.push(
+        finding(
+          'IAP801',
+          `/resources/${escapePointer(id)}/kind`,
+          `kind "${entry.kind}" is reserved in v1; its full field specification arrives in a future minor (ch. 5 §5.3; IAP801)`,
+        ),
+      );
     }
   }
   return findings;
@@ -701,8 +751,13 @@ export function validateDocument(
   }
 
   // Phase 1 semantic rules the schema cannot express, on the (schema-valid)
-  // merged document: IAP104 cross-field constraints and IAP105 banned terms.
-  const phase1Semantic = [...crossFieldChecks(merged), ...bannedTermChecks(merged)];
+  // merged document: IAP104 cross-field constraints and IAP105 banned terms,
+  // plus the eagerly emitted IAP801 reserved-kind warning (never an error).
+  const phase1Semantic = [
+    ...crossFieldChecks(merged),
+    ...bannedTermChecks(merged),
+    ...reservedKindChecks(merged),
+  ];
   phases.schema.findings.push(...phase1Semantic);
   if (hasErrors(phase1Semantic)) return finalize(phases);
 

@@ -311,22 +311,28 @@ try {
 
 console.log('roadmap tracker');
 try {
-  const roadmap = loadYaml(join(repoRoot, 'ROADMAP.yaml'));
+  // ROADMAP-V4.yml is the master tracker (V1-V3 retired). Its shape puts
+  // exitCriteria + evidence at the MILESTONE level, not the phase level.
+  const roadmap = loadYaml(join(repoRoot, 'ROADMAP-V4.yml'));
   const statuses = new Set(['pending', 'in-progress', 'completed', 'blocked']);
   const phasesOk =
     Array.isArray(roadmap.phases) &&
-    roadmap.phases.length >= 19 &&
+    roadmap.phases.length >= 4 &&
     roadmap.phases.every(
       (p) =>
         typeof p.id === 'string' &&
         statuses.has(p.status) &&
         Array.isArray(p.milestones) &&
-        p.milestones.every((m) => statuses.has(m.status) && Array.isArray(m.evidence)) &&
-        Array.isArray(p.exitCriteria),
+        p.milestones.every(
+          (m) =>
+            statuses.has(m.status) &&
+            Array.isArray(m.evidence) &&
+            Array.isArray(m.exitCriteria),
+        ),
     );
-  check(phasesOk, `ROADMAP.yaml well-formed (${roadmap.phases?.length ?? 0} phases)`);
+  check(phasesOk, `ROADMAP-V4.yml well-formed (${roadmap.phases?.length ?? 0} phases)`);
 } catch (e) {
-  check(false, 'ROADMAP.yaml well-formed', e.message);
+  check(false, 'ROADMAP-V4.yml well-formed', e.message);
 }
 
 console.log(

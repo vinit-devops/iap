@@ -1,0 +1,19 @@
+# Conformance case: invalid/26-network-bad-tier
+# expected: schema-invalid
+# reason: Network graduated to a fully specified kind in 1.2.0 (IEP-0016):
+#         spec.tiers is a closed enum (public | private | isolated). "dmz" is
+#         not a member, so the promoted contract rejects it in phase 1
+#         (schema). Under the reserved-era loose spec this document validated;
+#         graduation makes the enum enforceable.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: network-bad-tier-case
+
+resources:
+  segmented-net:
+    kind: Network
+    spec:
+      scope: regional
+      tiers: [public, dmz]

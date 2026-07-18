@@ -364,26 +364,53 @@ resources:
     expect(result.model.resources['edge']?.spec).not.toHaveProperty('domains');
   });
 
-  it('reserved kinds materialize no defaults; extensions and x-* are untouched (rule 7)', () => {
+  it('graduated default-free kinds materialize no defaults; extensions and x-* are untouched (rule 7)', () => {
+    // Stream graduated in spec 1.2.0 (IEP-0016) with a deliberately
+    // default-free contract, so canonicalization of a document that used it
+    // while reserved stays byte-identical (retention preserved as authored;
+    // no defaults materialized). The reserved registry is now empty.
     const result = canonicalize(
       doc(`
 apiVersion: iap.dev/v1
 metadata:
-  name: reserved-demo
+  name: graduated-stream-demo
 resources:
-  alerts:
-    kind: Alert
+  clicks:
+    kind: Stream
     x-team: sre
     spec:
-      severityFloor: high
+      retention: 24h
     extensions:
       acme:
         channel: pager
 `),
     );
-    expect(result.model.resources['alerts']?.spec).toEqual({ severityFloor: 'high' });
+    expect(result.model.resources['clicks']?.spec).toEqual({ retention: '24h' });
     expect(result.canonicalJson).toContain('"x-team":"sre"');
     expect(result.canonicalJson).toContain('"channel":"pager"');
+  });
+
+  it('kinds graduated in 1.1.0 with default-free contracts (Alert, Dashboard) canonicalize byte-identically to their reserved-era form (IEP-0015)', () => {
+    const result = canonicalize(
+      doc(`
+apiVersion: iap.dev/v1
+metadata:
+  name: graduated-demo
+resources:
+  alerts:
+    kind: Alert
+    spec:
+      severityFloor: high
+  ops:
+    kind: Dashboard
+    spec:
+      audience: platform-operations
+`),
+    );
+    // No defaults exist to materialize: the promoted contracts deliberately
+    // declare none, so pre-1.1.0 documents keep their canonical form.
+    expect(result.model.resources['alerts']?.spec).toEqual({ severityFloor: 'high' });
+    expect(result.model.resources['ops']?.spec).toEqual({ audience: 'platform-operations' });
   });
 
   it('materializeDefaults records default provenance and leaves the input intact', () => {

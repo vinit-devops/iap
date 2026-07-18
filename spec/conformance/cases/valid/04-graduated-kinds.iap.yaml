@@ -1,0 +1,126 @@
+# Conformance case: valid/04-graduated-kinds
+# expected: pass
+# reason: Exercises the five kinds graduated from the reserved registry in
+#         specification 1.1.0 (IEP-0015): Certificate (referenced by the
+#         Gateway's tls.certificate and DNS-validated via dependsOn ->
+#         DnsZone), DnsZone, Registry (pull access via connectsTo), Dashboard
+#         and Alert (monitoredBy targets). Also exercises the two Database
+#         class values added in 1.1.0: wide-column (paired with the
+#         cassandra-compatible engine) and warehouse (engine omitted — no
+#         engine value pairs with warehouse in 1.1.0). A 1.1.0 validator MUST
+#         NOT emit IAP801 for any resource in this document.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: graduated-kinds
+  owner: platform-team
+
+resources:
+  web:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/shop-web:4.1.0
+      exposure: internal
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+    relationships:
+      - type: connectsTo
+        target: images
+        port: 443
+        protocol: https
+        access: read
+      - type: connectsTo
+        target: events-db
+        port: 9042
+        protocol: tcp
+        access: read-write
+      - type: monitoredBy
+        target: ops-dashboard
+      - type: monitoredBy
+        target: data-alerts
+
+  edge:
+    kind: Gateway
+    spec:
+      exposure: public
+      domains: [shop.example.com]
+      tls:
+        minimumVersion: "1.3"
+        certificate: shop-cert
+    relationships:
+      - { type: routesTo, target: web, path: /, protocol: https }
+      - { type: protectedBy, target: shop-cert }
+
+  shop-cert:
+    kind: Certificate
+    spec:
+      domains: [shop.example.com, "*.shop.example.com"]
+      issuance: managed
+      keyAlgorithm: ecdsa-p256
+    relationships:
+      - type: dependsOn
+        target: shop-zone
+        description: DNS-validated issuance against the authoritative zone.
+
+  shop-zone:
+    kind: DnsZone
+    spec:
+      zoneName: shop.example.com
+      visibility: public
+      dnssec: preferred
+
+  images:
+    kind: Registry
+    spec:
+      format: container-image
+      immutability: enabled
+
+  events-db:
+    kind: Database
+    description: Wide-column class paired with the cassandra-compatible engine (both legal since 1.1.0).
+    labels:
+      tier: data
+    spec:
+      class: wide-column
+      engine: cassandra-compatible
+      availability: high
+
+  analytics-db:
+    kind: Database
+    description: Warehouse class; engine omitted (no engine value pairs with warehouse in 1.1.0).
+    labels:
+      tier: data
+    spec:
+      class: warehouse
+      capacity:
+        storage: 500Gi
+
+  ops-dashboard:
+    kind: Dashboard
+    spec:
+      audience: platform-operations
+      signals: [logs, metrics]
+
+  data-alerts:
+    kind: Alert
+    spec:
+      severity: high
+      severityFloor: medium
+      signals: [metrics]
+      channels: [pager, chat]
+
+relationships:
+  - type: monitoredBy
+    source:
+      selector:
+        labels:
+          tier: data
+    target: data-alerts
+    description: Every data-tier resource delivers telemetry to the shared alert.

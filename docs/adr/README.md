@@ -18,6 +18,9 @@ ADRs capture significant, hard-to-reverse implementation decisions for the IaP r
 | [ADR-0001](ADR-0001-monorepo-and-primary-language.md)  | Monorepo-first development and TypeScript as primary language | Accepted |
 | [ADR-0002](ADR-0002-json-schema-normative-contract.md) | JSON Schema as the normative machine-readable contract        | Accepted |
 | [ADR-0003](ADR-0003-iap-naming-migration.md)           | IIS → IaP naming migration and the error-code breaking rename | Accepted |
+| [ADR-0004](ADR-0004-handler-registry-and-lazy-clients.md) | Derived handler registry and lazy per-service AWS clients  | Proposed |
+| [ADR-0005](ADR-0005-default-vpc-live-testing.md)       | Default-VPC pragmatism for early live-run waves               | Proposed |
+| [ADR-0006](ADR-0006-replacement-update-semantics.md)   | Replacement-update semantics (immutable attrs → gated delete+create) | Proposed |
 
 ## Required ADR topics (roadmap §15)
 

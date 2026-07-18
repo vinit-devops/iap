@@ -1,0 +1,130 @@
+# Conformance case: valid/06-new-kinds-and-widenings
+# expected: pass
+# reason: Exercises the additive spec 1.3.0 surface (IEP-0017): the two new
+#         core-vocabulary kinds introduced directly — Cdn (content delivery /
+#         edge distribution; dependsOn its origins, protectedBy a Certificate,
+#         monitoredBy an Alert) and EventBus (event routing; a producer Service
+#         connectsTo the bus with access: write, the bus routesTo a consumer
+#         Function) — plus the three additive enum widenings: Identity.type
+#         gains user-directory, Service.runtime gains kubernetes, and
+#         Gateway.protocol (a new optional field) offers graphql. Cdn/EventBus
+#         are fully specified, so a conforming 1.3.0 validator MUST NOT emit
+#         IAP801 for any resource here.
+
+apiVersion: iap.dev/v1
+
+metadata:
+  name: new-kinds-and-widenings
+  owner: platform-team
+
+resources:
+  api:
+    kind: Service
+    labels:
+      tier: backend
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/shop-api:6.0.0
+      runtime: kubernetes # 1.3.0 widening: EKS-style substrate hint
+      exposure: internal
+      ports:
+        - name: http
+          port: 8080
+          protocol: http
+    relationships:
+      # Producer publishes events to the bus over the open connectsTo verb
+      # (publishesTo is a closed Topic/Queue list; the bus is reached by
+      # connectsTo with access: write).
+      - type: connectsTo
+        target: events
+        port: 443
+        protocol: https
+        access: write
+
+  edge-gw:
+    kind: Gateway
+    spec:
+      exposure: public
+      protocol: graphql # 1.3.0: new optional Gateway.protocol field
+      domains: [api.example.com]
+    relationships:
+      - type: routesTo
+        target: api
+        path: /
+        protocol: https
+
+  storefront-cdn:
+    kind: Cdn
+    description: Edge distribution in front of the static assets and the API.
+    spec:
+      exposure: public
+      origins:
+        - target: assets
+          pathPattern: /static
+        - target: api
+      tls:
+        minimumVersion: "1.3"
+        certificate: edge-cert
+      caching:
+        mode: standard
+        defaultTtl: 1h
+    relationships:
+      # Origins also wired as dependsOn for ordering (advisory per §3.27).
+      - type: dependsOn
+        target: assets
+      - type: dependsOn
+        target: api
+      - type: protectedBy
+        target: edge-cert
+      - type: monitoredBy
+        target: edge-alert
+
+  events:
+    kind: EventBus
+    description: Application event router.
+    spec:
+      sources: [internal, partner]
+      rules:
+        - name: order-events
+          eventPattern:
+            detailType: [OrderPlaced, OrderShipped]
+          enabled: true
+      schemaRegistry: managed
+      retention: 24h
+    relationships:
+      # The bus routes matched events to a consumer Function.
+      - type: routesTo
+        target: order-worker
+      - type: monitoredBy
+        target: edge-alert
+
+  order-worker:
+    kind: Function
+    spec:
+      artifact:
+        type: container-image
+        reference: registry.example.com/order-worker:6.0.0
+
+  assets:
+    kind: ObjectStore
+    spec:
+      exposure: private
+
+  edge-cert:
+    kind: Certificate
+    spec:
+      domains: [api.example.com]
+
+  edge-alert:
+    kind: Alert
+    spec:
+      severity: high
+      channels: [pager]
+
+  # 1.3.0 widening: a user-directory identity (e.g. an authentication user
+  # pool), distinct from a workload identity.
+  end-users:
+    kind: Identity
+    spec:
+      type: user-directory
