@@ -6,7 +6,7 @@
 ## Context
 
 The M19.3 live run deferred lifecycle test 4 (replacement update): for S3/SQS/IAM the resource
-identity *is* the name, so a same-identity immutable-attribute replacement isn't natural for
+identity _is_ the name, so a same-identity immutable-attribute replacement isn't natural for
 those types. The plan layer already classifies a `replace` action, but the executor has no
 implementation. ROADMAP-V4 makes this blocking early: DynamoDB (M22.2) has an immutable key
 schema, and many later services (RDS engine/major-version paths, EC2 launch settings,

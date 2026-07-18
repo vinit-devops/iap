@@ -49,19 +49,28 @@ const sgPlan = (attrs: Record<string, string> = {}) =>
   providerPlan([planResource('web', 'aws:ec2:SecurityGroup', attrs)]);
 
 /** One live VPC carrying the iap identity tags, with the given DNS state. */
-function mockLiveVpc(opts: {
-  cidr?: string;
-  dnsSupport?: boolean;
-  dnsHostnames?: boolean;
-  managed?: boolean;
-  tags?: Array<{ Key: string; Value: string }>;
-} = {}): void {
+function mockLiveVpc(
+  opts: {
+    cidr?: string;
+    dnsSupport?: boolean;
+    dnsHostnames?: boolean;
+    managed?: boolean;
+    tags?: Array<{ Key: string; Value: string }>;
+  } = {},
+): void {
   const tags = opts.tags ?? [
     { Key: 'iap:resourceId', Value: VPC_ID },
     ...(opts.managed === false ? [] : [{ Key: 'iap:managed', Value: 'true' }]),
   ];
   ec2.on(DescribeVpcsCommand).resolves({
-    Vpcs: [{ VpcId: 'vpc-0live', CidrBlock: opts.cidr ?? '10.42.0.0/16', State: 'available', Tags: tags }],
+    Vpcs: [
+      {
+        VpcId: 'vpc-0live',
+        CidrBlock: opts.cidr ?? '10.42.0.0/16',
+        State: 'available',
+        Tags: tags,
+      },
+    ],
   });
   ec2
     .on(DescribeVpcAttributeCommand, { Attribute: 'enableDnsSupport' })
@@ -247,9 +256,9 @@ describe('aws:ec2:Subnet — tag-identity create + cross-resource vpcId', () => 
 
     const report = await executor().apply(subnetPlan(attrs), { apply: true });
     expect(report.errors).toEqual([]);
-    expect(ec2.commandCalls(ModifySubnetAttributeCommand)[0]?.args[0].input?.MapPublicIpOnLaunch?.Value).toBe(
-      true,
-    );
+    expect(
+      ec2.commandCalls(ModifySubnetAttributeCommand)[0]?.args[0].input?.MapPublicIpOnLaunch?.Value,
+    ).toBe(true);
   });
 
   it('cidrBlock drift classifies replace (ADR-0006)', async () => {
@@ -344,7 +353,9 @@ describe('aws:ec2:SecurityGroup — tag-identity create + rule serialization', (
   it('ingress rule drift reconciles via revoke(removed)+authorize(added)', async () => {
     // Live has 80; desired has 443 only → revoke 80, authorize 443.
     mockLiveSg({
-      IpPermissions: [{ IpProtocol: 'tcp', FromPort: 80, ToPort: 80, IpRanges: [{ CidrIp: '0.0.0.0/0' }] }],
+      IpPermissions: [
+        { IpProtocol: 'tcp', FromPort: 80, ToPort: 80, IpRanges: [{ CidrIp: '0.0.0.0/0' }] },
+      ],
     });
     ec2.on(RevokeSecurityGroupIngressCommand).resolves({});
     ec2.on(AuthorizeSecurityGroupIngressCommand).resolves({});
@@ -356,11 +367,13 @@ describe('aws:ec2:SecurityGroup — tag-identity create + rule serialization', (
 
     const report = await executor().apply(sgPlan(attrs), { apply: true });
     expect(report.errors).toEqual([]);
-    expect(ec2.commandCalls(RevokeSecurityGroupIngressCommand)[0]?.args[0].input?.IpPermissions?.[0]?.FromPort).toBe(
-      80,
-    );
     expect(
-      ec2.commandCalls(AuthorizeSecurityGroupIngressCommand)[0]?.args[0].input?.IpPermissions?.[0]?.FromPort,
+      ec2.commandCalls(RevokeSecurityGroupIngressCommand)[0]?.args[0].input?.IpPermissions?.[0]
+        ?.FromPort,
+    ).toBe(80);
+    expect(
+      ec2.commandCalls(AuthorizeSecurityGroupIngressCommand)[0]?.args[0].input?.IpPermissions?.[0]
+        ?.FromPort,
     ).toBe(443);
   });
 
@@ -387,7 +400,9 @@ describe('aws:ec2:SecurityGroup — tag-identity create + rule serialization', (
       destroy: true,
     });
     expect(ok.items[0]?.applied).toBe(true);
-    expect(ec2.commandCalls(DeleteSecurityGroupCommand)[0]?.args[0].input?.GroupId).toBe('sg-0live');
+    expect(ec2.commandCalls(DeleteSecurityGroupCommand)[0]?.args[0].input?.GroupId).toBe(
+      'sg-0live',
+    );
 
     ec2.reset();
     mockLiveSg({ Tags: [{ Key: 'iap:resourceId', Value: SG_ID }] });
@@ -425,7 +440,8 @@ describe('aws:ec2:SecurityGroup — tag-identity create + rule serialization', (
     expect(report.errors).toEqual([]);
     // Desired egress authorized...
     expect(
-      ec2.commandCalls(AuthorizeSecurityGroupEgressCommand)[0]?.args[0].input?.IpPermissions?.[0]?.FromPort,
+      ec2.commandCalls(AuthorizeSecurityGroupEgressCommand)[0]?.args[0].input?.IpPermissions?.[0]
+        ?.FromPort,
     ).toBe(443);
     // ...and the default allow-all (-1) revoked.
     const revoke = ec2.commandCalls(RevokeSecurityGroupEgressCommand)[0]?.args[0].input;

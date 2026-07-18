@@ -93,9 +93,7 @@ export class SecretsManagerSecretHandler implements TargetHandler {
     const description = scalarStr(resource.desiredAttributes['description']);
     await this.client.send(new UpdateSecretCommand({ SecretId, Description: description }));
     if (current.identifier !== undefined) {
-      await this.client.send(
-        new TagResourceCommand({ SecretId, Tags: toTagList(current.tags) }),
-      );
+      await this.client.send(new TagResourceCommand({ SecretId, Tags: toTagList(current.tags) }));
     }
   }
 

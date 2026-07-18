@@ -23,10 +23,7 @@ import {
   ListTagsForCertificateCommand,
   RequestCertificateCommand,
 } from '@aws-sdk/client-acm';
-import {
-  ChangeResourceRecordSetsCommand,
-  Route53Client,
-} from '@aws-sdk/client-route-53';
+import { ChangeResourceRecordSetsCommand, Route53Client } from '@aws-sdk/client-route-53';
 import { AcmCertificateHandler, AwsExecutor } from '../src/index.js';
 import { planResource, providerPlan } from './helpers.js';
 
@@ -126,9 +123,7 @@ describe('aws:acm:Certificate — DNS validation to ISSUED (M23.2)', () => {
     expect(rrs?.Action).toBe('UPSERT');
     expect(rrs?.ResourceRecordSet?.Name).toBe('_x.api.example.test.');
     expect(rrs?.ResourceRecordSet?.Type).toBe('CNAME');
-    expect(rrs?.ResourceRecordSet?.ResourceRecords).toEqual([
-      { Value: '_y.acm-validations.aws.' },
-    ]);
+    expect(rrs?.ResourceRecordSet?.ResourceRecords).toEqual([{ Value: '_y.acm-validations.aws.' }]);
 
     // ISSUED wait actually described the cert (loop closed).
     expect(acm.commandCalls(DescribeCertificateCommand).length).toBeGreaterThanOrEqual(1);
@@ -148,9 +143,7 @@ describe('aws:acm:Certificate — DNS validation to ISSUED (M23.2)', () => {
         DomainName: 'api.example.test',
         Status: 'FAILED',
         FailureReason: 'INVALID_PUBLIC_DOMAIN',
-        DomainValidationOptions: [
-          { DomainName: 'api.example.test', ValidationMethod: 'DNS' },
-        ],
+        DomainValidationOptions: [{ DomainName: 'api.example.test', ValidationMethod: 'DNS' }],
       },
     });
 

@@ -63,43 +63,43 @@ Two kinds of failure expectation exist, and they are **not interchangeable**:
 - **`expected: schema-invalid`** — the document violates `spec/schema/iap-v1.schema.json` itself. Schema validation alone (phase 1) MUST reject it.
 - **`expected: IaP<code>`** — the document is **schema-valid by design** and MUST be rejected by a **full IaP validator** with the named semantic error code (reference resolution, cycle analysis, and the other phases of [Chapter 8](../chapters/08-validation.md)). A tool that only performs JSON Schema validation MUST report these documents as _valid_ — if your schema check rejects `04-dangling-target` or `05-ordering-cycle`, your schema check is wrong.
 
-| Case                                                | Expectation                                                                                                                           |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `valid/01-minimal.iap.yaml`                         | pass                                                                                                                                  |
-| `valid/02-relationships.iap.yaml`                   | pass (under 1.0.0 validators the then-reserved `Alert` warned IAP801; since 1.1.0 — IEP-0015 — it MUST NOT)                           |
-| `valid/03-profiles-policies.iap.yaml`               | pass                                                                                                                                  |
-| `valid/04-graduated-kinds.iap.yaml`                 | pass (kinds graduated in 1.1.0 + Database `wide-column`/`warehouse` classes; **no IAP801** may fire)                                  |
-| `valid/05-remaining-kinds-graduated.iap.yaml`       | pass (kinds graduated in 1.2.0 — `Network`, `Stream`, `Workflow`, `SearchIndex`; reserved registry now empty, **no IAP801** may fire) |
+| Case                                                | Expectation                                                                                                                                                     |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `valid/01-minimal.iap.yaml`                         | pass                                                                                                                                                            |
+| `valid/02-relationships.iap.yaml`                   | pass (under 1.0.0 validators the then-reserved `Alert` warned IAP801; since 1.1.0 — IEP-0015 — it MUST NOT)                                                     |
+| `valid/03-profiles-policies.iap.yaml`               | pass                                                                                                                                                            |
+| `valid/04-graduated-kinds.iap.yaml`                 | pass (kinds graduated in 1.1.0 + Database `wide-column`/`warehouse` classes; **no IAP801** may fire)                                                            |
+| `valid/05-remaining-kinds-graduated.iap.yaml`       | pass (kinds graduated in 1.2.0 — `Network`, `Stream`, `Workflow`, `SearchIndex`; reserved registry now empty, **no IAP801** may fire)                           |
 | `valid/06-new-kinds-and-widenings.iap.yaml`         | pass (kinds introduced directly in 1.3.0 — `Cdn`, `EventBus` — plus the `Identity.type`/`Service.runtime`/`Gateway.protocol` widenings; **no IAP801** may fire) |
-| `invalid/01-unknown-kind.iap.yaml`                  | schema-invalid (kind enum)                                                                                                            |
-| `invalid/02-bad-enum.iap.yaml`                      | schema-invalid (availability enum)                                                                                                    |
-| `invalid/03-provider-field.iap.yaml`                | schema-invalid (`additionalProperties: false` on the Service spec)                                                                    |
-| `invalid/04-dangling-target.iap.yaml`               | IAP201 — schema-valid; dangling `connectsTo` target                                                                                   |
-| `invalid/05-ordering-cycle.iap.yaml`                | IAP401 — schema-valid; `dependsOn` cycle                                                                                              |
-| `invalid/06-bad-resource-id.iap.yaml`               | schema-invalid (resource-key `propertyNames` pattern)                                                                                 |
-| `invalid/07-inert-deadletter.iap.yaml`              | IAP104 — schema-valid; `deadLetter.maxReceives` set while `enabled: false` (inert field combination)                                  |
-| `invalid/08-scaling-min-gt-max.iap.yaml`            | IAP104 — schema-valid; `scaling.min` > `scaling.max` (cross-field constraint)                                                         |
-| `invalid/09-engine-class-mismatch.iap.yaml`         | IAP104 — schema-valid; Database `engine: postgresql` with `class: document`                                                           |
-| `invalid/10-dangling-component.iap.yaml`            | IAP202 — schema-valid; Application `components` entry naming no resource                                                              |
-| `invalid/11-dangling-output.iap.yaml`               | IAP203 — schema-valid; `outputs.*.resource` naming no resource                                                                        |
-| `invalid/12-dangling-certificate.iap.yaml`          | IAP204 — schema-valid; Gateway `tls.certificate` naming no resource                                                                   |
-| `invalid/13-profile-extends-cycle.iap.yaml`         | IAP205 — schema-valid; two profiles `extends`-ing each other                                                                          |
-| `invalid/14-verb-kind-violation.iap.yaml`           | IAP301 — schema-valid; `routesTo` edge targeting a `Volume`                                                                           |
-| `invalid/15-attribute-verb-violation.iap.yaml`      | IAP302 — schema-valid; `path` attribute on a `connectsTo` edge                                                                        |
-| `invalid/16-zero-match-selector.iap.yaml`           | IAP402 — schema-valid; rule-edge selector matching zero resources                                                                     |
-| `invalid/17-policy-deny-violation.iap.yaml`         | IAP501 — schema-valid; `deny` condition true for a targeted resource                                                                  |
-| `invalid/18-policy-require-violation.iap.yaml`      | IAP502 — schema-valid; `require` condition false for a targeted resource                                                              |
-| `invalid/19-public-data-store.iap.yaml`             | IAP601 — schema-valid; public ObjectStore that is a `storesDataIn` target                                                             |
-| `invalid/20-secret-in-configuration.iap.yaml`       | IAP602 — schema-valid; credential-patterned `configuration` key (`DB_PASSWORD`)                                                       |
-| `invalid/21-noninterference-violation.iap.yaml`     | IAP803 — schema-valid; extension block overriding core exposure intent                                                                |
-| `invalid/22-postmerge-invalid.iap.yaml`             | IAP101 — pre-merge schema-valid; profile merge deletes required `spec.class` (post-merge schema failure)                              |
-| `invalid/23-certificate-missing-domains.iap.yaml`   | schema-invalid (since 1.1.0/IEP-0015: `Certificate.spec.domains` is required under the promoted contract)                             |
-| `invalid/24-warehouse-engine-mismatch.iap.yaml`     | IAP104 — schema-valid; Database `class: warehouse` (1.1.0) with `engine: postgresql` (no engine pairs with warehouse)                 |
-| `invalid/25-searchindex-missing-indextype.iap.yaml` | schema-invalid (since 1.2.0/IEP-0016: `SearchIndex.spec.indexType` is required under the promoted contract)                           |
-| `invalid/26-network-bad-tier.iap.yaml`              | schema-invalid (since 1.2.0/IEP-0016: `Network.spec.tiers` is a closed enum; `dmz` is not a member)                                   |
-| `invalid/27-cdn-missing-origins.iap.yaml`           | schema-invalid (since 1.3.0/IEP-0017: `Cdn.spec.origins` is required — min 1 — under the new contract)                                |
-| `invalid/28-eventbus-bad-source.iap.yaml`           | schema-invalid (since 1.3.0/IEP-0017: `EventBus.spec.sources` is a closed enum; `external` is not a member)                           |
-| `invalid/29-identity-bad-type.iap.yaml`             | schema-invalid (1.3.0/IEP-0017 widened `Identity.type` to add `user-directory`; the enum stays closed — `external-user` is rejected)  |
+| `invalid/01-unknown-kind.iap.yaml`                  | schema-invalid (kind enum)                                                                                                                                      |
+| `invalid/02-bad-enum.iap.yaml`                      | schema-invalid (availability enum)                                                                                                                              |
+| `invalid/03-provider-field.iap.yaml`                | schema-invalid (`additionalProperties: false` on the Service spec)                                                                                              |
+| `invalid/04-dangling-target.iap.yaml`               | IAP201 — schema-valid; dangling `connectsTo` target                                                                                                             |
+| `invalid/05-ordering-cycle.iap.yaml`                | IAP401 — schema-valid; `dependsOn` cycle                                                                                                                        |
+| `invalid/06-bad-resource-id.iap.yaml`               | schema-invalid (resource-key `propertyNames` pattern)                                                                                                           |
+| `invalid/07-inert-deadletter.iap.yaml`              | IAP104 — schema-valid; `deadLetter.maxReceives` set while `enabled: false` (inert field combination)                                                            |
+| `invalid/08-scaling-min-gt-max.iap.yaml`            | IAP104 — schema-valid; `scaling.min` > `scaling.max` (cross-field constraint)                                                                                   |
+| `invalid/09-engine-class-mismatch.iap.yaml`         | IAP104 — schema-valid; Database `engine: postgresql` with `class: document`                                                                                     |
+| `invalid/10-dangling-component.iap.yaml`            | IAP202 — schema-valid; Application `components` entry naming no resource                                                                                        |
+| `invalid/11-dangling-output.iap.yaml`               | IAP203 — schema-valid; `outputs.*.resource` naming no resource                                                                                                  |
+| `invalid/12-dangling-certificate.iap.yaml`          | IAP204 — schema-valid; Gateway `tls.certificate` naming no resource                                                                                             |
+| `invalid/13-profile-extends-cycle.iap.yaml`         | IAP205 — schema-valid; two profiles `extends`-ing each other                                                                                                    |
+| `invalid/14-verb-kind-violation.iap.yaml`           | IAP301 — schema-valid; `routesTo` edge targeting a `Volume`                                                                                                     |
+| `invalid/15-attribute-verb-violation.iap.yaml`      | IAP302 — schema-valid; `path` attribute on a `connectsTo` edge                                                                                                  |
+| `invalid/16-zero-match-selector.iap.yaml`           | IAP402 — schema-valid; rule-edge selector matching zero resources                                                                                               |
+| `invalid/17-policy-deny-violation.iap.yaml`         | IAP501 — schema-valid; `deny` condition true for a targeted resource                                                                                            |
+| `invalid/18-policy-require-violation.iap.yaml`      | IAP502 — schema-valid; `require` condition false for a targeted resource                                                                                        |
+| `invalid/19-public-data-store.iap.yaml`             | IAP601 — schema-valid; public ObjectStore that is a `storesDataIn` target                                                                                       |
+| `invalid/20-secret-in-configuration.iap.yaml`       | IAP602 — schema-valid; credential-patterned `configuration` key (`DB_PASSWORD`)                                                                                 |
+| `invalid/21-noninterference-violation.iap.yaml`     | IAP803 — schema-valid; extension block overriding core exposure intent                                                                                          |
+| `invalid/22-postmerge-invalid.iap.yaml`             | IAP101 — pre-merge schema-valid; profile merge deletes required `spec.class` (post-merge schema failure)                                                        |
+| `invalid/23-certificate-missing-domains.iap.yaml`   | schema-invalid (since 1.1.0/IEP-0015: `Certificate.spec.domains` is required under the promoted contract)                                                       |
+| `invalid/24-warehouse-engine-mismatch.iap.yaml`     | IAP104 — schema-valid; Database `class: warehouse` (1.1.0) with `engine: postgresql` (no engine pairs with warehouse)                                           |
+| `invalid/25-searchindex-missing-indextype.iap.yaml` | schema-invalid (since 1.2.0/IEP-0016: `SearchIndex.spec.indexType` is required under the promoted contract)                                                     |
+| `invalid/26-network-bad-tier.iap.yaml`              | schema-invalid (since 1.2.0/IEP-0016: `Network.spec.tiers` is a closed enum; `dmz` is not a member)                                                             |
+| `invalid/27-cdn-missing-origins.iap.yaml`           | schema-invalid (since 1.3.0/IEP-0017: `Cdn.spec.origins` is required — min 1 — under the new contract)                                                          |
+| `invalid/28-eventbus-bad-source.iap.yaml`           | schema-invalid (since 1.3.0/IEP-0017: `EventBus.spec.sources` is a closed enum; `external` is not a member)                                                     |
+| `invalid/29-identity-bad-type.iap.yaml`             | schema-invalid (1.3.0/IEP-0017 widened `Identity.type` to add `user-directory`; the enum stays closed — `external-user` is rejected)                            |
 
 ## Running the schema-validation layer with ajv
 

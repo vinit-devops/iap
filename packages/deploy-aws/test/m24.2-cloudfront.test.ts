@@ -137,7 +137,10 @@ describe('aws:cloudfront:Distribution', () => {
       // The first (other) distribution carries a different iap:resourceId.
       .resolvesOnce({ Tags: { Items: [{ Key: 'iap:resourceId', Value: 'someone-else' }] } })
       .resolves(managedTags);
-    cf.on(GetDistributionCommand).resolves({ Distribution: { ARN, DistributionConfig: liveConfig() }, ETag: 'etag-0' });
+    cf.on(GetDistributionCommand).resolves({
+      Distribution: { ARN, DistributionConfig: liveConfig() },
+      ETag: 'etag-0',
+    });
 
     const report = await executor().plan(plan());
 
@@ -167,9 +170,12 @@ describe('aws:cloudfront:Distribution', () => {
     cf.on(UpdateDistributionCommand).resolves({ Distribution: { ARN }, ETag: 'etag-next' });
     cf.on(TagResourceCommand).resolves({});
 
-    const report = await executor().apply(plan({ priceClass: 'PriceClass_All', comment: 'edge v2' }), {
-      apply: true,
-    });
+    const report = await executor().apply(
+      plan({ priceClass: 'PriceClass_All', comment: 'edge v2' }),
+      {
+        apply: true,
+      },
+    );
 
     expect(report.errors).toEqual([]);
     expect(report.items[0]?.action).toBe('update');
@@ -273,7 +279,12 @@ describe('aws:cloudfront:Distribution', () => {
     cf.on(ListDistributionsCommand).resolves({ DistributionList: { Items: [summary] } });
     cf.on(ListTagsForResourceCommand).resolves({
       // iap:resourceId matches (identity) but iap:managed is absent.
-      Tags: { Items: [{ Key: 'iap:resourceId', Value: LOGICAL_ID }, { Key: 'team', Value: 'edge' }] },
+      Tags: {
+        Items: [
+          { Key: 'iap:resourceId', Value: LOGICAL_ID },
+          { Key: 'team', Value: 'edge' },
+        ],
+      },
     });
     cf.on(GetDistributionCommand).resolves({
       Distribution: { ARN, DistributionConfig: liveConfig() },

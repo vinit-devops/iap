@@ -128,7 +128,8 @@ export class RdsInstanceHandler implements TargetHandler {
     const d = this.desiredProjection(resource);
     const live = current.projection;
     const changes: Record<string, unknown> = {};
-    if (d['instanceClass'] !== live['instanceClass']) changes['DBInstanceClass'] = d['instanceClass'];
+    if (d['instanceClass'] !== live['instanceClass'])
+      changes['DBInstanceClass'] = d['instanceClass'];
     if (d['multiAZ'] !== live['multiAZ']) changes['MultiAZ'] = d['multiAZ'] === 'true';
     if (d['allocatedStorage'] !== live['allocatedStorage'])
       changes['AllocatedStorage'] = Number(d['allocatedStorage']);

@@ -89,7 +89,11 @@ describe('aws:route53:HostedZone', () => {
       },
     });
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/ZONEB', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
+      HostedZone: {
+        Id: '/hostedzone/ZONEB',
+        Name: 'infraasprompt.internal.',
+        Config: { PrivateZone: false },
+      },
     });
 
     // Dry-run apply (gate closed) still resolves identity + populates identifier.
@@ -127,7 +131,11 @@ describe('aws:route53:HostedZone', () => {
     });
     // Live zone is PUBLIC; desired is private → immutable drift.
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
+      HostedZone: {
+        Id: '/hostedzone/Z1',
+        Name: 'infraasprompt.internal.',
+        Config: { PrivateZone: false },
+      },
     });
 
     const report = await executor().plan(zonePlan({ visibility: 'private' }));
@@ -148,17 +156,38 @@ describe('aws:route53:HostedZone', () => {
       },
     });
     r53.on(GetHostedZoneCommand).resolves({
-      HostedZone: { Id: '/hostedzone/Z1', Name: 'infraasprompt.internal.', Config: { PrivateZone: false } },
+      HostedZone: {
+        Id: '/hostedzone/Z1',
+        Name: 'infraasprompt.internal.',
+        Config: { PrivateZone: false },
+      },
     });
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'infraasprompt.internal.', Type: 'SOA', TTL: 900, ResourceRecords: [{ Value: 'ns.x. a.x. 1 7200 900 1209600 86400' }] },
-        { Name: 'infraasprompt.internal.', Type: 'NS', TTL: 172800, ResourceRecords: [{ Value: 'ns-1.awsdns.' }] },
-        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        {
+          Name: 'infraasprompt.internal.',
+          Type: 'SOA',
+          TTL: 900,
+          ResourceRecords: [{ Value: 'ns.x. a.x. 1 7200 900 1209600 86400' }],
+        },
+        {
+          Name: 'infraasprompt.internal.',
+          Type: 'NS',
+          TTL: 172800,
+          ResourceRecords: [{ Value: 'ns-1.awsdns.' }],
+        },
+        {
+          Name: 'api.infraasprompt.internal.',
+          Type: 'A',
+          TTL: 60,
+          ResourceRecords: [{ Value: '10.0.0.1' }],
+        },
       ],
       IsTruncated: false,
     });
-    r53.on(ChangeResourceRecordSetsCommand).resolves({ ChangeInfo: { Id: '/change/C1', Status: 'PENDING' } });
+    r53
+      .on(ChangeResourceRecordSetsCommand)
+      .resolves({ ChangeInfo: { Id: '/change/C1', Status: 'PENDING' } });
     r53.on(DeleteHostedZoneCommand).resolves({});
 
     const report = await executor().apply(zonePlan(), { apply: true, destroy: true });
@@ -192,13 +221,18 @@ describe('aws:route53:RecordSet', () => {
 
   const managedZoneTags = {
     ResourceTagSet: {
-      Tags: [{ Key: 'iap:managed', Value: 'true' }, { Key: 'iap:resourceId', Value: 'z' }],
+      Tags: [
+        { Key: 'iap:managed', Value: 'true' },
+        { Key: 'iap:resourceId', Value: 'z' },
+      ],
     },
   };
 
   it('absent → ChangeResourceRecordSets UPSERT', async () => {
     r53.on(ListResourceRecordSetsCommand).resolves({ ResourceRecordSets: [] });
-    r53.on(ChangeResourceRecordSetsCommand).resolves({ ChangeInfo: { Id: '/change/C1', Status: 'PENDING' } });
+    r53
+      .on(ChangeResourceRecordSetsCommand)
+      .resolves({ ChangeInfo: { Id: '/change/C1', Status: 'PENDING' } });
 
     const report = await executor().apply(recordPlan(), { apply: true });
 
@@ -218,11 +252,18 @@ describe('aws:route53:RecordSet', () => {
   it('value drift → ChangeResourceRecordSets UPSERT (update in place)', async () => {
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        {
+          Name: 'api.infraasprompt.internal.',
+          Type: 'A',
+          TTL: 60,
+          ResourceRecords: [{ Value: '10.0.0.1' }],
+        },
       ],
     });
     r53.on(ListTagsForResourceCommand).resolves(managedZoneTags);
-    r53.on(ChangeResourceRecordSetsCommand).resolves({ ChangeInfo: { Id: '/change/C2', Status: 'PENDING' } });
+    r53
+      .on(ChangeResourceRecordSetsCommand)
+      .resolves({ ChangeInfo: { Id: '/change/C2', Status: 'PENDING' } });
 
     const report = await executor().apply(recordPlan({ records: '10.0.0.2' }), { apply: true });
 
@@ -237,7 +278,12 @@ describe('aws:route53:RecordSet', () => {
     // Live record is an A at the name; desired is a CNAME → identity drift.
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        {
+          Name: 'api.infraasprompt.internal.',
+          Type: 'A',
+          TTL: 60,
+          ResourceRecords: [{ Value: '10.0.0.1' }],
+        },
       ],
     });
     r53.on(ListTagsForResourceCommand).resolves(managedZoneTags);
@@ -251,7 +297,12 @@ describe('aws:route53:RecordSet', () => {
   it('destroy refuses a record whose parent zone is unmanaged (managed-only gate)', async () => {
     r53.on(ListResourceRecordSetsCommand).resolves({
       ResourceRecordSets: [
-        { Name: 'api.infraasprompt.internal.', Type: 'A', TTL: 60, ResourceRecords: [{ Value: '10.0.0.1' }] },
+        {
+          Name: 'api.infraasprompt.internal.',
+          Type: 'A',
+          TTL: 60,
+          ResourceRecords: [{ Value: '10.0.0.1' }],
+        },
       ],
     });
     // Parent zone carries no iap:managed tag → the record is not ours to delete.

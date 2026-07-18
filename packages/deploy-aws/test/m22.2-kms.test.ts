@@ -96,9 +96,7 @@ describe('aws:kms:Key — converged and drifted', () => {
 
     expect(report.items[0]?.action).toBe('no-op');
     // Read resolves through the alias, tags through the key id.
-    expect(kms.commandCalls(DescribeKeyCommand)[0]?.args[0].input?.KeyId).toBe(
-      'alias/orders-data',
-    );
+    expect(kms.commandCalls(DescribeKeyCommand)[0]?.args[0].input?.KeyId).toBe('alias/orders-data');
     expect(kms.commandCalls(ListResourceTagsCommand)[0]?.args[0].input?.KeyId).toBe(KEY_ID);
   });
 
@@ -181,7 +179,9 @@ describe('aws:kms:Key — keySpec drift is IMMUTABLE (ADR-0006)', () => {
     });
     kms.on(DeleteAliasCommand).resolves({});
     kms.on(ScheduleKeyDeletionCommand).resolves({});
-    kms.on(CreateKeyCommand).resolves({ KeyMetadata: { KeyId: 'new-key-id', Arn: 'arn:kms:key/new' } });
+    kms
+      .on(CreateKeyCommand)
+      .resolves({ KeyMetadata: { KeyId: 'new-key-id', Arn: 'arn:kms:key/new' } });
     kms.on(CreateAliasCommand).resolves({});
 
     const report = await executor().apply(desired, { apply: true, replace: true });
@@ -197,12 +197,8 @@ describe('aws:kms:Key — keySpec drift is IMMUTABLE (ADR-0006)', () => {
     expect(schedule?.KeyId).toBe(KEY_ARN);
     expect(schedule?.PendingWindowInDays).toBe(7);
     // …then a fresh key takes over the alias.
-    expect(kms.commandCalls(CreateKeyCommand)[0]?.args[0].input?.KeySpec).toBe(
-      'SYMMETRIC_DEFAULT',
-    );
-    expect(kms.commandCalls(CreateAliasCommand)[0]?.args[0].input?.TargetKeyId).toBe(
-      'new-key-id',
-    );
+    expect(kms.commandCalls(CreateKeyCommand)[0]?.args[0].input?.KeySpec).toBe('SYMMETRIC_DEFAULT');
+    expect(kms.commandCalls(CreateAliasCommand)[0]?.args[0].input?.TargetKeyId).toBe('new-key-id');
   });
 });
 
@@ -219,7 +215,9 @@ describe('aws:kms:Key — PendingDeletion semantics', () => {
       },
     });
     kms.on(DeleteAliasCommand).resolves({});
-    kms.on(CreateKeyCommand).resolves({ KeyMetadata: { KeyId: 'fresh-key', Arn: 'arn:kms:key/fresh' } });
+    kms
+      .on(CreateKeyCommand)
+      .resolves({ KeyMetadata: { KeyId: 'fresh-key', Arn: 'arn:kms:key/fresh' } });
     kms.on(CreateAliasCommand).resolves({});
 
     const planned = await executor().plan(plan());

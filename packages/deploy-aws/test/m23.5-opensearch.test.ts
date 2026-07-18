@@ -43,7 +43,11 @@ function liveDomain(overrides: Partial<DomainStatus> = {}): DomainStatus {
     Processing: false,
     EngineVersion: 'OpenSearch_2.11',
     Endpoint: 'search-catalog.eu-central-1.es.amazonaws.com',
-    ClusterConfig: { InstanceType: 't3.small.search', InstanceCount: 1, ZoneAwarenessEnabled: false },
+    ClusterConfig: {
+      InstanceType: 't3.small.search',
+      InstanceCount: 1,
+      ZoneAwarenessEnabled: false,
+    },
     EBSOptions: { EBSEnabled: true, VolumeType: 'gp3', VolumeSize: 10 },
     // AWS always reports an at-rest KMS key — the AWS-owned aws/opensearch key
     // when none was pinned. An unpinned plan must not read this as drift.

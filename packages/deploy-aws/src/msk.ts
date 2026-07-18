@@ -80,7 +80,10 @@ export class MskClusterHandler implements TargetHandler {
    */
   readonly immutableProjectionKeys = ['clusterType', 'subnetIds', 'securityGroupIds'] as const;
 
-  constructor(private readonly kafka: KafkaClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly kafka: KafkaClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   /** Split a pinned comma/space-separated id list into a sorted id array. */
   private idList(value: Scalar | undefined): string[] {
@@ -113,9 +116,7 @@ export class MskClusterHandler implements TargetHandler {
       return { exists: false, managed: false, tags: {}, projection: {} };
     }
 
-    const described = await this.kafka.send(
-      new DescribeClusterV2Command({ ClusterArn: arn }),
-    );
+    const described = await this.kafka.send(new DescribeClusterV2Command({ ClusterArn: arn }));
     const info = described.ClusterInfo;
     // A cluster mid-teardown is on its way to absent; treating it as present
     // would produce calls the service rejects.
@@ -123,9 +124,7 @@ export class MskClusterHandler implements TargetHandler {
       return { exists: false, managed: false, tags: {}, projection: {} };
     }
 
-    const tagResult = await this.kafka.send(
-      new ListTagsForResourceCommand({ ResourceArn: arn }),
-    );
+    const tagResult = await this.kafka.send(new ListTagsForResourceCommand({ ResourceArn: arn }));
     const tags = tagResult.Tags ?? {};
 
     const subnetsPinned = this.idList(resource.desiredAttributes['subnetIds']).length > 0;

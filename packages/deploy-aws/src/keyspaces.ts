@@ -167,9 +167,7 @@ export class KeyspacesKeyspaceHandler implements TargetHandler {
 
   async delete(resource: PlanResource): Promise<void> {
     // DeleteKeyspace is async (DELETING); no waiter, mirroring create.
-    await this.keyspaces.send(
-      new DeleteKeyspaceCommand({ keyspaceName: resourceIdOf(resource) }),
-    );
+    await this.keyspaces.send(new DeleteKeyspaceCommand({ keyspaceName: resourceIdOf(resource) }));
   }
 }
 
@@ -235,7 +233,10 @@ export class KeyspacesTableHandler implements TargetHandler {
       if (kind === 'pk') {
         partitionKeys.push({ name });
       } else if (kind === 'ck') {
-        clusteringKeys.push({ name, orderBy: (order ?? 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC' });
+        clusteringKeys.push({
+          name,
+          orderBy: (order ?? 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC',
+        });
       }
     }
     if (partitionKeys.length === 0) {
@@ -282,7 +283,9 @@ export class KeyspacesTableHandler implements TargetHandler {
     if (this.capacityMode(resource) === PROVISIONED) {
       return {
         throughputMode: PROVISIONED,
-        readCapacityUnits: Number(scalarStr(resource.desiredAttributes['readCapacityUnits']) || '1'),
+        readCapacityUnits: Number(
+          scalarStr(resource.desiredAttributes['readCapacityUnits']) || '1',
+        ),
         writeCapacityUnits: Number(
           scalarStr(resource.desiredAttributes['writeCapacityUnits']) || '1',
         ),
@@ -378,7 +381,9 @@ export class KeyspacesTableHandler implements TargetHandler {
     const keyspaceName = this.keyspaceName(resource);
     const pitr: PointInTimeRecovery | undefined =
       this.pitrStatus(resource) === 'ENABLED' ? { status: 'ENABLED' } : undefined;
-    const ttl: TimeToLive | undefined = this.ttlEnabled(resource) ? { status: 'ENABLED' } : undefined;
+    const ttl: TimeToLive | undefined = this.ttlEnabled(resource)
+      ? { status: 'ENABLED' }
+      : undefined;
     const created = await this.keyspaces.send(
       new CreateTableCommand({
         keyspaceName,
@@ -440,9 +445,7 @@ export class KeyspacesTableHandler implements TargetHandler {
     // TTL cannot be disabled once enabled — only ever send an enable.
     if ((desired['ttl'] ?? '') !== (live['ttl'] ?? '') && this.ttlEnabled(resource)) {
       const ttl: TimeToLive = { status: 'ENABLED' };
-      await this.keyspaces.send(
-        new UpdateTableCommand({ keyspaceName, tableName, ttl }),
-      );
+      await this.keyspaces.send(new UpdateTableCommand({ keyspaceName, tableName, ttl }));
     }
   }
 

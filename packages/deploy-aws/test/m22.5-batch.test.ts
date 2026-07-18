@@ -117,7 +117,10 @@ describe('aws:batch:ComputeEnvironment', () => {
 
   it('absent → CreateComputeEnvironment: MANAGED Fargate over split subnets/SGs + tags', async () => {
     const plan = providerPlan([
-      planResource('infraasprompt-ce', 'aws:batch:ComputeEnvironment', { ...NETWORKING, maxVcpus: 2 }),
+      planResource('infraasprompt-ce', 'aws:batch:ComputeEnvironment', {
+        ...NETWORKING,
+        maxVcpus: 2,
+      }),
     ]);
     batch.on(DescribeComputeEnvironmentsCommand).resolves({ computeEnvironments: [] });
     batch.on(CreateComputeEnvironmentCommand).resolves({ computeEnvironmentArn: CE_ARN });
@@ -141,7 +144,10 @@ describe('aws:batch:ComputeEnvironment', () => {
 
   it('maxVcpus drift → UpdateComputeEnvironment in place (never delete+create)', async () => {
     const plan = providerPlan([
-      planResource('infraasprompt-ce', 'aws:batch:ComputeEnvironment', { ...NETWORKING, maxVcpus: 4 }),
+      planResource('infraasprompt-ce', 'aws:batch:ComputeEnvironment', {
+        ...NETWORKING,
+        maxVcpus: 4,
+      }),
     ]);
     batch.on(DescribeComputeEnvironmentsCommand).resolves(liveCe(1));
     batch.on(UpdateComputeEnvironmentCommand).resolves({});
@@ -218,7 +224,12 @@ describe('aws:batch:ComputeEnvironment', () => {
       .resolvesOnce(liveCe(1)) // classify read
       .resolves({
         computeEnvironments: [
-          { computeEnvironmentName: 'infraasprompt-ce', computeEnvironmentArn: CE_ARN, status: 'DELETING', tags: MANAGED },
+          {
+            computeEnvironmentName: 'infraasprompt-ce',
+            computeEnvironmentArn: CE_ARN,
+            status: 'DELETING',
+            tags: MANAGED,
+          },
         ],
       });
     batch.on(UpdateComputeEnvironmentCommand).resolves({});
@@ -298,9 +309,7 @@ describe('aws:batch:JobQueue', () => {
     expect(jqInput?.jobQueueName).toBe('a-queue');
     expect(jqInput?.priority).toBe(5);
     expect(jqInput?.state).toBe('ENABLED');
-    expect(jqInput?.computeEnvironmentOrder).toEqual([
-      { order: 1, computeEnvironment: 'z-env' },
-    ]);
+    expect(jqInput?.computeEnvironmentOrder).toEqual([{ order: 1, computeEnvironment: 'z-env' }]);
     expect(jqInput?.tags?.['iap:managed']).toBe('true');
 
     // DESTROY: reversed topology — the JQ must go BEFORE the CE it references.
@@ -342,10 +351,7 @@ describe('aws:batch:JobQueue', () => {
       .on(DescribeComputeEnvironmentsCommand)
       .resolvesOnce(zEnv('ENABLED'))
       .resolves(zEnv('DISABLED'));
-    batch
-      .on(DescribeJobQueuesCommand)
-      .resolvesOnce(aQueue('ENABLED'))
-      .resolves(aQueue('DISABLED'));
+    batch.on(DescribeJobQueuesCommand).resolvesOnce(aQueue('ENABLED')).resolves(aQueue('DISABLED'));
     batch.on(UpdateJobQueueCommand).resolves({});
     batch.on(DeleteJobQueueCommand).resolves({});
     batch.on(UpdateComputeEnvironmentCommand).resolves({});
@@ -417,7 +423,9 @@ describe('aws:batch:JobQueue', () => {
       ],
     });
     const plan = providerPlan([
-      planResource('infraasprompt-queue', 'aws:batch:JobQueue', { computeEnvironment: 'infraasprompt-ce' }),
+      planResource('infraasprompt-queue', 'aws:batch:JobQueue', {
+        computeEnvironment: 'infraasprompt-ce',
+      }),
     ]);
     batch
       .on(DescribeJobQueuesCommand)
@@ -454,9 +462,11 @@ describe('aws:batch:JobDefinition', () => {
       planResource('infraasprompt-jd', 'aws:batch:JobDefinition', { executionRoleArn: ROLE_ARN }),
     ]);
     batch.on(DescribeJobDefinitionsCommand).resolves({ jobDefinitions: [] });
-    batch
-      .on(RegisterJobDefinitionCommand)
-      .resolves({ jobDefinitionName: 'infraasprompt-jd', jobDefinitionArn: `${JD_ARN_PREFIX}:1`, revision: 1 });
+    batch.on(RegisterJobDefinitionCommand).resolves({
+      jobDefinitionName: 'infraasprompt-jd',
+      jobDefinitionArn: `${JD_ARN_PREFIX}:1`,
+      revision: 1,
+    });
 
     const report = await executor().apply(plan, { apply: true });
 
@@ -485,9 +495,11 @@ describe('aws:batch:JobDefinition', () => {
       }),
     ]);
     batch.on(DescribeJobDefinitionsCommand).resolves({ jobDefinitions: [jdRevision(1)] });
-    batch
-      .on(RegisterJobDefinitionCommand)
-      .resolves({ jobDefinitionName: 'infraasprompt-jd', jobDefinitionArn: `${JD_ARN_PREFIX}:2`, revision: 2 });
+    batch.on(RegisterJobDefinitionCommand).resolves({
+      jobDefinitionName: 'infraasprompt-jd',
+      jobDefinitionArn: `${JD_ARN_PREFIX}:2`,
+      revision: 2,
+    });
 
     const report = await executor().apply(plan, { apply: true });
 

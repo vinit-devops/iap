@@ -71,10 +71,14 @@ describe('aws:apprunner:Service', () => {
       .on(ListServicesCommand)
       .resolvesOnce({
         NextToken: 'page-2',
-        ServiceSummaryList: [{ ServiceName: 'other-svc', ServiceArn: 'arn:other', Status: 'RUNNING' }],
+        ServiceSummaryList: [
+          { ServiceName: 'other-svc', ServiceArn: 'arn:other', Status: 'RUNNING' },
+        ],
       })
       .resolves({
-        ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+        ServiceSummaryList: [
+          { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' },
+        ],
       });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -89,9 +93,9 @@ describe('aws:apprunner:Service', () => {
     expect(apprunner.commandCalls(DescribeServiceCommand)[0]?.args[0].input?.ServiceArn).toBe(
       SERVICE_ARN,
     );
-    expect(
-      apprunner.commandCalls(ListTagsForResourceCommand)[0]?.args[0].input?.ResourceArn,
-    ).toBe(SERVICE_ARN);
+    expect(apprunner.commandCalls(ListTagsForResourceCommand)[0]?.args[0].input?.ResourceArn).toBe(
+      SERVICE_ARN,
+    );
   });
 
   it('absent → CreateService with the public hello image, defaults, and mandatory tags', async () => {
@@ -123,7 +127,9 @@ describe('aws:apprunner:Service', () => {
       planResource('infraasprompt-svc', 'aws:apprunner:Service', { cpu: '1024', memory: '2048' }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [
+        { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' },
+      ],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -147,7 +153,13 @@ describe('aws:apprunner:Service', () => {
       planResource('infraasprompt-svc', 'aws:apprunner:Service', { cpu: '1024' }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'OPERATION_IN_PROGRESS' }],
+      ServiceSummaryList: [
+        {
+          ServiceName: 'infraasprompt-svc',
+          ServiceArn: SERVICE_ARN,
+          Status: 'OPERATION_IN_PROGRESS',
+        },
+      ],
     });
     // Honest read: OPERATION_IN_PROGRESS still EXISTS (drift → update attempt).
     apprunner.on(DescribeServiceCommand).resolves(runningService('OPERATION_IN_PROGRESS'));
@@ -166,7 +178,9 @@ describe('aws:apprunner:Service', () => {
 
   it('destroy → DeleteService by resolved ARN; unmanaged service is refused', async () => {
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [
+        { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' },
+      ],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
@@ -182,7 +196,9 @@ describe('aws:apprunner:Service', () => {
     // Same service WITHOUT iap:managed=true → managed-only gate refuses.
     apprunner.reset();
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [
+        { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' },
+      ],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: [] });
@@ -195,7 +211,9 @@ describe('aws:apprunner:Service', () => {
 
   it('Status DELETED reads as absent even while the name lingers in ListServices', async () => {
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'DELETED' }],
+      ServiceSummaryList: [
+        { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'DELETED' },
+      ],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService('DELETED'));
 
@@ -213,10 +231,14 @@ describe('aws:apprunner:Service', () => {
     expect(handler.immutableProjectionKeys).toBeUndefined();
 
     const plan = providerPlan([
-      planResource('infraasprompt-svc', 'aws:apprunner:Service', { image: 'public.ecr.aws/other/image:1' }),
+      planResource('infraasprompt-svc', 'aws:apprunner:Service', {
+        image: 'public.ecr.aws/other/image:1',
+      }),
     ]);
     apprunner.on(ListServicesCommand).resolves({
-      ServiceSummaryList: [{ ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' }],
+      ServiceSummaryList: [
+        { ServiceName: 'infraasprompt-svc', ServiceArn: SERVICE_ARN, Status: 'RUNNING' },
+      ],
     });
     apprunner.on(DescribeServiceCommand).resolves(runningService());
     apprunner.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });

@@ -45,7 +45,9 @@ describe('dependsOn-aware ordering (topological, alphabetical tiebreak)', () => 
     backup.on(DescribeBackupVaultCommand).rejects(serviceError('ResourceNotFoundException'));
     backup.on(ListBackupPlansCommand).resolves({ BackupPlansList: [] });
     backup.on(CreateBackupVaultCommand).resolves({ BackupVaultArn: 'arn:aws:backup:v' });
-    backup.on(CreateBackupPlanCommand).resolves({ BackupPlanArn: 'arn:aws:backup:p', BackupPlanId: 'id-1' });
+    backup
+      .on(CreateBackupPlanCommand)
+      .resolves({ BackupPlanArn: 'arn:aws:backup:p', BackupPlanId: 'id-1' });
 
     const report = await executor().apply(providerPlan([plan, vault]), { apply: true });
 
@@ -62,7 +64,9 @@ describe('dependsOn-aware ordering (topological, alphabetical tiebreak)', () => 
     const managedTags = { 'iap:managed': 'true' };
     backup.on(DescribeBackupVaultCommand).resolves({ BackupVaultArn: 'arn:aws:backup:v' });
     backup.on(ListBackupPlansCommand).resolves({
-      BackupPlansList: [{ BackupPlanId: 'id-1', BackupPlanName: 'a-plan', BackupPlanArn: 'arn:aws:backup:p' }],
+      BackupPlansList: [
+        { BackupPlanId: 'id-1', BackupPlanName: 'a-plan', BackupPlanArn: 'arn:aws:backup:p' },
+      ],
     });
     backup.on(GetBackupPlanCommand).resolves({
       BackupPlan: { BackupPlanName: 'a-plan', Rules: [] },

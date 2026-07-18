@@ -146,7 +146,9 @@ describe('aws:secretsmanager:Secret', () => {
   it('absent → generates a random password and creates the secret', async () => {
     sm.on(DescribeSecretCommand).rejects(serviceError('ResourceNotFoundException', 404));
     sm.on(GetRandomPasswordCommand).resolves({ RandomPassword: 'r4nd0m-mock-value-32-chars-xxxx' });
-    sm.on(CreateSecretCommand).resolves({ ARN: 'arn:aws:secretsmanager:eu-west-1:REDACTED:secret:db-conn' });
+    sm.on(CreateSecretCommand).resolves({
+      ARN: 'arn:aws:secretsmanager:eu-west-1:REDACTED:secret:db-conn',
+    });
 
     const report = await executor().apply(plan, { apply: true });
 
@@ -193,9 +195,9 @@ describe('aws:secretsmanager:Secret', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(
-      sm.commandCalls(DeleteSecretCommand)[0]?.args[0].input?.ForceDeleteWithoutRecovery,
-    ).toBe(true);
+    expect(sm.commandCalls(DeleteSecretCommand)[0]?.args[0].input?.ForceDeleteWithoutRecovery).toBe(
+      true,
+    );
   });
 });
 
@@ -381,6 +383,8 @@ describe('aws:elasticloadbalancing:TargetGroup', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(elbv2.commandCalls(DeleteTargetGroupCommand)[0]?.args[0].input?.TargetGroupArn).toBe(ARN);
+    expect(elbv2.commandCalls(DeleteTargetGroupCommand)[0]?.args[0].input?.TargetGroupArn).toBe(
+      ARN,
+    );
   });
 });

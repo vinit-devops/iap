@@ -54,7 +54,10 @@ export class EfsFileSystemHandler implements TargetHandler {
   /** Performance mode is fixed at creation (ADR-0006) — drift replaces. */
   readonly immutableProjectionKeys = ['performanceMode'] as const;
 
-  constructor(private readonly efs: EFSClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly efs: EFSClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   desiredProjection(resource: PlanResource): Record<string, string> {
     const a = resource.desiredAttributes;
@@ -154,9 +157,7 @@ export class EfsFileSystemHandler implements TargetHandler {
     const found = await this.efs.send(new DescribeMountTargetsCommand({ FileSystemId }));
     const mountTargets = found.MountTargets ?? [];
     for (const target of mountTargets) {
-      await this.efs.send(
-        new DeleteMountTargetCommand({ MountTargetId: target.MountTargetId }),
-      );
+      await this.efs.send(new DeleteMountTargetCommand({ MountTargetId: target.MountTargetId }));
     }
     if (mountTargets.length > 0) {
       // Mount target deletion is async (~1 min live) — bounded waiter before

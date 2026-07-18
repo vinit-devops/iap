@@ -195,7 +195,10 @@ export class CloudFrontDistributionHandler implements TargetHandler {
     );
     if (Object.keys(current.tags).length > 0) {
       await this.cloudfront.send(
-        new TagResourceCommand({ Resource: resolved.arn, Tags: { Items: toTagList(current.tags) } }),
+        new TagResourceCommand({
+          Resource: resolved.arn,
+          Tags: { Items: toTagList(current.tags) },
+        }),
       );
     }
   }
@@ -321,7 +324,9 @@ export class CloudFrontDistributionHandler implements TargetHandler {
     const got = await this.cloudfront.send(new GetDistributionCommand({ Id: id }));
     const config = got.Distribution?.DistributionConfig;
     if (got.ETag === undefined || config === undefined) {
-      throw new Error(`cloudfront distribution ${id} returned no ETag/config — cannot mutate safely`);
+      throw new Error(
+        `cloudfront distribution ${id} returned no ETag/config — cannot mutate safely`,
+      );
     }
     return { etag: got.ETag, config };
   }

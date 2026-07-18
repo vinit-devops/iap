@@ -34,7 +34,10 @@ export class LogGroupHandler implements TargetHandler {
 
   /** The Lambda log-group convention for the sibling function (same resourceId). */
   private groupName(resource: PlanResource): string {
-    return scalarStr(resource.desiredAttributes['logGroupName']) || `/aws/lambda/${resourceIdOf(resource)}`;
+    return (
+      scalarStr(resource.desiredAttributes['logGroupName']) ||
+      `/aws/lambda/${resourceIdOf(resource)}`
+    );
   }
 
   desiredProjection(resource: PlanResource): Record<string, string> {

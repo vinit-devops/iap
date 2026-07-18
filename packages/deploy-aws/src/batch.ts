@@ -140,7 +140,8 @@ export class BatchComputeEnvironmentHandler implements TargetHandler {
       projection: {
         type: ce.type ?? '',
         computeType: ce.computeResources?.type ?? '',
-        maxVcpus: ce.computeResources?.maxvCpus === undefined ? '' : String(ce.computeResources.maxvCpus),
+        maxVcpus:
+          ce.computeResources?.maxvCpus === undefined ? '' : String(ce.computeResources.maxvCpus),
         state: ce.state ?? '',
       },
     };
@@ -156,10 +157,14 @@ export class BatchComputeEnvironmentHandler implements TargetHandler {
     const subnets = splitList(scalarStr(a['subnets']));
     const securityGroups = splitList(scalarStr(a['securityGroups']));
     if (subnets.length === 0) {
-      throw new Error(`batch compute environment ${name} needs a subnets attribute (comma-joined subnet ids)`);
+      throw new Error(
+        `batch compute environment ${name} needs a subnets attribute (comma-joined subnet ids)`,
+      );
     }
     if (securityGroups.length === 0) {
-      throw new Error(`batch compute environment ${name} needs a securityGroups attribute (comma-joined security-group ids)`);
+      throw new Error(
+        `batch compute environment ${name} needs a securityGroups attribute (comma-joined security-group ids)`,
+      );
     }
 
     const d = this.desiredProjection(resource);
@@ -411,7 +416,9 @@ export class BatchJobDefinitionHandler implements TargetHandler {
     const name = resourceIdOf(resource);
     const revisions = await this.activeRevisions(name);
     if (revisions.length === 0) {
-      throw new Error(`batch job definition ${name} has no ACTIVE revision — refusing blind deregister`);
+      throw new Error(
+        `batch job definition ${name} has no ACTIVE revision — refusing blind deregister`,
+      );
     }
     for (const revision of revisions) {
       await this.batch.send(

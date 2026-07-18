@@ -47,7 +47,10 @@ export class MemoryDbClusterHandler implements TargetHandler {
   /** In-transit TLS cannot change in place (ADR-0006). */
   readonly immutableProjectionKeys = ['tlsEnabled'] as const;
 
-  constructor(private readonly memorydb: MemoryDBClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly memorydb: MemoryDBClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   /** The handler-owned subnet group (created with, deleted after, the cluster). */
   private subnetGroupName(resource: PlanResource): string {

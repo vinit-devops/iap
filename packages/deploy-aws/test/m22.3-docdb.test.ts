@@ -112,8 +112,8 @@ describe('aws:docdb:DBCluster', () => {
 
     const report = await executor().apply(plan, { apply: true });
 
-    const password = docdb.commandCalls(CreateDBClusterCommand)[0]?.args[0].input
-      ?.MasterUserPassword;
+    const password =
+      docdb.commandCalls(CreateDBClusterCommand)[0]?.args[0].input?.MasterUserPassword;
     expect(typeof password).toBe('string');
     expect((password as string).length).toBeGreaterThanOrEqual(24);
     // base64url alphabet — none of the '/', '"', '@' characters DocDB rejects.
@@ -234,9 +234,9 @@ describe('aws:docdb:DBCluster', () => {
     const del = docdb.commandCalls(DeleteDBClusterCommand)[0]?.args[0].input;
     expect(del?.DBClusterIdentifier).toBe('docs');
     expect(del?.SkipFinalSnapshot).toBe(true);
-    expect(docdb.commandCalls(DeleteDBSubnetGroupCommand)[0]?.args[0].input?.DBSubnetGroupName).toBe(
-      'docs-subnets',
-    );
+    expect(
+      docdb.commandCalls(DeleteDBSubnetGroupCommand)[0]?.args[0].input?.DBSubnetGroupName,
+    ).toBe('docs-subnets');
     const order = docdb
       .calls()
       .map((c) => c.args[0].constructor.name)
@@ -251,9 +251,7 @@ describe('aws:docdb:DBCluster', () => {
       .resolves({ DBClusters: [] });
     docdb.on(ListTagsForResourceCommand).resolves({ TagList: MANAGED });
     docdb.on(DeleteDBClusterCommand).resolves({});
-    docdb
-      .on(DeleteDBSubnetGroupCommand)
-      .rejects(serviceError('InvalidDBSubnetGroupStateFault'));
+    docdb.on(DeleteDBSubnetGroupCommand).rejects(serviceError('InvalidDBSubnetGroupStateFault'));
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
 
@@ -340,9 +338,9 @@ describe('aws:docdb:DBInstance', () => {
     const report = await executor().apply(instancePlan, { apply: true, destroy: true });
 
     expect(report.items[0]?.applied).toBe(true);
-    expect(docdb.commandCalls(DeleteDBInstanceCommand)[0]?.args[0].input?.DBInstanceIdentifier).toBe(
-      'docs-a',
-    );
+    expect(
+      docdb.commandCalls(DeleteDBInstanceCommand)[0]?.args[0].input?.DBInstanceIdentifier,
+    ).toBe('docs-a');
     // The waiter re-described after the delete.
     expect(docdb.commandCalls(DescribeDBInstancesCommand).length).toBeGreaterThanOrEqual(2);
   });

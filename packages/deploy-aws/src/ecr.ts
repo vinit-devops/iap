@@ -38,11 +38,7 @@ import {
   PutImageTagMutabilityCommand,
   TagResourceCommand,
 } from '@aws-sdk/client-ecr';
-import type {
-  ECRClient,
-  EncryptionType,
-  ImageTagMutability,
-} from '@aws-sdk/client-ecr';
+import type { ECRClient, EncryptionType, ImageTagMutability } from '@aws-sdk/client-ecr';
 import type { PlanResource } from '@iap/provider-sdk';
 import type { ResourceState, TargetHandler } from './types.js';
 import { fromTagList, isManaged, toTagList } from './tags.js';

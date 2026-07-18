@@ -52,7 +52,9 @@ describe('aws:backup:BackupVault', () => {
     expect(input?.BackupVaultName).toBe('infraasprompt-vault');
     expect(input?.BackupVaultTags?.['iap:managed']).toBe('true');
     expect(input?.BackupVaultTags?.['iap:planId']).toBe('plan-hash-0001');
-    expect(input?.BackupVaultTags?.['iap:resourceId']).toBe('infraasprompt-vault.aws:backup:BackupVault');
+    expect(input?.BackupVaultTags?.['iap:resourceId']).toBe(
+      'infraasprompt-vault.aws:backup:BackupVault',
+    );
   });
 
   it('present → no-op (identity-only projection); destroy → DeleteBackupVault', async () => {
@@ -95,9 +97,7 @@ describe('aws:backup:BackupVault', () => {
       NumberOfRecoveryPoints: 3,
     });
     backup.on(ListTagsCommand).resolves({ Tags: { 'iap:managed': 'true' } });
-    backup
-      .on(DeleteBackupVaultCommand)
-      .rejects(serviceError('InvalidRequestException', 400));
+    backup.on(DeleteBackupVaultCommand).rejects(serviceError('InvalidRequestException', 400));
 
     const report = await executor().apply(vaultPlan, { apply: true, destroy: true });
 
@@ -125,7 +125,9 @@ describe('aws:backup:BackupPlan', () => {
       }),
     ]);
     backup.on(ListBackupPlansCommand).resolves({ BackupPlansList: [] });
-    backup.on(CreateBackupPlanCommand).resolves({ BackupPlanId: 'plan-id-1', BackupPlanArn: PLAN_ARN });
+    backup
+      .on(CreateBackupPlanCommand)
+      .resolves({ BackupPlanId: 'plan-id-1', BackupPlanArn: PLAN_ARN });
 
     const report = await executor().apply(plan, { apply: true });
 
@@ -139,19 +141,26 @@ describe('aws:backup:BackupPlan', () => {
     expect(rule?.ScheduleExpression).toBe('cron(0 3 * * ? *)');
     expect(rule?.Lifecycle?.DeleteAfterDays).toBe(30);
     expect(input?.BackupPlanTags?.['iap:managed']).toBe('true');
-    expect(input?.BackupPlanTags?.['iap:resourceId']).toBe('infraasprompt-plan.aws:backup:BackupPlan');
+    expect(input?.BackupPlanTags?.['iap:resourceId']).toBe(
+      'infraasprompt-plan.aws:backup:BackupPlan',
+    );
   });
 
   it('defaults apply when only vaultName is given: daily 05:00 cron, 7-day retention', async () => {
     const plan = providerPlan([
-      planResource('infraasprompt-plan', 'aws:backup:BackupPlan', { vaultName: 'infraasprompt-vault' }),
+      planResource('infraasprompt-plan', 'aws:backup:BackupPlan', {
+        vaultName: 'infraasprompt-vault',
+      }),
     ]);
     backup.on(ListBackupPlansCommand).resolves({ BackupPlansList: [] });
-    backup.on(CreateBackupPlanCommand).resolves({ BackupPlanId: 'plan-id-1', BackupPlanArn: PLAN_ARN });
+    backup
+      .on(CreateBackupPlanCommand)
+      .resolves({ BackupPlanId: 'plan-id-1', BackupPlanArn: PLAN_ARN });
 
     await executor().apply(plan, { apply: true });
 
-    const rule = backup.commandCalls(CreateBackupPlanCommand)[0]?.args[0].input?.BackupPlan?.Rules?.[0];
+    const rule =
+      backup.commandCalls(CreateBackupPlanCommand)[0]?.args[0].input?.BackupPlan?.Rules?.[0];
     expect(rule?.ScheduleExpression).toBe('cron(0 5 * * ? *)');
     expect(rule?.Lifecycle?.DeleteAfterDays).toBe(7);
   });
@@ -211,7 +220,9 @@ describe('aws:backup:BackupPlan', () => {
 
   it('destroy → DeleteBackupPlan with the id resolved by name across pages', async () => {
     const plan = providerPlan([
-      planResource('infraasprompt-plan', 'aws:backup:BackupPlan', { vaultName: 'infraasprompt-vault' }),
+      planResource('infraasprompt-plan', 'aws:backup:BackupPlan', {
+        vaultName: 'infraasprompt-vault',
+      }),
     ]);
     // Page 1 has no match; the name lives on page 2 — resolution must paginate.
     backup

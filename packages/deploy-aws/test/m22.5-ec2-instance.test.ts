@@ -152,9 +152,7 @@ describe('aws:ec2:Instance — AZ capacity failover (M22.5 live finding)', () =>
     expect(report.errors).toEqual([]);
     expect(report.items[0]?.applied).toBe(true);
     expect(report.items[0]?.identifier).toBe('i-0secondaz');
-    const subnets = ec2
-      .commandCalls(RunInstancesCommand)
-      .map((c) => c.args[0].input?.SubnetId);
+    const subnets = ec2.commandCalls(RunInstancesCommand).map((c) => c.args[0].input?.SubnetId);
     expect(subnets).toEqual(['subnet-a', 'subnet-b']); // deterministic AZ order
   });
 
@@ -173,11 +171,11 @@ describe('aws:ec2:Instance — AZ capacity failover (M22.5 live finding)', () =>
   it('a NON-capacity launch error does not failover — thrown at once, one attempt only', async () => {
     ec2.on(DescribeInstancesCommand).resolves({ Reservations: [] });
     mockDefaultNetwork();
-    ec2
-      .on(RunInstancesCommand)
-      .rejects(Object.assign(new Error('The image id does not exist'), {
+    ec2.on(RunInstancesCommand).rejects(
+      Object.assign(new Error('The image id does not exist'), {
         name: 'InvalidAMIID.NotFound',
-      }));
+      }),
+    );
 
     const report = await executor().apply(plan({ imageId: AMI }), { apply: true });
 

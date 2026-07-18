@@ -30,9 +30,7 @@ const ROLE_ARN = 'arn:aws:iam::000000000000:role/events-firehose';
 beforeEach(() => firehose.reset());
 
 /** A live, ACTIVE, iap-managed DirectPut → S3 delivery stream description. */
-function liveStream(
-  overrides: Partial<DeliveryStreamDescription> = {},
-): DeliveryStreamDescription {
+function liveStream(overrides: Partial<DeliveryStreamDescription> = {}): DeliveryStreamDescription {
   return {
     DeliveryStreamName: 'events',
     DeliveryStreamARN: 'arn:aws:firehose:eu-central-1:000000000000:deliverystream/events',
@@ -180,8 +178,7 @@ describe('aws:firehose:DeliveryStream', () => {
       .calls()
       .map((c) => c.args[0].constructor.name)
       .filter(
-        (name) =>
-          name === 'DeleteDeliveryStreamCommand' || name === 'CreateDeliveryStreamCommand',
+        (name) => name === 'DeleteDeliveryStreamCommand' || name === 'CreateDeliveryStreamCommand',
       );
     expect(mutations).toEqual(['DeleteDeliveryStreamCommand', 'CreateDeliveryStreamCommand']);
   });

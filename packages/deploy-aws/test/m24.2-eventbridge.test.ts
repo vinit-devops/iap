@@ -49,8 +49,12 @@ describe('aws:events:EventBus', () => {
   });
 
   it('present bus reads converged — empty projection → no-op (no mutation)', async () => {
-    eventbridge.on(DescribeEventBusCommand).resolves({ Name: 'app-bus', Arn: 'arn:aws:events:bus/app-bus' });
-    eventbridge.on(ListTagsForResourceCommand).resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
+    eventbridge
+      .on(DescribeEventBusCommand)
+      .resolves({ Name: 'app-bus', Arn: 'arn:aws:events:bus/app-bus' });
+    eventbridge
+      .on(ListTagsForResourceCommand)
+      .resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
 
     const report = await executor().plan(plan);
     expect(report.items[0]?.action).toBe('no-op');
@@ -59,7 +63,9 @@ describe('aws:events:EventBus', () => {
   it('destroy deletes a managed bus; refuses one lacking iap:managed', async () => {
     // Managed → DeleteEventBus.
     eventbridge.on(DescribeEventBusCommand).resolves({ Arn: 'arn:aws:events:bus/app-bus' });
-    eventbridge.on(ListTagsForResourceCommand).resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
+    eventbridge
+      .on(ListTagsForResourceCommand)
+      .resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
     eventbridge.on(DeleteEventBusCommand).resolves({});
 
     const del = await executor().apply(plan, { apply: true, destroy: true });
@@ -130,7 +136,9 @@ describe('aws:events:Rule', () => {
       EventPattern: '{"source":["aws.ec2"]}', // drifted pattern
       State: 'ENABLED', // drifted state (desired DISABLED)
     });
-    eventbridge.on(ListTagsForResourceCommand).resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
+    eventbridge
+      .on(ListTagsForResourceCommand)
+      .resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
 
     const report = await executor().plan(plan);
     expect(report.items[0]?.action).toBe('update');
@@ -149,7 +157,9 @@ describe('aws:events:Rule', () => {
       EventPattern: '{"source":["aws.s3"]}',
       State: 'ENABLED',
     });
-    eventbridge.on(ListTagsForResourceCommand).resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
+    eventbridge
+      .on(ListTagsForResourceCommand)
+      .resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
 
     const report = await executor().plan(plan);
     expect(report.items[0]?.action).toBe('replace');
@@ -168,8 +178,12 @@ describe('aws:events:Rule', () => {
       EventPattern: '{"source":["aws.s3"]}',
       State: 'ENABLED',
     });
-    eventbridge.on(ListTagsForResourceCommand).resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
-    eventbridge.on(ListTargetsByRuleCommand).resolves({ Targets: [{ Id: 'on-object-target', Arn: 'arn:aws:lambda:fn' }] });
+    eventbridge
+      .on(ListTagsForResourceCommand)
+      .resolves({ Tags: [{ Key: 'iap:managed', Value: 'true' }] });
+    eventbridge
+      .on(ListTargetsByRuleCommand)
+      .resolves({ Targets: [{ Id: 'on-object-target', Arn: 'arn:aws:lambda:fn' }] });
     eventbridge.on(RemoveTargetsCommand).resolves({});
     eventbridge.on(DeleteRuleCommand).resolves({});
 
@@ -226,7 +240,10 @@ describe('aws:events dependsOn ordering (bus ↔ rule)', () => {
     eventbridge.on(DeleteRuleCommand).resolves({});
     eventbridge.on(DeleteEventBusCommand).resolves({});
 
-    const report = await executor().apply(providerPlan([rule, bus]), { apply: true, destroy: true });
+    const report = await executor().apply(providerPlan([rule, bus]), {
+      apply: true,
+      destroy: true,
+    });
 
     expect(report.errors).toEqual([]);
     expect(report.items.map((i) => i.logicalId)).toEqual([rule.logicalId, bus.logicalId]);

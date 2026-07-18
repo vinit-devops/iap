@@ -200,9 +200,7 @@ export class KmsKeyHandler implements TargetHandler {
   /** Key id/ARN for the alias-averse operations (tag/enable/disable/delete). */
   private async resolveKeyId(resource: PlanResource, current: ResourceState): Promise<string> {
     if (current.identifier !== undefined) return current.identifier;
-    const found = await this.client.send(
-      new DescribeKeyCommand({ KeyId: aliasNameOf(resource) }),
-    );
+    const found = await this.client.send(new DescribeKeyCommand({ KeyId: aliasNameOf(resource) }));
     return found.KeyMetadata?.Arn ?? found.KeyMetadata?.KeyId ?? '';
   }
 }

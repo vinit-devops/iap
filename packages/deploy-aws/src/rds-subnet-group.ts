@@ -95,9 +95,7 @@ export class RdsSubnetGroupHandler implements TargetHandler {
     const name = resourceIdOf(resource);
     const tier = scalarStr(resource.desiredAttributes['subnetTier']);
     const SubnetIds = await defaultSubnetIds(this.ec2);
-    await this.client.send(
-      new ModifyDBSubnetGroupCommand({ DBSubnetGroupName: name, SubnetIds }),
-    );
+    await this.client.send(new ModifyDBSubnetGroupCommand({ DBSubnetGroupName: name, SubnetIds }));
     if (current.identifier !== undefined && tier) {
       await this.client.send(
         new AddTagsToResourceCommand({

@@ -47,20 +47,20 @@ ed25519 signature, credentials, and the budget alarm. All steps must PASS before
 Each service's live run drives that service's workload through all nine, in order. Results go in
 the evidence table. A test that cannot apply to the wave's resource types gets an explicit
 justification, never a silent skip — M19.3 recorded test 4 as "⚠️ deferred" because S3/SQS/IAM
-identity *is* the name; from M21.1 onward replacement semantics exist, so waves with an
+identity _is_ the name; from M21.1 onward replacement semantics exist, so waves with an
 immutable-attribute resource (first: DynamoDB in M22.2) must exercise it for real.
 
-| #   | Test                   | What must be shown                                                                     |
-| --- | ---------------------- | --------------------------------------------------------------------------------------- |
-| 1   | **Create**             | All resources created; live ARNs/ids recorded                                          |
-| 2   | **No-op**              | Immediate re-run plans all `no-op` (idempotent)                                         |
-| 3   | **Safe update**        | A mutable attribute change plans `update-in-place` and reconciles                       |
+| #   | Test                   | What must be shown                                                                               |
+| --- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+| 1   | **Create**             | All resources created; live ARNs/ids recorded                                                    |
+| 2   | **No-op**              | Immediate re-run plans all `no-op` (idempotent)                                                  |
+| 3   | **Safe update**        | A mutable attribute change plans `update-in-place` and reconciles                                |
 | 4   | **Replacement update** | An immutable attribute change plans `replace`; gated delete+create executes (or a justified N/A) |
-| 5   | **Drift**              | Out-of-band change via raw AWS CLI → `iap drift` reports `inSync:false`; read-only      |
-| 6   | **Controlled failure** | An induced failure fails closed: recorded in `errors[]`, non-zero exit, no silent success |
-| 7   | **Recovery**           | Re-deploy after the fix converges: `errors: []`, exit 0                                 |
-| 8   | **Destroy**            | `iap destroy --confirm` deletes all managed resources, managed-only                     |
-| 9   | **Cleanup verify**     | Direct API reads → NotFound; drift → all `absent`; tag sweep → zero orphans             |
+| 5   | **Drift**              | Out-of-band change via raw AWS CLI → `iap drift` reports `inSync:false`; read-only               |
+| 6   | **Controlled failure** | An induced failure fails closed: recorded in `errors[]`, non-zero exit, no silent success        |
+| 7   | **Recovery**           | Re-deploy after the fix converges: `errors: []`, exit 0                                          |
+| 8   | **Destroy**            | `iap destroy --confirm` deletes all managed resources, managed-only                              |
+| 9   | **Cleanup verify**     | Direct API reads → NotFound; drift → all `absent`; tag sweep → zero orphans                      |
 
 ## Evidence doc template
 
@@ -138,20 +138,20 @@ wave that cannot finish teardown in-session is a failed wave, not a "finish late
 
 ## Cost control
 
-| Wave  | Live workload                                | Est. cost |
-| ----- | -------------------------------------------- | --------- |
-| M21.2 | Resource Groups, Secrets Manager, ACM, TargetGroup | ~$0  |
-| M21.3 | 3-tier app (ECS + ALB + RDS + ElastiCache)   | ~$2–4     |
-| M22.1 | Serverless API (Lambda, APIGW, SNS, SSM, Scheduler) | ~$0 |
-| M22.2 | DynamoDB, Timestream, KMS, Backup            | <$0.25    |
-| M22.3 | Aurora, DocumentDB, Neptune, MemoryDB, MQ    | ~$3–6     |
-| M22.4 | EBS, EFS, FSx                                | <$1       |
-| M22.5 | EC2, ASG, App Runner, Batch, NLB, WAF        | <$1       |
-| M23.2 | Route 53, ECR, CloudWatch, Keyspaces, Redshift Serverless | ~$2 |
-| M23.4 | Full VPC up/down + Step Functions            | <$1       |
-| M23.5 | Kinesis, Firehose, MSK Serverless, OpenSearch | ~$3–5    |
-| M24.2 | CloudFront, EventBridge, Cognito             | ~$0 (slow) |
-| M24.3 | EKS / AppSync / SES (each gated)             | ~$1–3 if run |
+| Wave  | Live workload                                             | Est. cost    |
+| ----- | --------------------------------------------------------- | ------------ |
+| M21.2 | Resource Groups, Secrets Manager, ACM, TargetGroup        | ~$0          |
+| M21.3 | 3-tier app (ECS + ALB + RDS + ElastiCache)                | ~$2–4        |
+| M22.1 | Serverless API (Lambda, APIGW, SNS, SSM, Scheduler)       | ~$0          |
+| M22.2 | DynamoDB, Timestream, KMS, Backup                         | <$0.25       |
+| M22.3 | Aurora, DocumentDB, Neptune, MemoryDB, MQ                 | ~$3–6        |
+| M22.4 | EBS, EFS, FSx                                             | <$1          |
+| M22.5 | EC2, ASG, App Runner, Batch, NLB, WAF                     | <$1          |
+| M23.2 | Route 53, ECR, CloudWatch, Keyspaces, Redshift Serverless | ~$2          |
+| M23.4 | Full VPC up/down + Step Functions                         | <$1          |
+| M23.5 | Kinesis, Firehose, MSK Serverless, OpenSearch             | ~$3–5        |
+| M24.2 | CloudFront, EventBridge, Cognito                          | ~$0 (slow)   |
+| M24.3 | EKS / AppSync / SES (each gated)                          | ~$1–3 if run |
 
 Hard ceiling: **<$25 total** across all waves. Every evidence doc reports the running total.
 Under pressure, apply the cut order — SES → AppSync → EKS → Neptune → FSx → MSK live

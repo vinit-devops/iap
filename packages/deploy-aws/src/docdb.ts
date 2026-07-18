@@ -56,7 +56,10 @@ export class DocdbClusterHandler implements TargetHandler {
   /** Engine cannot change in place (ADR-0006). */
   readonly immutableProjectionKeys = ['engine'] as const;
 
-  constructor(private readonly docdb: DocDBClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly docdb: DocDBClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   /** The handler-owned DB subnet group (created with, deleted after, the cluster). */
   private subnetGroupName(resource: PlanResource): string {
@@ -106,9 +109,7 @@ export class DocdbClusterHandler implements TargetHandler {
       projection: {
         engine: cluster.Engine ?? 'docdb',
         backupRetentionPeriod:
-          cluster.BackupRetentionPeriod === undefined
-            ? '1'
-            : String(cluster.BackupRetentionPeriod),
+          cluster.BackupRetentionPeriod === undefined ? '1' : String(cluster.BackupRetentionPeriod),
         deletionProtection: cluster.DeletionProtection === true ? 'true' : 'false',
       },
     };

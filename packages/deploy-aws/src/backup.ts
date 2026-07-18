@@ -150,9 +150,7 @@ export class BackupPlanHandler implements TargetHandler {
       return { exists: false, managed: false, tags: {}, projection: {} };
     }
 
-    const found = await this.client.send(
-      new GetBackupPlanCommand({ BackupPlanId: resolved.id }),
-    );
+    const found = await this.client.send(new GetBackupPlanCommand({ BackupPlanId: resolved.id }));
     const rule = found.BackupPlan?.Rules?.[0];
     const arn = resolved.arn ?? found.BackupPlanArn;
 
@@ -254,7 +252,9 @@ export class BackupPlanHandler implements TargetHandler {
           RuleName: RULE_NAME,
           TargetBackupVaultName: vaultName,
           ScheduleExpression: desired['scheduleExpression'] ?? DEFAULT_SCHEDULE,
-          Lifecycle: { DeleteAfterDays: Number(desired['retentionDays'] ?? DEFAULT_RETENTION_DAYS) },
+          Lifecycle: {
+            DeleteAfterDays: Number(desired['retentionDays'] ?? DEFAULT_RETENTION_DAYS),
+          },
         },
       ],
     };

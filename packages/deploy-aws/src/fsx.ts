@@ -55,7 +55,10 @@ export class FsxFileSystemHandler implements TargetHandler {
   /** Family and AZ topology are fixed at creation (ADR-0006) — drift replaces. */
   readonly immutableProjectionKeys = ['fileSystemType', 'deploymentType'] as const;
 
-  constructor(private readonly fsx: FSxClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly fsx: FSxClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   desiredProjection(resource: PlanResource): Record<string, string> {
     this.requireOpenZfs(resource);
@@ -89,8 +92,7 @@ export class FsxFileSystemHandler implements TargetHandler {
         fileSystemType: found.FileSystemType ?? '',
         deploymentType: zfs?.DeploymentType ?? '',
         storageGiB: found.StorageCapacity === undefined ? '' : String(found.StorageCapacity),
-        throughputMBps:
-          zfs?.ThroughputCapacity === undefined ? '' : String(zfs.ThroughputCapacity),
+        throughputMBps: zfs?.ThroughputCapacity === undefined ? '' : String(zfs.ThroughputCapacity),
         backupRetentionDays: String(zfs?.AutomaticBackupRetentionDays ?? 0),
       },
     };
@@ -221,10 +223,7 @@ export class FsxFileSystemHandler implements TargetHandler {
   }
 
   /** Locate for mutation — prefers a fresh describe (id + ARN); must exist. */
-  private async requireByTag(
-    resource: PlanResource,
-    current: ResourceState,
-  ): Promise<FileSystem> {
+  private async requireByTag(resource: PlanResource, current: ResourceState): Promise<FileSystem> {
     const found = await this.findByTag(resource);
     if (found === undefined) {
       // Fall back to what read saw — enough for id-only operations.
