@@ -29,7 +29,9 @@ const region = args.region ?? (mock ? 'mock-region-1' : undefined);
 const profile = args['aws-profile'];
 const prefix = args['run-id'] ?? 'infraasprompt-';
 
-const report = stepper(`live-run sweep${mock ? ' (MOCK)' : ''}: prefix ${prefix}, region ${region ?? 'UNSET'}`);
+const report = stepper(
+  `live-run sweep${mock ? ' (MOCK)' : ''}: prefix ${prefix}, region ${region ?? 'UNSET'}`,
+);
 
 report.step('region explicitly chosen (fail-closed)', () => {
   if (!region) throw new Error('pass --region; no default region is assumed');
@@ -38,12 +40,7 @@ report.step('region explicitly chosen (fail-closed)', () => {
 
 report.step('tagging-API sweep for iap:managed=true returns zero resources', () => {
   const result = awsCli(
-    [
-      'resourcegroupstaggingapi',
-      'get-resources',
-      '--tag-filters',
-      'Key=iap:managed,Values=true',
-    ],
+    ['resourcegroupstaggingapi', 'get-resources', '--tag-filters', 'Key=iap:managed,Values=true'],
     { mock, mockResult: { ResourceTagMappingList: [] }, profile, region },
   );
   let ghosts = 0;
@@ -63,9 +60,7 @@ report.step('tagging-API sweep for iap:managed=true returns zero resources', () 
     return false;
   });
   if (orphans.length > 0) {
-    throw new Error(
-      `${orphans.length} orphan(s): ${orphans.map((r) => r.ResourceARN).join(', ')}`,
-    );
+    throw new Error(`${orphans.length} orphan(s): ${orphans.map((r) => r.ResourceARN).join(', ')}`);
   }
   return ghosts > 0
     ? `zero orphans (${ghosts} tagging-index ghost(s) verified deleted/terminal via service APIs)`
@@ -79,12 +74,15 @@ function isEcsGhost(arn) {
   const [kind, ...pathParts] = rest.split('/');
   if (kind === 'service') {
     const [cluster, service] = pathParts;
-    const found = awsCli(['ecs', 'describe-services', '--cluster', cluster, '--services', service], {
-      mock,
-      mockResult: { services: [] },
-      profile,
-      region,
-    });
+    const found = awsCli(
+      ['ecs', 'describe-services', '--cluster', cluster, '--services', service],
+      {
+        mock,
+        mockResult: { services: [] },
+        profile,
+        region,
+      },
+    );
     const status = found?.services?.[0]?.status;
     return status === undefined || status === 'INACTIVE';
   }
@@ -129,7 +127,9 @@ function isCognitoUserPoolGhost(arn) {
   } catch (err) {
     // execFileSync throws on the CLI's non-zero exit; ResourceNotFoundException
     // means the pool is genuinely deleted (a tagging-index ghost).
-    return /ResourceNotFoundException|does not exist/i.test(String(err?.stderr ?? err?.message ?? err));
+    return /ResourceNotFoundException|does not exist/i.test(
+      String(err?.stderr ?? err?.message ?? err),
+    );
   }
 }
 
@@ -154,7 +154,9 @@ report.step(`IAM name-prefix sweep finds no ${prefix}* roles`, () => {
   });
   const orphans = (result?.Roles ?? []).filter((r) => r.RoleName?.startsWith(prefix));
   if (orphans.length > 0) {
-    throw new Error(`${orphans.length} orphan role(s): ${orphans.map((r) => r.RoleName).join(', ')}`);
+    throw new Error(
+      `${orphans.length} orphan role(s): ${orphans.map((r) => r.RoleName).join(', ')}`,
+    );
   }
   return 'zero orphan roles';
 });

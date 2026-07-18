@@ -78,7 +78,9 @@ describe('classification: immutable drift → replace', () => {
   it('drift on an immutable projection key plans replace, with an honest reason', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = managedLive({ shape: 'round', color: 'red' });
-    const report = await widgetExecutor(handler).plan(widgetPlan({ shape: 'square', color: 'red' }));
+    const report = await widgetExecutor(handler).plan(
+      widgetPlan({ shape: 'square', color: 'red' }),
+    );
 
     expect(report.items[0]?.action).toBe('replace');
     expect(report.items[0]?.reason).toContain('immutable attribute drifted');
@@ -88,7 +90,9 @@ describe('classification: immutable drift → replace', () => {
   it('drift on a mutable key only still plans update (regression)', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = managedLive({ shape: 'round', color: 'red' });
-    const report = await widgetExecutor(handler).plan(widgetPlan({ shape: 'round', color: 'blue' }));
+    const report = await widgetExecutor(handler).plan(
+      widgetPlan({ shape: 'round', color: 'blue' }),
+    );
 
     expect(report.items[0]?.action).toBe('update');
   });
@@ -106,9 +110,12 @@ describe('the replacement gate', () => {
   it('apply: true WITHOUT replace: true refuses — no delete, no create, recorded error', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = managedLive({ shape: 'round', color: 'red' });
-    const report = await widgetExecutor(handler).apply(widgetPlan({ shape: 'square', color: 'red' }), {
-      apply: true,
-    });
+    const report = await widgetExecutor(handler).apply(
+      widgetPlan({ shape: 'square', color: 'red' }),
+      {
+        apply: true,
+      },
+    );
 
     expect(report.items[0]?.action).toBe('replace');
     expect(report.items[0]?.applied).toBe(false);
@@ -121,10 +128,13 @@ describe('the replacement gate', () => {
   it('apply: true + replace: true on a managed resource executes delete THEN create', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = managedLive({ shape: 'round', color: 'red' });
-    const report = await widgetExecutor(handler).apply(widgetPlan({ shape: 'square', color: 'red' }), {
-      apply: true,
-      replace: true,
-    });
+    const report = await widgetExecutor(handler).apply(
+      widgetPlan({ shape: 'square', color: 'red' }),
+      {
+        apply: true,
+        replace: true,
+      },
+    );
 
     expect(report.items[0]?.applied).toBe(true);
     expect(report.items[0]?.identifier).toBe('arn:aws:fake:::widget/new');
@@ -136,10 +146,13 @@ describe('the replacement gate', () => {
   it('refuses to replace an unmanaged resource even with the gate open', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = { ...managedLive({ shape: 'round', color: 'red' }), managed: false, tags: {} };
-    const report = await widgetExecutor(handler).apply(widgetPlan({ shape: 'square', color: 'red' }), {
-      apply: true,
-      replace: true,
-    });
+    const report = await widgetExecutor(handler).apply(
+      widgetPlan({ shape: 'square', color: 'red' }),
+      {
+        apply: true,
+        replace: true,
+      },
+    );
 
     expect(report.items[0]?.applied).toBe(false);
     expect(report.items[0]?.error).toContain('managed-only replace');
@@ -149,9 +162,12 @@ describe('the replacement gate', () => {
   it('with the LIVE gate closed, a replace classification stays a dry run', async () => {
     const handler = new FakeWidgetHandler();
     handler.live = managedLive({ shape: 'round', color: 'red' });
-    const report = await widgetExecutor(handler).apply(widgetPlan({ shape: 'square', color: 'red' }), {
-      replace: true,
-    });
+    const report = await widgetExecutor(handler).apply(
+      widgetPlan({ shape: 'square', color: 'red' }),
+      {
+        replace: true,
+      },
+    );
 
     expect(report.mode).toBe('dry-run');
     expect(report.items[0]?.action).toBe('replace');

@@ -55,7 +55,8 @@ report.step('region explicitly chosen (fail-closed)', () => {
 });
 
 report.step('run id follows the infraasprompt-<epoch> scheme', () => {
-  if (!/^infraasprompt-\d+$/.test(runId)) throw new Error(`"${runId}" does not match ^infraasprompt-\\d+$`);
+  if (!/^infraasprompt-\d+$/.test(runId))
+    throw new Error(`"${runId}" does not match ^infraasprompt-\\d+$`);
   return runId;
 });
 

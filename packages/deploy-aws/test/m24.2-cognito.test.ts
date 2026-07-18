@@ -70,7 +70,9 @@ describe('aws:cognito-idp:UserPool', () => {
     // usernameAttributes is opt-in (immutable) — never set implicitly.
     expect(input?.UsernameAttributes).toBeUndefined();
     expect(input?.UserPoolTags?.['iap:managed']).toBe('true');
-    expect(input?.UserPoolTags?.['iap:resourceId']).toBe('infraasprompt-users.aws:cognito-idp:UserPool');
+    expect(input?.UserPoolTags?.['iap:resourceId']).toBe(
+      'infraasprompt-users.aws:cognito-idp:UserPool',
+    );
     expect(input?.UserPoolTags?.['iap:planId']).toBe('plan-hash-0001');
   });
 
@@ -195,9 +197,9 @@ describe('aws:cognito-idp:UserPool', () => {
     expect(replaced.items[0]?.applied).toBe(true);
     expect(replaced.errors).toHaveLength(0);
     expect(cognito.commandCalls(DeleteUserPoolCommand)[0]?.args[0].input?.UserPoolId).toBe(POOL_ID);
-    expect(cognito.commandCalls(CreateUserPoolCommand)[0]?.args[0].input?.UsernameAttributes).toEqual([
-      'email',
-    ]);
+    expect(
+      cognito.commandCalls(CreateUserPoolCommand)[0]?.args[0].input?.UsernameAttributes,
+    ).toEqual(['email']);
   });
 
   it('destroy with DeletionProtection ACTIVE → UpdateUserPool INACTIVE before DeleteUserPool', async () => {
@@ -205,7 +207,12 @@ describe('aws:cognito-idp:UserPool', () => {
       UserPools: [{ Id: POOL_ID, Name: 'infraasprompt-users' }],
     });
     cognito.on(DescribeUserPoolCommand).resolves({
-      UserPool: { Id: POOL_ID, Name: 'infraasprompt-users', Arn: POOL_ARN, DeletionProtection: 'ACTIVE' },
+      UserPool: {
+        Id: POOL_ID,
+        Name: 'infraasprompt-users',
+        Arn: POOL_ARN,
+        DeletionProtection: 'ACTIVE',
+      },
     });
     cognito.on(ListTagsForResourceCommand).resolves({ Tags: MANAGED_TAGS });
     cognito.on(UpdateUserPoolCommand).resolves({});
@@ -273,7 +280,9 @@ describe('aws:cognito-idp:UserPoolClient', () => {
   });
 
   it('missing userPoolId fails closed — no describe issued', async () => {
-    const orphan = providerPlan([planResource('infraasprompt-web', 'aws:cognito-idp:UserPoolClient')]);
+    const orphan = providerPlan([
+      planResource('infraasprompt-web', 'aws:cognito-idp:UserPoolClient'),
+    ]);
 
     const report = await executor().apply(orphan, { apply: true });
     expect(report.items[0]?.applied).toBe(false);

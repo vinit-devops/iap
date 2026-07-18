@@ -111,9 +111,7 @@ export class KinesisStreamHandler implements TargetHandler {
     const StreamName = resourceIdOf(resource);
     let summary;
     try {
-      const found = await this.kinesis.send(
-        new DescribeStreamSummaryCommand({ StreamName }),
-      );
+      const found = await this.kinesis.send(new DescribeStreamSummaryCommand({ StreamName }));
       summary = found.StreamDescriptionSummary;
     } catch (err) {
       if (nameMatches(err, NOT_FOUND)) {
@@ -126,9 +124,7 @@ export class KinesisStreamHandler implements TargetHandler {
       return { exists: false, managed: false, tags: {}, projection: {} };
     }
 
-    const tagResult = await this.kinesis.send(
-      new ListTagsForStreamCommand({ StreamName }),
-    );
+    const tagResult = await this.kinesis.send(new ListTagsForStreamCommand({ StreamName }));
     const tags = fromTagList(tagResult.Tags ?? []);
 
     // Streams predating on-demand carry no StreamModeDetails — they are PROVISIONED.
@@ -143,9 +139,7 @@ export class KinesisStreamHandler implements TargetHandler {
           ? String(summary.OpenShardCount)
           : '',
       retentionHours:
-        summary.RetentionPeriodHours !== undefined
-          ? String(summary.RetentionPeriodHours)
-          : '',
+        summary.RetentionPeriodHours !== undefined ? String(summary.RetentionPeriodHours) : '',
       encryptionType: '',
       kmsKeyId: '',
     };
@@ -153,9 +147,7 @@ export class KinesisStreamHandler implements TargetHandler {
       projection['encryptionType'] = summary.EncryptionType === 'KMS' ? 'KMS' : '';
       // Compare the key ARN only when the plan pins a specific CMK.
       projection['kmsKeyId'] =
-        scalarStr(resource.desiredAttributes['kmsKeyId']) === ''
-          ? ''
-          : (summary.KeyId ?? '');
+        scalarStr(resource.desiredAttributes['kmsKeyId']) === '' ? '' : (summary.KeyId ?? '');
     }
 
     const state: ResourceState = {
@@ -196,9 +188,7 @@ export class KinesisStreamHandler implements TargetHandler {
       );
     }
     // CreateStream returns no body — resolve the ARN with a summary read.
-    const summary = await this.kinesis.send(
-      new DescribeStreamSummaryCommand({ StreamName }),
-    );
+    const summary = await this.kinesis.send(new DescribeStreamSummaryCommand({ StreamName }));
     return summary.StreamDescriptionSummary?.StreamARN ?? `kinesis:stream/${StreamName}`;
   }
 
@@ -236,7 +226,11 @@ export class KinesisStreamHandler implements TargetHandler {
         }),
       );
     }
-    await this.reconcileRetention(StreamName, live['retentionHours'] ?? '', d['retentionHours'] ?? '');
+    await this.reconcileRetention(
+      StreamName,
+      live['retentionHours'] ?? '',
+      d['retentionHours'] ?? '',
+    );
     if (
       this.encryptionPinned(resource) &&
       (d['encryptionType'] !== live['encryptionType'] || d['kmsKeyId'] !== live['kmsKeyId'])

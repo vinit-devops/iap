@@ -77,9 +77,7 @@ export class Wafv2WebAclHandler implements TargetHandler {
 
     let tags: Record<string, string> = {};
     if (arn !== undefined) {
-      const tagResult = await this.wafv2.send(
-        new ListTagsForResourceCommand({ ResourceARN: arn }),
-      );
+      const tagResult = await this.wafv2.send(new ListTagsForResourceCommand({ ResourceARN: arn }));
       tags = fromTagList(tagResult.TagInfoForResource?.TagList ?? []);
     }
 
@@ -187,9 +185,7 @@ export class Wafv2WebAclHandler implements TargetHandler {
   ): Promise<{ id: string; arn?: string } | undefined> {
     let NextMarker: string | undefined;
     do {
-      const page = await this.wafv2.send(
-        new ListWebACLsCommand({ Scope: scope, NextMarker }),
-      );
+      const page = await this.wafv2.send(new ListWebACLsCommand({ Scope: scope, NextMarker }));
       const match = (page.WebACLs ?? []).find((acl) => acl.Name === name);
       if (match?.Id !== undefined) {
         return match.ARN !== undefined ? { id: match.Id, arn: match.ARN } : { id: match.Id };
@@ -222,8 +218,7 @@ export class Wafv2WebAclHandler implements TargetHandler {
       id: summary.id,
       lockToken: found.LockToken,
       rules: found.WebACL?.Rules ?? [],
-      visibilityConfig:
-        found.WebACL?.VisibilityConfig ?? this.defaultVisibilityConfig(name),
+      visibilityConfig: found.WebACL?.VisibilityConfig ?? this.defaultVisibilityConfig(name),
     };
   }
 }

@@ -124,9 +124,7 @@ export class SqsQueueHandler implements TargetHandler {
   /** The handler-owned dead-letter queue name (FIFO suffix preserved). */
   private dlqName(resource: PlanResource): string {
     const main = this.queueName(resource);
-    return main.endsWith('.fifo')
-      ? `${main.slice(0, -'.fifo'.length)}-dlq.fifo`
-      : `${main}-dlq`;
+    return main.endsWith('.fifo') ? `${main.slice(0, -'.fifo'.length)}-dlq.fifo` : `${main}-dlq`;
   }
 
   async read(resource: PlanResource): Promise<ResourceState> {

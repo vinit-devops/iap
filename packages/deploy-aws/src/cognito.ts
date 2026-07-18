@@ -97,12 +97,20 @@ function boolStr(value: string, dflt: boolean): string {
 
 /** Sorted comma-join of a value list (order-insensitive drift comparison). */
 function sortedCsv(values: readonly (string | undefined)[] | undefined): string {
-  return [...(values ?? [])].filter((v): v is string => v !== undefined && v !== '').sort().join(',');
+  return [...(values ?? [])]
+    .filter((v): v is string => v !== undefined && v !== '')
+    .sort()
+    .join(',');
 }
 
 /** Parse a sorted-csv projection value back into a trimmed, non-empty list. */
 function parseCsv(value: string): string[] {
-  return value === '' ? [] : value.split(',').map((v) => v.trim()).filter((v) => v !== '');
+  return value === ''
+    ? []
+    : value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => v !== '');
 }
 
 export class CognitoUserPoolHandler implements TargetHandler {
@@ -184,8 +192,7 @@ export class CognitoUserPoolHandler implements TargetHandler {
       managed: isManaged(tags),
       tags,
       projection: {
-        passwordMinimumLength:
-          pp?.MinimumLength === undefined ? '' : String(pp.MinimumLength),
+        passwordMinimumLength: pp?.MinimumLength === undefined ? '' : String(pp.MinimumLength),
         passwordRequireUppercase: pp?.RequireUppercase ? 'true' : 'false',
         passwordRequireLowercase: pp?.RequireLowercase ? 'true' : 'false',
         passwordRequireNumbers: pp?.RequireNumbers ? 'true' : 'false',
@@ -430,9 +437,7 @@ export class CognitoUserPoolClientHandler implements TargetHandler {
     const UserPoolId = this.userPoolId(resource);
     const name = resourceIdOf(resource);
     const clientId = await this.requireClientId(UserPoolId, name, current);
-    await this.cognito.send(
-      new DeleteUserPoolClientCommand({ UserPoolId, ClientId: clientId }),
-    );
+    await this.cognito.send(new DeleteUserPoolClientCommand({ UserPoolId, ClientId: clientId }));
   }
 
   private async requireClientId(
@@ -475,9 +480,7 @@ export class CognitoUserPoolClientHandler implements TargetHandler {
     const found = await this.cognito.send(new DescribeUserPoolCommand({ UserPoolId }));
     const arn = found.UserPool?.Arn;
     if (arn === undefined) return false;
-    const tagResult = await this.cognito.send(
-      new ListTagsForResourceCommand({ ResourceArn: arn }),
-    );
+    const tagResult = await this.cognito.send(new ListTagsForResourceCommand({ ResourceArn: arn }));
     return isManaged(tagResult.Tags ?? {});
   }
 }

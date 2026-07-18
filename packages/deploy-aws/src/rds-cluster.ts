@@ -84,7 +84,10 @@ export class RdsClusterHandler implements TargetHandler {
   /** Engine cannot change in place (ADR-0006). */
   readonly immutableProjectionKeys = ['engine'] as const;
 
-  constructor(private readonly rds: RDSClient, private readonly ec2: EC2Client) {}
+  constructor(
+    private readonly rds: RDSClient,
+    private readonly ec2: EC2Client,
+  ) {}
 
   desiredProjection(resource: PlanResource): Record<string, string> {
     const a = resource.desiredAttributes;
@@ -104,9 +107,7 @@ export class RdsClusterHandler implements TargetHandler {
     const id = resourceIdOf(resource);
     let cluster;
     try {
-      const found = await this.rds.send(
-        new DescribeDBClustersCommand({ DBClusterIdentifier: id }),
-      );
+      const found = await this.rds.send(new DescribeDBClustersCommand({ DBClusterIdentifier: id }));
       cluster = found.DBClusters?.[0];
     } catch (err) {
       if (nameMatches(err, CLUSTER_NOT_FOUND)) {

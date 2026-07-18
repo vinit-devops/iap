@@ -28,7 +28,16 @@ const NOT_FOUND = ['NoSuchEntity'] as const;
 
 /** Normalize a (possibly comma-separated) service list: sorted, deduped. */
 function normalizeServices(value: string): string {
-  return [...new Set(value.split(',').map((s) => s.trim()).filter(Boolean))].sort().join(',');
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ]
+    .sort()
+    .join(',');
 }
 
 function assumeRolePolicyDocument(services: string): string {

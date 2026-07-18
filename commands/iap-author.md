@@ -18,5 +18,6 @@ Follow these steps:
 7. Suggest running `/iap-validate` next to confirm the document passes the full validation pipeline.
 
 Notes:
+
 - The IaP MCP server is read-only by construction: it has no deploy, mutate, or provider-API capability. Only you (with the user's approval) write the file.
 - Do not hand-edit the generated YAML beyond what the tool committed; if changes are needed, re-run `iap_author` with an updated requirement so provenance stays accurate.

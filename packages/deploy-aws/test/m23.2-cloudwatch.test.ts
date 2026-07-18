@@ -182,9 +182,7 @@ describe('aws:cloudwatch:Dashboard', () => {
     const parsed = JSON.parse(input?.DashboardBody ?? '{}') as {
       widgets: Array<{ type?: string; properties?: { markdown?: string; title?: string } }>;
     };
-    const marker = parsed.widgets.find((w) =>
-      w.properties?.markdown?.includes('iap:managed=true'),
-    );
+    const marker = parsed.widgets.find((w) => w.properties?.markdown?.includes('iap:managed=true'));
     expect(marker).toBeDefined();
     expect(marker?.properties?.markdown).toContain('iap:resourceId=ops-dash');
     // user widgets are preserved alongside the marker

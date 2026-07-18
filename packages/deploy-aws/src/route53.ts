@@ -121,9 +121,7 @@ export class Route53HostedZoneHandler implements TargetHandler {
     const projection: Record<string, string> = {
       zoneName: liveName,
       visibility: got.HostedZone?.Config?.PrivateZone ? 'private' : 'public',
-      ...(this.commentPinned(resource)
-        ? { comment: got.HostedZone?.Config?.Comment ?? '' }
-        : {}),
+      ...(this.commentPinned(resource) ? { comment: got.HostedZone?.Config?.Comment ?? '' } : {}),
     };
 
     return {
@@ -145,9 +143,7 @@ export class Route53HostedZoneHandler implements TargetHandler {
         CallerReference: resource.logicalId,
         HostedZoneConfig: {
           PrivateZone: this.visibility(resource) === 'private',
-          ...(commentPinned
-            ? { Comment: scalarStr(resource.desiredAttributes['comment']) }
-            : {}),
+          ...(commentPinned ? { Comment: scalarStr(resource.desiredAttributes['comment']) } : {}),
         },
       }),
     );

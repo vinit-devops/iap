@@ -325,9 +325,7 @@ try {
         Array.isArray(p.milestones) &&
         p.milestones.every(
           (m) =>
-            statuses.has(m.status) &&
-            Array.isArray(m.evidence) &&
-            Array.isArray(m.exitCriteria),
+            statuses.has(m.status) && Array.isArray(m.evidence) && Array.isArray(m.exitCriteria),
         ),
     );
   check(phasesOk, `ROADMAP-V4.yml well-formed (${roadmap.phases?.length ?? 0} phases)`);

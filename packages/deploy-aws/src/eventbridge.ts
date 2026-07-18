@@ -312,9 +312,7 @@ export class EventRuleHandler implements TargetHandler {
       .map((t) => t.Id)
       .filter((id): id is string => id !== undefined);
     if (ids.length > 0) {
-      await this.eventbridge.send(
-        new RemoveTargetsCommand({ Rule: Name, EventBusName, Ids: ids }),
-      );
+      await this.eventbridge.send(new RemoveTargetsCommand({ Rule: Name, EventBusName, Ids: ids }));
     }
     await this.eventbridge.send(new DeleteRuleCommand({ Name, EventBusName }));
   }

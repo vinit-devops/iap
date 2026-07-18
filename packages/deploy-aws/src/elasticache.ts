@@ -294,7 +294,8 @@ export class ElastiCacheReplicationGroupHandler implements TargetHandler {
     const nodeType = scalarStr(resource.desiredAttributes['cacheNodeType']) || DEFAULT_NODE_TYPE;
     // Auth token: generated locally, passed once to AWS, never stored or
     // logged. AWS only accepts it with TLS on.
-    const withAuthToken = d['authTokenEnabled'] === 'true' && d['transitEncryptionEnabled'] === 'true';
+    const withAuthToken =
+      d['authTokenEnabled'] === 'true' && d['transitEncryptionEnabled'] === 'true';
     const created = await this.client.send(
       new CreateReplicationGroupCommand({
         CacheSubnetGroupName,
@@ -423,7 +424,8 @@ export class ElastiCacheReplicationGroupHandler implements TargetHandler {
         new DeleteCacheSubnetGroupCommand({ CacheSubnetGroupName: this.subnetGroupName(resource) }),
       );
     } catch (err) {
-      if (!nameMatches(err, ['CacheSubnetGroupNotFoundFault', 'CacheSubnetGroupNotFound'])) throw err;
+      if (!nameMatches(err, ['CacheSubnetGroupNotFoundFault', 'CacheSubnetGroupNotFound']))
+        throw err;
     }
   }
 

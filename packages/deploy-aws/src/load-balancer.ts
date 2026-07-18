@@ -117,9 +117,7 @@ export class LoadBalancerHandler implements TargetHandler {
     const arn = lb.LoadBalancerArn;
     if (lb.Type === 'network') {
       // NLB: the HTTP attribute surface does not exist — tags only.
-      const tagResult = await this.client.send(
-        new DescribeTagsCommand({ ResourceArns: [arn] }),
-      );
+      const tagResult = await this.client.send(new DescribeTagsCommand({ ResourceArns: [arn] }));
       const tags = fromTagList(tagResult.TagDescriptions?.[0]?.Tags ?? []);
       return {
         exists: true,
@@ -227,7 +225,9 @@ export class LoadBalancerHandler implements TargetHandler {
         Value: d['dropInvalidHeaderFields'],
       },
       { Key: 'access_logs.s3.enabled', Value: d['accessLogsEnabled'] },
-      ...(d['accessLogsEnabled'] === 'true' ? [{ Key: 'access_logs.s3.bucket', Value: bucket }] : []),
+      ...(d['accessLogsEnabled'] === 'true'
+        ? [{ Key: 'access_logs.s3.bucket', Value: bucket }]
+        : []),
     ];
     await this.client.send(
       new ModifyLoadBalancerAttributesCommand({ LoadBalancerArn: arn, Attributes }),

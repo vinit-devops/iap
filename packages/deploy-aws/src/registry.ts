@@ -60,11 +60,7 @@ import {
   RedshiftServerlessWorkgroupHandler,
 } from './redshift-serverless.js';
 import { VpcHandler, SubnetHandler, SecurityGroupHandler } from './vpc.js';
-import {
-  InternetGatewayHandler,
-  RouteTableHandler,
-  NatGatewayHandler,
-} from './network-routing.js';
+import { InternetGatewayHandler, RouteTableHandler, NatGatewayHandler } from './network-routing.js';
 import { StateMachineHandler } from './state-machine.js';
 import { KinesisStreamHandler } from './kinesis.js';
 import { FirehoseDeliveryStreamHandler } from './firehose.js';
@@ -100,48 +96,103 @@ export const HANDLER_REGISTRATIONS = [
   register(IamRoleHandler, (ctx) => new IamRoleHandler(ctx.clients.iam)),
   // M21.2 — cheap mapped targets
   register(ResourceGroupHandler, (ctx) => new ResourceGroupHandler(ctx.clients.resourceGroups)),
-  register(SecretsManagerSecretHandler, (ctx) => new SecretsManagerSecretHandler(ctx.clients.secretsManager)),
-  register(AcmCertificateHandler, (ctx) => new AcmCertificateHandler(ctx.clients.acm, ctx.clients.route53)),
+  register(
+    SecretsManagerSecretHandler,
+    (ctx) => new SecretsManagerSecretHandler(ctx.clients.secretsManager),
+  ),
+  register(
+    AcmCertificateHandler,
+    (ctx) => new AcmCertificateHandler(ctx.clients.acm, ctx.clients.route53),
+  ),
   register(TargetGroupHandler, (ctx) => new TargetGroupHandler(ctx.clients.elbv2, ctx.clients.ec2)),
   // M21.3 — compute/data mapped targets (every mapped target executable)
   register(EcsServiceHandler, (ctx) => new EcsServiceHandler(ctx.clients.ecs, ctx.clients.ec2)),
-  register(LoadBalancerHandler, (ctx) => new LoadBalancerHandler(ctx.clients.elbv2, ctx.clients.ec2)),
+  register(
+    LoadBalancerHandler,
+    (ctx) => new LoadBalancerHandler(ctx.clients.elbv2, ctx.clients.ec2),
+  ),
   register(RdsInstanceHandler, (ctx) => new RdsInstanceHandler(ctx.clients.rds)),
-  register(RdsSubnetGroupHandler, (ctx) => new RdsSubnetGroupHandler(ctx.clients.rds, ctx.clients.ec2)),
-  register(ElastiCacheReplicationGroupHandler, (ctx) => new ElastiCacheReplicationGroupHandler(ctx.clients.elasticache, ctx.clients.ec2)),
+  register(
+    RdsSubnetGroupHandler,
+    (ctx) => new RdsSubnetGroupHandler(ctx.clients.rds, ctx.clients.ec2),
+  ),
+  register(
+    ElastiCacheReplicationGroupHandler,
+    (ctx) => new ElastiCacheReplicationGroupHandler(ctx.clients.elasticache, ctx.clients.ec2),
+  ),
   // M22.1 — serverless core
-  register(LambdaFunctionHandler, (ctx) => new LambdaFunctionHandler(ctx.clients.lambda, ctx.clients.iam)),
-  register(ApiGatewayHttpApiHandler, (ctx) => new ApiGatewayHttpApiHandler(ctx.clients.apigatewayv2, ctx.region)),
-  register(SnsTopicHandler, (ctx) => new SnsTopicHandler(ctx.clients.sns, ctx.clients.sts, ctx.region)),
+  register(
+    LambdaFunctionHandler,
+    (ctx) => new LambdaFunctionHandler(ctx.clients.lambda, ctx.clients.iam),
+  ),
+  register(
+    ApiGatewayHttpApiHandler,
+    (ctx) => new ApiGatewayHttpApiHandler(ctx.clients.apigatewayv2, ctx.region),
+  ),
+  register(
+    SnsTopicHandler,
+    (ctx) => new SnsTopicHandler(ctx.clients.sns, ctx.clients.sts, ctx.region),
+  ),
   register(SsmParameterHandler, (ctx) => new SsmParameterHandler(ctx.clients.ssm)),
-  register(SchedulerScheduleHandler, (ctx) => new SchedulerScheduleHandler(ctx.clients.scheduler, ctx.clients.lambda, ctx.clients.iam)),
+  register(
+    SchedulerScheduleHandler,
+    (ctx) =>
+      new SchedulerScheduleHandler(ctx.clients.scheduler, ctx.clients.lambda, ctx.clients.iam),
+  ),
   register(LogGroupHandler, (ctx) => new LogGroupHandler(ctx.clients.cloudwatchLogs)),
   // M22.2 — serverless data + derived posture
   register(DynamoDbTableHandler, (ctx) => new DynamoDbTableHandler(ctx.clients.dynamodb)),
-  register(TimestreamDatabaseHandler, (ctx) => new TimestreamDatabaseHandler(ctx.clients.timestreamWrite)),
-  register(TimestreamTableHandler, (ctx) => new TimestreamTableHandler(ctx.clients.timestreamWrite)),
+  register(
+    TimestreamDatabaseHandler,
+    (ctx) => new TimestreamDatabaseHandler(ctx.clients.timestreamWrite),
+  ),
+  register(
+    TimestreamTableHandler,
+    (ctx) => new TimestreamTableHandler(ctx.clients.timestreamWrite),
+  ),
   register(KmsKeyHandler, (ctx) => new KmsKeyHandler(ctx.clients.kms)),
   register(BackupVaultHandler, (ctx) => new BackupVaultHandler(ctx.clients.backup)),
   register(BackupPlanHandler, (ctx) => new BackupPlanHandler(ctx.clients.backup)),
   // M22.3 — VPC data engines
   register(RdsClusterHandler, (ctx) => new RdsClusterHandler(ctx.clients.rds, ctx.clients.ec2)),
   register(RdsClusterInstanceHandler, (ctx) => new RdsClusterInstanceHandler(ctx.clients.rds)),
-  register(DocdbClusterHandler, (ctx) => new DocdbClusterHandler(ctx.clients.docdb, ctx.clients.ec2)),
+  register(
+    DocdbClusterHandler,
+    (ctx) => new DocdbClusterHandler(ctx.clients.docdb, ctx.clients.ec2),
+  ),
   register(DocdbInstanceHandler, (ctx) => new DocdbInstanceHandler(ctx.clients.docdb)),
-  register(NeptuneClusterHandler, (ctx) => new NeptuneClusterHandler(ctx.clients.neptune, ctx.clients.ec2)),
+  register(
+    NeptuneClusterHandler,
+    (ctx) => new NeptuneClusterHandler(ctx.clients.neptune, ctx.clients.ec2),
+  ),
   register(NeptuneInstanceHandler, (ctx) => new NeptuneInstanceHandler(ctx.clients.neptune)),
-  register(MemoryDbClusterHandler, (ctx) => new MemoryDbClusterHandler(ctx.clients.memorydb, ctx.clients.ec2)),
+  register(
+    MemoryDbClusterHandler,
+    (ctx) => new MemoryDbClusterHandler(ctx.clients.memorydb, ctx.clients.ec2),
+  ),
   register(MqBrokerHandler, (ctx) => new MqBrokerHandler(ctx.clients.mq, ctx.clients.ec2)),
   // M22.4 — volumes
   register(Ec2VolumeHandler, (ctx) => new Ec2VolumeHandler(ctx.clients.ec2)),
-  register(EfsFileSystemHandler, (ctx) => new EfsFileSystemHandler(ctx.clients.efs, ctx.clients.ec2)),
-  register(FsxFileSystemHandler, (ctx) => new FsxFileSystemHandler(ctx.clients.fsx, ctx.clients.ec2)),
+  register(
+    EfsFileSystemHandler,
+    (ctx) => new EfsFileSystemHandler(ctx.clients.efs, ctx.clients.ec2),
+  ),
+  register(
+    FsxFileSystemHandler,
+    (ctx) => new FsxFileSystemHandler(ctx.clients.fsx, ctx.clients.ec2),
+  ),
   // M22.5 — compute runtimes + edge-adjacent
   register(Ec2InstanceHandler, (ctx) => new Ec2InstanceHandler(ctx.clients.ec2)),
   register(LaunchTemplateHandler, (ctx) => new LaunchTemplateHandler(ctx.clients.ec2)),
-  register(AutoScalingGroupHandler, (ctx) => new AutoScalingGroupHandler(ctx.clients.autoscaling, ctx.clients.ec2)),
+  register(
+    AutoScalingGroupHandler,
+    (ctx) => new AutoScalingGroupHandler(ctx.clients.autoscaling, ctx.clients.ec2),
+  ),
   register(AppRunnerServiceHandler, (ctx) => new AppRunnerServiceHandler(ctx.clients.apprunner)),
-  register(BatchComputeEnvironmentHandler, (ctx) => new BatchComputeEnvironmentHandler(ctx.clients.batch)),
+  register(
+    BatchComputeEnvironmentHandler,
+    (ctx) => new BatchComputeEnvironmentHandler(ctx.clients.batch),
+  ),
   register(BatchJobQueueHandler, (ctx) => new BatchJobQueueHandler(ctx.clients.batch)),
   register(BatchJobDefinitionHandler, (ctx) => new BatchJobDefinitionHandler(ctx.clients.batch)),
   register(Wafv2WebAclHandler, (ctx) => new Wafv2WebAclHandler(ctx.clients.wafv2)),
@@ -150,11 +201,20 @@ export const HANDLER_REGISTRATIONS = [
   register(Route53RecordSetHandler, (ctx) => new Route53RecordSetHandler(ctx.clients.route53)),
   register(EcrRepositoryHandler, (ctx) => new EcrRepositoryHandler(ctx.clients.ecr)),
   register(CloudWatchAlarmHandler, (ctx) => new CloudWatchAlarmHandler(ctx.clients.cloudwatch)),
-  register(CloudWatchDashboardHandler, (ctx) => new CloudWatchDashboardHandler(ctx.clients.cloudwatch)),
+  register(
+    CloudWatchDashboardHandler,
+    (ctx) => new CloudWatchDashboardHandler(ctx.clients.cloudwatch),
+  ),
   register(KeyspacesKeyspaceHandler, (ctx) => new KeyspacesKeyspaceHandler(ctx.clients.keyspaces)),
   register(KeyspacesTableHandler, (ctx) => new KeyspacesTableHandler(ctx.clients.keyspaces)),
-  register(RedshiftServerlessNamespaceHandler, (ctx) => new RedshiftServerlessNamespaceHandler(ctx.clients.redshiftServerless)),
-  register(RedshiftServerlessWorkgroupHandler, (ctx) => new RedshiftServerlessWorkgroupHandler(ctx.clients.redshiftServerless)),
+  register(
+    RedshiftServerlessNamespaceHandler,
+    (ctx) => new RedshiftServerlessNamespaceHandler(ctx.clients.redshiftServerless),
+  ),
+  register(
+    RedshiftServerlessWorkgroupHandler,
+    (ctx) => new RedshiftServerlessWorkgroupHandler(ctx.clients.redshiftServerless),
+  ),
   // M23.4 — Network (VPC graph) + Workflow (Step Functions)
   register(VpcHandler, (ctx) => new VpcHandler(ctx.clients.ec2)),
   register(SubnetHandler, (ctx) => new SubnetHandler(ctx.clients.ec2)),
@@ -165,15 +225,24 @@ export const HANDLER_REGISTRATIONS = [
   register(StateMachineHandler, (ctx) => new StateMachineHandler(ctx.clients.sfn)),
   // M23.5 — Stream (Kinesis/Firehose/MSK) + Search (OpenSearch)
   register(KinesisStreamHandler, (ctx) => new KinesisStreamHandler(ctx.clients.kinesis)),
-  register(FirehoseDeliveryStreamHandler, (ctx) => new FirehoseDeliveryStreamHandler(ctx.clients.firehose)),
+  register(
+    FirehoseDeliveryStreamHandler,
+    (ctx) => new FirehoseDeliveryStreamHandler(ctx.clients.firehose),
+  ),
   register(MskClusterHandler, (ctx) => new MskClusterHandler(ctx.clients.kafka, ctx.clients.ec2)),
   register(OpenSearchDomainHandler, (ctx) => new OpenSearchDomainHandler(ctx.clients.opensearch)),
   // M24.2 — edge (Cdn) + eventing (EventBus) + Cognito (Identity user-directory)
-  register(CloudFrontDistributionHandler, (ctx) => new CloudFrontDistributionHandler(ctx.clients.cloudfront)),
+  register(
+    CloudFrontDistributionHandler,
+    (ctx) => new CloudFrontDistributionHandler(ctx.clients.cloudfront),
+  ),
   register(EventBusHandler, (ctx) => new EventBusHandler(ctx.clients.eventbridge)),
   register(EventRuleHandler, (ctx) => new EventRuleHandler(ctx.clients.eventbridge)),
   register(CognitoUserPoolHandler, (ctx) => new CognitoUserPoolHandler(ctx.clients.cognito)),
-  register(CognitoUserPoolClientHandler, (ctx) => new CognitoUserPoolClientHandler(ctx.clients.cognito)),
+  register(
+    CognitoUserPoolClientHandler,
+    (ctx) => new CognitoUserPoolClientHandler(ctx.clients.cognito),
+  ),
 ] as const;
 
 /** Build a dispatch map, failing fast on duplicate targetType declarations. */

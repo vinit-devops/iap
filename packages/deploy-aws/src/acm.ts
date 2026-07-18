@@ -36,9 +36,7 @@ import {
   RequestCertificateCommand,
 } from '@aws-sdk/client-acm';
 import type { ACMClient, DomainValidation, ValidationMethod } from '@aws-sdk/client-acm';
-import {
-  ChangeResourceRecordSetsCommand,
-} from '@aws-sdk/client-route-53';
+import { ChangeResourceRecordSetsCommand } from '@aws-sdk/client-route-53';
 import type { Route53Client, RRType } from '@aws-sdk/client-route-53';
 import type { PlanResource } from '@iap/provider-sdk';
 import type { ResourceState, TargetHandler } from './types.js';
@@ -148,9 +146,7 @@ export class AcmCertificateHandler implements TargetHandler {
     // Withdraw the validation CNAME(s) before deleting the certificate, so the
     // hosted zone is not left with orphaned _acm-validations records.
     if (this.route53 !== undefined && hostedZoneId !== '' && CertificateArn !== '') {
-      const described = await this.client.send(
-        new DescribeCertificateCommand({ CertificateArn }),
-      );
+      const described = await this.client.send(new DescribeCertificateCommand({ CertificateArn }));
       const validations = described.Certificate?.DomainValidationOptions ?? [];
       await this.withdrawValidationRecords(hostedZoneId, validations);
     }

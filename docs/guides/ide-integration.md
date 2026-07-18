@@ -8,26 +8,26 @@ gains a deployment path (spec ch. 19).
 
 Published identities (v0.1.0, Apache-2.0, repo <https://github.com/vinit-devops/iap>):
 
-| Component | Identity | Install command / binary |
-| --- | --- | --- |
-| CLI | npm `@infraasprompt/cli` | `npm i -g @infraasprompt/cli` → `iap` |
-| MCP server | npm `@infraasprompt/mcp-server` | `npx -y @infraasprompt/mcp-server` → `iap-mcp-server` |
-| VS Code extension | Marketplace `infraasprompt.iap-vscode` (publisher `infraasprompt`) | Extensions view → search "IaP" |
-| Cursor / VSCodium extension | OpenVSX namespace `iap` | Extensions view → search "IaP" |
-| Language server | `@iap/language-server` (bin `iap-language-server`) | not yet published — build from source (see JetBrains) |
+| Component                   | Identity                                                           | Install command / binary                              |
+| --------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------- |
+| CLI                         | npm `@infraasprompt/cli`                                           | `npm i -g @infraasprompt/cli` → `iap`                 |
+| MCP server                  | npm `@infraasprompt/mcp-server`                                    | `npx -y @infraasprompt/mcp-server` → `iap-mcp-server` |
+| VS Code extension           | Marketplace `infraasprompt.iap-vscode` (publisher `infraasprompt`) | Extensions view → search "IaP"                        |
+| Cursor / VSCodium extension | OpenVSX namespace `iap`                                            | Extensions view → search "IaP"                        |
+| Language server             | `@iap/language-server` (bin `iap-language-server`)                 | not yet published — build from source (see JetBrains) |
 
 ## What the MCP server can and cannot do (the trust boundary — read first)
 
 The IaP MCP server (stdio JSON-RPC, MCP protocol `2025-06-18`) exposes **exactly five
 read-only tools** and nothing else:
 
-| Tool | Kind | What it does |
-| --- | --- | --- |
-| `iap_author` | authoring | Natural-language requirement → intent-compiler gate → clarifications, semantic preview, and (on commit) the document with per-field provenance. Never writes to disk. |
-| `iap_validate` | analysis | Full validation pipeline (phases 1–5); identical findings to `iap validate`. |
-| `iap_cost` | analysis | Cost estimate and budget evaluation (identical to `iap cost`). |
-| `iap_security` | analysis | Security posture: grants, reachability, IAP6xx findings (identical to `iap security`). |
-| `iap_compliance` | analysis | Active compliance framework bundles → evidence report (identical to `iap compliance`). |
+| Tool             | Kind      | What it does                                                                                                                                                          |
+| ---------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `iap_author`     | authoring | Natural-language requirement → intent-compiler gate → clarifications, semantic preview, and (on commit) the document with per-field provenance. Never writes to disk. |
+| `iap_validate`   | analysis  | Full validation pipeline (phases 1–5); identical findings to `iap validate`.                                                                                          |
+| `iap_cost`       | analysis  | Cost estimate and budget evaluation (identical to `iap cost`).                                                                                                        |
+| `iap_security`   | analysis  | Security posture: grants, reachability, IAP6xx findings (identical to `iap security`).                                                                                |
+| `iap_compliance` | analysis  | Active compliance framework bundles → evidence report (identical to `iap compliance`).                                                                                |
 
 What it **cannot** do — by construction, not by configuration:
 
@@ -197,7 +197,7 @@ the authoring/analysis tools, not editor diagnostics.
 
 **LSP (build from source for now).** Editor features (diagnostics, completion, hover) come
 from the `iap-language-server` binary in `@iap/language-server`. That package is **not yet
-published to npm** — `npm i -g @infraasprompt/cli @infraasprompt/mcp-server` does *not* install it. Until it is
+published to npm** — `npm i -g @infraasprompt/cli @infraasprompt/mcp-server` does _not_ install it. Until it is
 published, build it from source:
 
 ```sh

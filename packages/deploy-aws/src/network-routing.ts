@@ -189,7 +189,9 @@ export class InternetGatewayHandler implements TargetHandler {
     }
     try {
       // Attach as a second step — an IGW is created detached (order matters).
-      await this.ec2.send(new AttachInternetGatewayCommand({ InternetGatewayId: igwId, VpcId: vpcId }));
+      await this.ec2.send(
+        new AttachInternetGatewayCommand({ InternetGatewayId: igwId, VpcId: vpcId }),
+      );
     } catch (err) {
       // A created-but-unattached IGW is dangling: tear it back down so the next
       // apply retries cleanly rather than tripping ambiguous identity.
@@ -342,7 +344,9 @@ export class RouteTableHandler implements TargetHandler {
     // Optional subnet association (a public/private subnet routes through us).
     const subnetId = scalarStr(resource.desiredAttributes['subnetId']);
     if (subnetId !== '') {
-      await this.ec2.send(new AssociateRouteTableCommand({ RouteTableId: rtId, SubnetId: subnetId }));
+      await this.ec2.send(
+        new AssociateRouteTableCommand({ RouteTableId: rtId, SubnetId: subnetId }),
+      );
     }
     return rtId;
   }
@@ -361,7 +365,9 @@ export class RouteTableHandler implements TargetHandler {
     // Routes removed from desired → DeleteRoute.
     for (const cidr of live.keys()) {
       if (!desired.has(cidr)) {
-        await this.ec2.send(new DeleteRouteCommand({ RouteTableId: rtId, DestinationCidrBlock: cidr }));
+        await this.ec2.send(
+          new DeleteRouteCommand({ RouteTableId: rtId, DestinationCidrBlock: cidr }),
+        );
       }
     }
     // Routes added or re-targeted → CreateRoute / ReplaceRoute.
@@ -415,7 +421,12 @@ export class RouteTableHandler implements TargetHandler {
     rtId: string,
     cidr: string,
     t: RouteTarget,
-  ): { RouteTableId: string; DestinationCidrBlock: string; GatewayId?: string; NatGatewayId?: string } {
+  ): {
+    RouteTableId: string;
+    DestinationCidrBlock: string;
+    GatewayId?: string;
+    NatGatewayId?: string;
+  } {
     return {
       RouteTableId: rtId,
       DestinationCidrBlock: cidr,

@@ -116,7 +116,10 @@ describe('aws:ecs:Service', () => {
     const svc = ecs.commandCalls(CreateServiceCommand)[0]?.args[0].input;
     expect(svc?.cluster).toBe('web-cluster');
     expect(svc?.launchType).toBe('FARGATE');
-    expect(svc?.networkConfiguration?.awsvpcConfiguration?.subnets).toEqual(['subnet-a', 'subnet-b']);
+    expect(svc?.networkConfiguration?.awsvpcConfiguration?.subnets).toEqual([
+      'subnet-a',
+      'subnet-b',
+    ]);
     expect(svc?.networkConfiguration?.awsvpcConfiguration?.assignPublicIp).toBe('DISABLED');
     const td = ecs.commandCalls(RegisterTaskDefinitionCommand)[0]?.args[0].input;
     expect(td?.containerDefinitions?.[0]?.image).toBe('public.ecr.aws/docker/library/nginx:alpine');
@@ -176,7 +179,9 @@ describe('aws:ecs:Service', () => {
 
     const report = await executor().apply(plan, { apply: true });
     expect(report.items[0]?.action).toBe('update');
-    expect(ecs.commandCalls(UpdateServiceCommand)[0]?.args[0].input?.taskDefinition).toBe('arn:td/web:2');
+    expect(ecs.commandCalls(UpdateServiceCommand)[0]?.args[0].input?.taskDefinition).toBe(
+      'arn:td/web:2',
+    );
   });
 
   it('launchType drift is IMMUTABLE → replace', async () => {
@@ -231,7 +236,9 @@ describe('aws:ecs:Service', () => {
       },
     });
     ecs.on(DeleteServiceCommand).resolves({});
-    ecs.on(ListTaskDefinitionsCommand).resolves({ taskDefinitionArns: ['arn:td/web:1', 'arn:td/web:2'] });
+    ecs
+      .on(ListTaskDefinitionsCommand)
+      .resolves({ taskDefinitionArns: ['arn:td/web:1', 'arn:td/web:2'] });
     ecs.on(DeregisterTaskDefinitionCommand).resolves({});
     ecs.on(DeleteClusterCommand).resolves({});
 
@@ -270,7 +277,8 @@ describe('aws:elasticloadbalancing:LoadBalancer', () => {
     expect(report.items[0]?.identifier).toBe('arn:lb/edge');
     const input = elbv2.commandCalls(CreateLoadBalancerCommand)[0]?.args[0].input;
     expect(input?.Subnets).toEqual(['subnet-a', 'subnet-b', 'subnet-c']);
-    const attrs = elbv2.commandCalls(ModifyLoadBalancerAttributesCommand)[0]?.args[0].input?.Attributes;
+    const attrs = elbv2.commandCalls(ModifyLoadBalancerAttributesCommand)[0]?.args[0].input
+      ?.Attributes;
     expect(attrs).toContainEqual({
       Key: 'routing.http.drop_invalid_header_fields.enabled',
       Value: 'true',
@@ -320,7 +328,9 @@ describe('aws:elasticloadbalancing:LoadBalancer', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(elbv2.commandCalls(DeleteLoadBalancerCommand)[0]?.args[0].input?.LoadBalancerArn).toBe('arn:lb/edge');
+    expect(elbv2.commandCalls(DeleteLoadBalancerCommand)[0]?.args[0].input?.LoadBalancerArn).toBe(
+      'arn:lb/edge',
+    );
   });
 });
 
@@ -353,7 +363,9 @@ describe('aws:rds:DBInstance', () => {
 
   it('absent → CreateDBInstance with RDS-managed master password (no secret material)', async () => {
     rds.on(DescribeDBInstancesCommand).rejects(serviceError('DBInstanceNotFoundFault'));
-    rds.on(CreateDBInstanceCommand).resolves({ DBInstance: { DBInstanceArn: 'arn:rds/orders-db' } });
+    rds
+      .on(CreateDBInstanceCommand)
+      .resolves({ DBInstance: { DBInstanceArn: 'arn:rds/orders-db' } });
 
     const report = await executor().apply(plan, { apply: true });
 
@@ -400,7 +412,9 @@ describe('aws:rds:DBInstance', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(rds.commandCalls(ModifyDBInstanceCommand)[0]?.args[0].input?.DeletionProtection).toBe(false);
+    expect(rds.commandCalls(ModifyDBInstanceCommand)[0]?.args[0].input?.DeletionProtection).toBe(
+      false,
+    );
     const del = rds.commandCalls(DeleteDBInstanceCommand)[0]?.args[0].input;
     expect(del?.SkipFinalSnapshot).toBe(true);
     expect(del?.DeleteAutomatedBackups).toBe(true);
@@ -508,7 +522,9 @@ describe('aws:elasticache:ReplicationGroup', () => {
     mockDefaultNetwork();
 
     await executor().apply(noTls, { apply: true });
-    expect(ec.commandCalls(CreateReplicationGroupCommand)[0]?.args[0].input?.AuthToken).toBeUndefined();
+    expect(
+      ec.commandCalls(CreateReplicationGroupCommand)[0]?.args[0].input?.AuthToken,
+    ).toBeUndefined();
   });
 
   it('present + converged → no-op', async () => {
@@ -550,8 +566,7 @@ describe('aws:elasticache:ReplicationGroup', () => {
   });
 
   it('destroy → DeleteReplicationGroup, wait for gone, then delete the subnet group', async () => {
-    ec
-      .on(DescribeReplicationGroupsCommand)
+    ec.on(DescribeReplicationGroupsCommand)
       .resolvesOnce({ ReplicationGroups: [liveRg] }) // the read
       .resolves({ ReplicationGroups: [] }); // the deletion waiter
     ec.on(EcListTagsCommand).resolves({ TagList: MANAGED });
@@ -560,7 +575,11 @@ describe('aws:elasticache:ReplicationGroup', () => {
 
     const report = await executor().apply(plan, { apply: true, destroy: true });
     expect(report.items[0]?.applied).toBe(true);
-    expect(ec.commandCalls(DeleteReplicationGroupCommand)[0]?.args[0].input?.RetainPrimaryCluster).toBe(false);
-    expect(ec.commandCalls(DeleteCacheSubnetGroupCommand)[0]?.args[0].input?.CacheSubnetGroupName).toBe('session-cache-subnets');
+    expect(
+      ec.commandCalls(DeleteReplicationGroupCommand)[0]?.args[0].input?.RetainPrimaryCluster,
+    ).toBe(false);
+    expect(
+      ec.commandCalls(DeleteCacheSubnetGroupCommand)[0]?.args[0].input?.CacheSubnetGroupName,
+    ).toBe('session-cache-subnets');
   });
 });

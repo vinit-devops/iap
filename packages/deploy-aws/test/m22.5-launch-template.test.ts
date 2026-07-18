@@ -165,9 +165,9 @@ describe('aws:ec2:LaunchTemplate — destroy', () => {
 
     expect(report.items[0]?.action).toBe('delete');
     expect(report.items[0]?.applied).toBe(true);
-    expect(ec2.commandCalls(DeleteLaunchTemplateCommand)[0]?.args[0].input?.LaunchTemplateName).toBe(
-      'fleet-tmpl',
-    );
+    expect(
+      ec2.commandCalls(DeleteLaunchTemplateCommand)[0]?.args[0].input?.LaunchTemplateName,
+    ).toBe('fleet-tmpl');
   });
 
   it('refuses to destroy a template NOT tagged iap:managed', async () => {

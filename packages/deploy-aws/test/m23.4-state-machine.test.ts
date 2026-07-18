@@ -51,7 +51,8 @@ function machine(overrides: Record<string, unknown> = {}) {
     roleArn: ROLE_ARN,
     // AWS returns the definition it stored — here pretty-printed with reordered
     // keys, to prove canonical-JSON comparison treats it as converged.
-    definition: '{\n  "StartAt": "Done",\n  "Comment": "iap",\n  "States": {\n    "Done": { "Type": "Pass", "End": true }\n  }\n}',
+    definition:
+      '{\n  "StartAt": "Done",\n  "Comment": "iap",\n  "States": {\n    "Done": { "Type": "Pass", "End": true }\n  }\n}',
     ...overrides,
   };
 }
@@ -66,7 +67,9 @@ describe('aws:states:StateMachine', () => {
       planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({ stateMachines: [] });
-    sfn.on(CreateStateMachineCommand).resolves({ stateMachineArn: SM_ARN, creationDate: undefined });
+    sfn
+      .on(CreateStateMachineCommand)
+      .resolves({ stateMachineArn: SM_ARN, creationDate: undefined });
 
     const report = await executor().apply(plan, { apply: true });
 
@@ -106,12 +109,22 @@ describe('aws:states:StateMachine', () => {
       .resolvesOnce({
         nextToken: 'page-2',
         stateMachines: [
-          { stateMachineArn: 'arn:other', name: 'other-flow', type: 'EXPRESS', creationDate: undefined },
+          {
+            stateMachineArn: 'arn:other',
+            name: 'other-flow',
+            type: 'EXPRESS',
+            creationDate: undefined,
+          },
         ],
       })
       .resolves({
         stateMachines: [
-          { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+          {
+            stateMachineArn: SM_ARN,
+            name: 'infraasprompt-flow',
+            type: 'EXPRESS',
+            creationDate: undefined,
+          },
         ],
       });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -127,7 +140,9 @@ describe('aws:states:StateMachine', () => {
     expect(sfn.commandCalls(DescribeStateMachineCommand)[0]?.args[0].input?.stateMachineArn).toBe(
       SM_ARN,
     );
-    expect(sfn.commandCalls(ListTagsForResourceCommand)[0]?.args[0].input?.resourceArn).toBe(SM_ARN);
+    expect(sfn.commandCalls(ListTagsForResourceCommand)[0]?.args[0].input?.resourceArn).toBe(
+      SM_ARN,
+    );
   });
 
   it('converged: a whitespace/key-order-different definition is NOT drift (canonical compare)', async () => {
@@ -136,7 +151,12 @@ describe('aws:states:StateMachine', () => {
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     // Live definition is pretty-printed with reordered keys — canonically equal.
@@ -154,12 +174,18 @@ describe('aws:states:StateMachine', () => {
     const plan = providerPlan([
       planResource('infraasprompt-flow', 'aws:states:StateMachine', {
         roleArn: ROLE_ARN,
-        definition: '{"Comment":"changed","StartAt":"Done","States":{"Done":{"Type":"Pass","End":true}}}',
+        definition:
+          '{"Comment":"changed","StartAt":"Done","States":{"Done":{"Type":"Pass","End":true}}}',
       }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -188,7 +214,12 @@ describe('aws:states:StateMachine', () => {
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -207,16 +238,26 @@ describe('aws:states:StateMachine', () => {
   });
 
   it('type EXPRESS→STANDARD drift classifies as replace (immutable projection key)', async () => {
-    const handler: TargetHandler = new StateMachineHandler(new SFNClient({ region: 'eu-central-1' }));
+    const handler: TargetHandler = new StateMachineHandler(
+      new SFNClient({ region: 'eu-central-1' }),
+    );
     // ADR-0006: type cannot change in place, so it is the sole immutable key.
     expect(handler.immutableProjectionKeys).toEqual(['type']);
 
     const plan = providerPlan([
-      planResource('infraasprompt-flow', 'aws:states:StateMachine', { roleArn: ROLE_ARN, type: 'STANDARD' }),
+      planResource('infraasprompt-flow', 'aws:states:StateMachine', {
+        roleArn: ROLE_ARN,
+        type: 'STANDARD',
+      }),
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine()); // live type EXPRESS
@@ -232,7 +273,12 @@ describe('aws:states:StateMachine', () => {
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -250,7 +296,12 @@ describe('aws:states:StateMachine', () => {
     sfn.reset();
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine());
@@ -268,7 +319,12 @@ describe('aws:states:StateMachine', () => {
     ]);
     sfn.on(ListStateMachinesCommand).resolves({
       stateMachines: [
-        { stateMachineArn: SM_ARN, name: 'infraasprompt-flow', type: 'EXPRESS', creationDate: undefined },
+        {
+          stateMachineArn: SM_ARN,
+          name: 'infraasprompt-flow',
+          type: 'EXPRESS',
+          creationDate: undefined,
+        },
       ],
     });
     sfn.on(DescribeStateMachineCommand).resolves(machine({ status: 'DELETING' }));
